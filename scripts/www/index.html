@@ -8,16 +8,17 @@
     <style>
         :root {
             --primary-color: #3b82f6;
+            --highlight-pink: #FC28AD;
             --yi-color: #16a34a;
             --ji-color: #dc2626;
             --bg-color: #f8fafc;
             --card-bg: #ffffff;
             --border-color: #e2e8f0;
-            --wx-mu: #16a34a;
-            --wx-huo: #dc2626;
+            --wx-mu: #22c55e;
+            --wx-huo: #ef4444;
             --wx-tu: #d97706;
-            --wx-jin: #b45309;
-            --wx-shui: #1d4ed8;
+            --wx-jin: #f59e0b;
+            --wx-shui: #3b82f6;
             --safe-top: env(safe-area-inset-top, 0px);
             --safe-bottom: env(safe-area-inset-bottom, 0px);
             --header-height: 56px;
@@ -76,14 +77,14 @@
             padding: 12px 12px calc(12px + var(--safe-bottom));
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 14px;
             background: var(--bg-color);
             margin: 8px 0;
         }
         .card {
             background: var(--card-bg);
             border-radius: 14px;
-            padding: 16px;
+            padding: 18px 16px;
             box-shadow: 0 1px 4px rgba(0,0,0,0.06);
             border: 1px solid var(--border-color);
         }
@@ -126,60 +127,73 @@
             text-align: center;
         }
         .week-days div {
-            font-size: 12px;
+            font-size: 13px;
             color: #64748b;
             padding: 6px 0;
             font-weight: 600;
         }
         .day-cell {
-            padding: 6px 2px;
+            padding: 5px 2px;
             border-radius: 8px;
             cursor: pointer;
-            min-height: 56px;
+            min-height: 58px;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            font-size: 14px;
+            font-size: 16px;
+            font-weight: 500;
             transition: background-color 0.15s;
             border: 2px solid transparent;
         }
         .day-cell:hover {
             background-color: #eff6ff;
         }
-        .day-cell.selected {
-            background-color: var(--primary-color);
-            color: #fff;
-            border-color: #2563eb;
-        }
+
+        /* 当日高亮：黑色实线框 */
         .day-cell.today-ring {
-            border-color: var(--primary-color);
-            border-style: dashed;
+            border: 2px solid #000000 !important;
+            background-color: #f8fafc;
         }
+        /* 点击其他日期高亮：#FC28AD 虚线框 */
+        .day-cell.selected:not(.today-ring) {
+            background-color: rgba(252, 40, 173, 0.06);
+            color: #0f172a;
+            border: 2px dashed var(--highlight-pink) !important;
+        }
+        .day-cell.selected.today-ring {
+            background-color: #f1f5f9;
+            border: 2px solid #000000 !important;
+        }
+
         .day-cell .lunar-text {
-            font-size: 10px;
-            opacity: 0.8;
+            font-size: 11px;
+            opacity: 0.85;
             margin-top: 2px;
+            color: #475569;
         }
         .day-cell .ganzhi-text {
-            font-size: 9px;
+            font-size: 10px;
             font-weight: 600;
             margin-top: 1px;
+            display: flex;
+            justify-content: center;
+            gap: 1px;
         }
-        .day-cell.selected .lunar-text,
-        .day-cell.selected .ganzhi-text {
-            color: #fff;
-            opacity: 0.9;
+        .day-cell.selected .lunar-text {
+            color: #334155;
+            opacity: 0.95;
         }
         .day-cell.other-month {
             opacity: 0.25;
             pointer-events: none;
         }
+        
         .day-detail {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 10px;
         }
         .solar-big {
             font-size: 44px;
@@ -196,19 +210,23 @@
         .bazi-pillars .stem-branch {
             font-size: 15px;
             font-weight: 700;
+            display: flex;
+            justify-content: center;
+            gap: 1px;
         }
         .bazi-pillars small {
             color: #64748b;
             font-weight: 400;
             font-size: 10px;
             display: block;
+            margin-top: 2px;
         }
         .tag-row {
             display: flex;
             gap: 8px;
             font-size: 13px;
-            margin-top: 8px;
-            line-height: 1.5;
+            margin-top: 10px;
+            line-height: 1.85;
             align-items: flex-start;
         }
         .badge {
@@ -219,25 +237,26 @@
             font-weight: bold;
             height: fit-content;
             flex-shrink: 0;
-            margin-top: 1px;
+            margin-top: 3px;
         }
         .badge-yi { background-color: var(--yi-color); }
         .badge-ji { background-color: var(--ji-color); }
+        
         .almanac-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
+            gap: 10px;
             font-size: 12px;
-            margin-top: 10px;
+            margin-top: 12px;
             border-top: 1px solid var(--border-color);
-            padding-top: 10px;
+            padding-top: 12px;
         }
         .almanac-item {
             background: #f8fafc;
-            padding: 8px;
+            padding: 10px;
             border-radius: 6px;
             font-size: 12px;
-            line-height: 1.4;
+            line-height: 1.65;
         }
         .almanac-item span {
             font-weight: bold;
@@ -247,7 +266,7 @@
             display: grid;
             grid-template-columns: repeat(13, 1fr);
             gap: 2px;
-            margin-top: 10px;
+            margin-top: 12px;
             text-align: center;
             font-size: 10px;
         }
@@ -276,17 +295,18 @@
         .hour-box .hour-label {
             font-size: 9px;
             opacity: 0.85;
-            margin-top: 1px;
+            margin-top: 2px;
         }
+
         .user-bazi-section {
-            background-color: #f0f9ff;
-            border: 1px solid #bae6fd;
+            background-color: #fafafa;
+            border: 1px solid #e2e8f0;
         }
         .user-bazi-section .section-title {
             font-weight: 700;
             font-size: 14px;
-            color: #0c4a6e;
-            margin-bottom: 6px;
+            color: #334155;
+            margin-bottom: 8px;
         }
         .input-group {
             display: flex;
@@ -318,21 +338,19 @@
             min-width: 36px;
         }
         .personal-fortune {
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px dashed #cbd5e1;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px dashed #e2e8f0;
             font-size: 13px;
-            line-height: 1.7;
+            line-height: 1.85;
             color: #1e293b;
         }
-        .personal-fortune .highlight-day-gan { color: #be123c; font-weight: bold; }
-        .personal-fortune .highlight-ten-god { color: #7c3aed; font-weight: bold; }
         .personal-fortune .advice-text {
             color: #374151;
             background: #fefce8;
             padding: 6px 8px;
             border-radius: 4px;
-            margin-top: 4px;
+            margin-top: 6px;
             display: block;
         }
         .modal-overlay {
@@ -381,22 +399,23 @@
         }
         .modal-body {
             font-size: 13px;
-            line-height: 1.7;
+            line-height: 1.85;
         }
         .daily-info {
             margin-top: 16px;
-            padding: 12px;
+            padding: 14px;
             background: #f8fafc;
             border-radius: 12px;
             border: 1px dashed #cbd5e1;
             font-size: 13px;
+            line-height: 1.8;
         }
         .countdown-section {
             margin-top: 16px;
             background: #fff;
             border-radius: 12px;
             border: 1px solid #e2e8f0;
-            padding: 12px;
+            padding: 14px;
         }
         .countdown-header {
             display: flex;
@@ -416,6 +435,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            line-height: 1.6;
         }
         .cd-name { font-weight: 600; }
         .cd-time { color: #d97706; font-weight: 700; }
@@ -472,13 +492,37 @@
             .solar-big { font-size: 34px; }
             .hours-bar { font-size: 8px; }
         }
+
+        .month-grid-wrapper {
+            overflow: hidden;
+            position: relative;
+        }
+        .month-grid {
+            transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.35s ease;
+            will-change: transform, opacity;
+        }
+        .month-grid.slide-left {
+            transform: translateX(-100%);
+            opacity: 0;
+        }
+        .month-grid.slide-right {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        .month-grid.slide-enter-left {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        .month-grid.slide-enter-right {
+            transform: translateX(-100%);
+            opacity: 0;
+        }
     </style>
 </head>
 <body>
     <div class="app-header"><span>八 字 万 年 历</span></div>
 
     <div class="main-content" id="mainContent">
-        <!-- 月历 -->
         <div class="card">
             <div class="calendar-header">
                 <div class="left-group">
@@ -489,10 +533,11 @@
                 <div class="week-title" id="weekInfo">--</div>
             </div>
             <div class="week-days"><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div><div>日</div></div>
-            <div class="month-grid" id="monthGrid"></div>
+            <div class="month-grid-wrapper">
+                <div class="month-grid" id="monthGrid"></div>
+            </div>
         </div>
 
-        <!-- 八字输入 -->
         <div class="card user-bazi-section">
             <div class="section-title">🎯 八字输入</div>
             <div class="input-group">
@@ -516,7 +561,6 @@
             <div class="personal-fortune" id="personalFortuneResult">请输入命主出生时间，系统将结合当日干支与十神关系推算专属吉凶。</div>
         </div>
 
-        <!-- 黄历详情 -->
         <div class="card">
             <div class="day-detail">
                 <div>
@@ -539,7 +583,6 @@
             <div style="font-size:12px;font-weight:bold;margin-top:14px;">🕐 十二时辰吉凶（点击查看详情）：</div>
             <div class="hours-bar" id="hoursBar"></div>
 
-            <!-- 倒计时 -->
             <div class="countdown-section">
                 <div class="countdown-header">
                     <h4>⏳ 倒计时</h4>
@@ -548,7 +591,6 @@
                 <div class="countdown-list" id="countdownList"></div>
             </div>
 
-            <!-- 每日信息（祝福语在上，日期行在下） -->
             <div class="daily-info" id="dailyInfo">
                 <div><span>💬 <span id="dailyBlessing">加载中...</span></span></div>
                 <div><span>📅 <span id="infoSolarDate">--</span></span> <span>农历 <span id="infoLunarDate">--</span></span></div>
@@ -556,7 +598,6 @@
         </div>
     </div>
 
-    <!-- 时辰详情弹窗：点击遮罩关闭，点击内部不关闭 -->
     <div id="modalOverlay" class="modal-overlay" style="display:none;" onclick="closeModal()">
         <div class="modal-content" id="modalContent" onclick="event.stopPropagation();">
             <div class="modal-header">
@@ -568,7 +609,6 @@
         </div>
     </div>
 
-    <!-- 倒计时管理弹窗：点击遮罩关闭，点击内部不关闭 -->
     <div id="countdownModalOverlay" class="modal-overlay" style="display:none;" onclick="closeCountdownModal()">
         <div class="modal-content" style="width:90%;max-width:400px;" onclick="event.stopPropagation();">
             <div class="modal-header">
@@ -606,7 +646,13 @@
             '甲':'阳','乙':'阴','丙':'阳','丁':'阴','戊':'阳','己':'阴','庚':'阳','辛':'阴','壬':'阳','癸':'阴',
             '子':'阳','丑':'阴','寅':'阳','卯':'阴','辰':'阳','巳':'阴','午':'阳','未':'阴','申':'阳','酉':'阴','戌':'阳','亥':'阴'
         };
-        const WUXING_COLOR = { '木':'#16a34a','火':'#dc2626','土':'#d97706','金':'#b45309','水':'#1d4ed8' };
+        const WUXING_COLOR = {
+            '木': '#22c55e',
+            '火': '#ef4444',
+            '土': '#d97706',
+            '金': '#f59e0b',
+            '水': '#3b82f6'
+        };
         const SHENG_MAP = { '木':'火','火':'土','土':'金','金':'水','水':'木' };
         const KE_MAP = { '木':'土','火':'金','土':'水','金':'木','水':'火' };
         const ZHI_ORDER = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
@@ -709,11 +755,57 @@
         let countdownItems = [];
         let currentModalHourIndex = 0;
         let modalHourList = [];
+        let isAnimating = false;
 
         function getColorByGan(gan) { return WUXING_COLOR[WU_XING_MAP[gan]] || '#333'; }
         function getColorByZhi(zhi) { return WUXING_COLOR[WU_XING_MAP[zhi]] || '#333'; }
 
-        // ==================== 动态日期核心修复 ====================
+        // ==================== 本地长时间记忆功能 ====================
+        function saveBaziInputsToStorage() {
+            try {
+                const solarData = {
+                    year: document.getElementById('solarYear').value,
+                    month: document.getElementById('solarMonth').value,
+                    day: document.getElementById('solarDay').value,
+                    hour: document.getElementById('solarHour').value,
+                    minute: document.getElementById('solarMinute').value
+                };
+                const lunarData = {
+                    year: document.getElementById('lunarYear').value,
+                    month: document.getElementById('lunarMonth').value,
+                    day: document.getElementById('lunarDay').value,
+                    hour: document.getElementById('lunarHour').value,
+                    minute: document.getElementById('lunarMinute').value
+                };
+                localStorage.setItem('bazi_app_solar_input', JSON.stringify(solarData));
+                localStorage.setItem('bazi_app_lunar_input', JSON.stringify(lunarData));
+                localStorage.setItem('bazi_app_is_lunar_mode', isLunarMode ? 'true' : 'false');
+            } catch (e) {
+                console.warn('LocalStorage 不可用:', e);
+            }
+        }
+
+        function loadBaziInputsFromStorage() {
+            let solarData = { year: 1991, month: 5, day: 23, hour: 3, minute: 30 };
+            let lunarData = { year: 1991, month: 4, day: 10, hour: 3, minute: 30 };
+
+            try {
+                const savedMode = localStorage.getItem('bazi_app_is_lunar_mode');
+                if (savedMode === 'true') isLunarMode = true;
+
+                const savedSolar = localStorage.getItem('bazi_app_solar_input');
+                if (savedSolar) solarData = Object.assign(solarData, JSON.parse(savedSolar));
+
+                const savedLunar = localStorage.getItem('bazi_app_lunar_input');
+                if (savedLunar) lunarData = Object.assign(lunarData, JSON.parse(savedLunar));
+            } catch (e) {
+                console.warn('读取 LocalStorage 失败:', e);
+            }
+
+            return { solarData, lunarData };
+        }
+
+        // ==================== 动态日期计算 ====================
         function getSolarDaysInMonth(year, month) {
             return new Date(year, month, 0).getDate();
         }
@@ -732,11 +824,11 @@
             } catch (e) { return 30; }
         }
 
-        function updateSolarDays() {
+        function updateSolarDays(targetDay) {
             const year = parseInt(document.getElementById('solarYear').value);
             const month = parseInt(document.getElementById('solarMonth').value);
             const solarDay = document.getElementById('solarDay');
-            const curSelected = solarDay.value;
+            const curSelected = targetDay !== undefined ? String(targetDay) : solarDay.value;
             const daysInMonth = getSolarDaysInMonth(year, month);
             solarDay.innerHTML = '';
             for (let d = 1; d <= daysInMonth; d++) {
@@ -744,16 +836,16 @@
                 opt.value = d;
                 opt.textContent = d + '日';
                 if (String(d) === curSelected) opt.selected = true;
-                else if (d === 18 && !curSelected) opt.selected = true;
+                else if (!curSelected && d === 23) opt.selected = true;
                 solarDay.appendChild(opt);
             }
         }
 
-        function updateLunarDays() {
+        function updateLunarDays(targetDay) {
             const year = parseInt(document.getElementById('lunarYear').value);
             const monthVal = document.getElementById('lunarMonth').value;
             const lunarDay = document.getElementById('lunarDay');
-            const curSelected = lunarDay.value;
+            const curSelected = targetDay !== undefined ? String(targetDay) : lunarDay.value;
             let lunarMonthNum = parseInt(monthVal);
             if (monthVal.startsWith('leap')) lunarMonthNum = -parseInt(monthVal.substring(4));
             const daysInMonth = getLunarDaysInMonth(year, lunarMonthNum);
@@ -763,7 +855,7 @@
                 opt.value = d;
                 opt.textContent = getChineseDayName(d);
                 if (String(d) === curSelected) opt.selected = true;
-                else if (d === 18 && !curSelected) opt.selected = true;
+                else if (!curSelected && d === 10) opt.selected = true;
                 lunarDay.appendChild(opt);
             }
         }
@@ -805,83 +897,115 @@
                 if (m === currentDate.getMonth() + 1) opt.selected = true;
                 monthSelect.appendChild(opt);
             }
-            initSolarSelects();
-            initLunarSelects();
+
+            const { solarData, lunarData } = loadBaziInputsFromStorage();
+            initSolarSelects(solarData);
+            initLunarSelects(lunarData);
             initCountdownSelects();
+
+            document.getElementById('calendarModeBtn').textContent = isLunarMode ? '公' : '农';
+            document.getElementById('solarInputContainer').style.display = isLunarMode ? 'none' : 'flex';
+            document.getElementById('lunarInputContainer').style.display = isLunarMode ? 'flex' : 'none';
         }
 
-        function initSolarSelects() {
+        function initSolarSelects(saved) {
             const solarYear = document.getElementById('solarYear');
             const solarMonth = document.getElementById('solarMonth');
             const solarHour = document.getElementById('solarHour');
             const solarMinute = document.getElementById('solarMinute');
+
+            solarYear.innerHTML = '';
+            solarMonth.innerHTML = '';
+            solarHour.innerHTML = '';
+            solarMinute.innerHTML = '';
+
+            const targetY = parseInt(saved.year) || 1991;
+            const targetM = parseInt(saved.month) || 5;
+            const targetD = parseInt(saved.day) || 23;
+            const targetH = parseInt(saved.hour) || 3;
+            const targetMin = parseInt(saved.minute) || 30;
+
             for (let y = 1900; y <= 2100; y++) {
                 const opt = document.createElement('option');
                 opt.value = y; opt.textContent = y + '年';
-                if (y === 1995) opt.selected = true;
+                if (y === targetY) opt.selected = true;
                 solarYear.appendChild(opt);
             }
             for (let m = 1; m <= 12; m++) {
                 const opt = document.createElement('option');
                 opt.value = m; opt.textContent = m + '月';
-                if (m === 8) opt.selected = true;
+                if (m === targetM) opt.selected = true;
                 solarMonth.appendChild(opt);
             }
             for (let h = 0; h <= 23; h++) {
                 const opt = document.createElement('option');
                 opt.value = h; opt.textContent = h + '时';
-                if (h === 10) opt.selected = true;
+                if (h === targetH) opt.selected = true;
                 solarHour.appendChild(opt);
             }
             for (let min = 0; min <= 59; min++) {
                 const opt = document.createElement('option');
                 opt.value = min; opt.textContent = min + '分';
-                if (min === 30) opt.selected = true;
+                if (min === targetMin) opt.selected = true;
                 solarMinute.appendChild(opt);
             }
-            updateSolarDays();
+            updateSolarDays(targetD);
         }
 
-        function initLunarSelects() {
+        function initLunarSelects(saved) {
             const lunarYear = document.getElementById('lunarYear');
-            const lunarMonth = document.getElementById('lunarMonth');
             const lunarHour = document.getElementById('lunarHour');
             const lunarMinute = document.getElementById('lunarMinute');
+
+            lunarYear.innerHTML = '';
+            lunarHour.innerHTML = '';
+            lunarMinute.innerHTML = '';
+
+            const targetY = parseInt(saved.year) || 1991;
+            const targetM = saved.month || 4;
+            const targetD = parseInt(saved.day) || 10;
+            const targetH = parseInt(saved.hour) || 3;
+            const targetMin = parseInt(saved.minute) || 30;
+
             for (let y = 1900; y <= 2100; y++) {
                 const opt = document.createElement('option');
                 opt.value = y; opt.textContent = y + '年';
-                if (y === 1995) opt.selected = true;
+                if (y === targetY) opt.selected = true;
                 lunarYear.appendChild(opt);
             }
             for (let h = 0; h <= 23; h++) {
                 const opt = document.createElement('option');
                 opt.value = h; opt.textContent = h + '时';
-                if (h === 10) opt.selected = true;
+                if (h === targetH) opt.selected = true;
                 lunarHour.appendChild(opt);
             }
             for (let min = 0; min <= 59; min++) {
                 const opt = document.createElement('option');
                 opt.value = min; opt.textContent = min + '分';
-                if (min === 30) opt.selected = true;
+                if (min === targetMin) opt.selected = true;
                 lunarMinute.appendChild(opt);
             }
-            updateLunarMonthOptions();
-            updateLunarDays();
+            updateLunarMonthOptions(targetM);
+            updateLunarDays(targetD);
         }
 
-        function updateLunarMonthOptions() {
+        function updateLunarMonthOptions(targetMonth) {
             const year = parseInt(document.getElementById('lunarYear').value);
             const lunarMonth = document.getElementById('lunarMonth');
             const leapMonth = LunarYear.fromYear(year).getLeapMonth();
+            const curSelected = targetMonth !== undefined ? String(targetMonth) : lunarMonth.value;
             lunarMonth.innerHTML = '';
+
             for (let m = 1; m <= 12; m++) {
                 const opt = document.createElement('option');
                 opt.value = m; opt.textContent = getChineseMonthName(m);
+                if (String(m) === curSelected) opt.selected = true;
                 lunarMonth.appendChild(opt);
                 if (leapMonth > 0 && m === leapMonth) {
                     const leapOpt = document.createElement('option');
                     leapOpt.value = 'leap' + leapMonth;
                     leapOpt.textContent = '闰' + getChineseMonthName(leapMonth);
+                    if (leapOpt.value === curSelected) leapOpt.selected = true;
                     lunarMonth.appendChild(leapOpt);
                 }
             }
@@ -900,6 +1024,7 @@
             document.getElementById('calendarModeBtn').textContent = isLunarMode ? '公' : '农';
             document.getElementById('solarInputContainer').style.display = isLunarMode ? 'none' : 'flex';
             document.getElementById('lunarInputContainer').style.display = isLunarMode ? 'flex' : 'none';
+            saveBaziInputsToStorage();
         }
 
         // ==================== 月历渲染 ====================
@@ -908,6 +1033,7 @@
             const month = parseInt(document.getElementById('monthSelect').value);
             const monthGrid = document.getElementById('monthGrid');
             monthGrid.innerHTML = '';
+            monthGrid.classList.remove('slide-left', 'slide-right', 'slide-enter-left', 'slide-enter-right');
             const firstDay = new Date(year, month - 1, 1);
             const lastDay = new Date(year, month, 0);
             const todayStr = Solar.fromDate(currentDate).toYmd();
@@ -924,7 +1050,7 @@
                 const cell = document.createElement('div');
                 cell.className = 'day-cell other-month';
                 const lunarText = prevLunar.getJieQi() || (prevLunar.getDayInChinese() === '初一' ? prevLunar.getMonthInChinese() + '月' : prevLunar.getDayInChinese());
-                cell.innerHTML = `<div style="opacity:0.5;">${prevDay}</div><div class="lunar-text">${lunarText}</div><div class="ganzhi-text" style="color:${getColorByGan(ec.getDayGan())};">${ec.getDayGan()}${ec.getDayZhi()}</div>`;
+                cell.innerHTML = `<div style="opacity:0.5;">${prevDay}</div><div class="lunar-text">${lunarText}</div><div class="ganzhi-text"><span style="color:${getColorByGan(ec.getDayGan())};">${ec.getDayGan()}</span><span style="color:${getColorByZhi(ec.getDayZhi())};">${ec.getDayZhi()}</span></div>`;
                 monthGrid.appendChild(cell);
             }
             for (let day = 1; day <= lastDay.getDate(); day++) {
@@ -937,7 +1063,7 @@
                 if (ymd === selectedSolar.toYmd()) cell.classList.add('selected');
                 if (ymd === todayStr) cell.classList.add('today-ring');
                 let lunarText = lunar.getJieQi() || (lunar.getDayInChinese() === '初一' ? lunar.getMonthInChinese() + '月' : lunar.getDayInChinese());
-                cell.innerHTML = `<div>${day}</div><div class="lunar-text">${lunarText}</div><div class="ganzhi-text" style="color:${getColorByGan(ec.getDayGan())};">${ec.getDayGan()}${ec.getDayZhi()}</div>`;
+                cell.innerHTML = `<div>${day}</div><div class="lunar-text">${lunarText}</div><div class="ganzhi-text"><span style="color:${getColorByGan(ec.getDayGan())};">${ec.getDayGan()}</span><span style="color:${getColorByZhi(ec.getDayZhi())};">${ec.getDayZhi()}</span></div>`;
                 cell.onclick = () => {
                     selectedSolar = solar;
                     selectedHourZhi = null;
@@ -955,7 +1081,7 @@
                 const cell = document.createElement('div');
                 cell.className = 'day-cell other-month';
                 const lunarText = nextLunar.getJieQi() || (nextLunar.getDayInChinese() === '初一' ? nextLunar.getMonthInChinese() + '月' : nextLunar.getDayInChinese());
-                cell.innerHTML = `<div style="opacity:0.5;">${i}</div><div class="lunar-text">${lunarText}</div><div class="ganzhi-text" style="color:${getColorByGan(ec.getDayGan())};">${ec.getDayGan()}${ec.getDayZhi()}</div>`;
+                cell.innerHTML = `<div style="opacity:0.5;">${i}</div><div class="lunar-text">${lunarText}</div><div class="ganzhi-text"><span style="color:${getColorByGan(ec.getDayGan())};">${ec.getDayGan()}</span><span style="color:${getColorByZhi(ec.getDayZhi())};">${ec.getDayZhi()}</span></div>`;
                 monthGrid.appendChild(cell);
             }
             const weekNum = getWeekOfYear(new Date(year, month - 1, selectedSolar.getDay()));
@@ -990,7 +1116,7 @@
             document.getElementById('dailyBlessing').textContent = BLESSINGS[hash % BLESSINGS.length];
         }
 
-        // ==================== 渲染详情（值神安全获取） ====================
+        // ==================== 渲染详情 ====================
         function renderDetail() {
             const lunar = selectedSolar.getLunar();
             const eightChar = lunar.getEightChar();
@@ -1004,30 +1130,20 @@
             const mGan = eightChar.getMonthGan(), mZhi = eightChar.getMonthZhi();
             const dGan = eightChar.getDayGan(), dZhi = eightChar.getDayZhi();
             document.getElementById('detailBaZi').innerHTML = `
-                <div><span style="color:${getColorByGan(yGan)};">${yGan}${yZhi}</span><br><small>年柱</small></div>
-                <div><span style="color:${getColorByGan(mGan)};">${mGan}${mZhi}</span><br><small>月柱</small></div>
-                <div><span style="color:${getColorByGan(dGan)};">${dGan}${dZhi}</span><br><small>日柱</small></div>
-                <div><span style="color:${getColorByGan(hourGanZhi.gan)};">${hourGanZhi.gan}${hourGanZhi.zhi}</span><br><small>时柱</small></div>`;
+                <div><span class="stem-branch"><span style="color:${getColorByGan(yGan)};">${yGan}</span><span style="color:${getColorByZhi(yZhi)};">${yZhi}</span></span><br><small>年柱</small></div>
+                <div><span class="stem-branch"><span style="color:${getColorByGan(mGan)};">${mGan}</span><span style="color:${getColorByZhi(mZhi)};">${mZhi}</span></span><br><small>月柱</small></div>
+                <div><span class="stem-branch"><span style="color:${getColorByGan(dGan)};">${dGan}</span><span style="color:${getColorByZhi(dZhi)};">${dZhi}</span></span><br><small>日柱</small></div>
+                <div><span class="stem-branch"><span style="color:${getColorByGan(hourGanZhi.gan)};">${hourGanZhi.gan}</span><span style="color:${getColorByZhi(hourGanZhi.zhi)};">${hourGanZhi.zhi}</span></span><br><small>时柱</small></div>`;
 
             document.getElementById('detailYi').textContent = lunar.getDayYi().join('、') || '诸事不宜';
             document.getElementById('detailJi').textContent = lunar.getDayJi().join('、') || '无特别忌讳';
 
-            // 值神安全获取（修复 not a function 错误）
             let zhiShen = '--';
             try {
-                if (typeof lunar.getDayZhiShen === 'function') {
-                    zhiShen = lunar.getDayZhiShen() || '--';
-                } else if (typeof lunar.getZhiShen === 'function') {
-                    zhiShen = lunar.getZhiShen() || '--';
-                } else if (lunar.getDayZhiShen) {
-                    zhiShen = String(lunar.getDayZhiShen);
-                } else if (lunar.getZhiShen) {
-                    zhiShen = String(lunar.getZhiShen);
-                } else if (lunar.zhiShen) {
-                    zhiShen = String(lunar.zhiShen);
-                } else if (lunar.dayZhiShen) {
-                    zhiShen = String(lunar.dayZhiShen);
-                }
+                if (typeof lunar.getDayZhiShen === 'function') zhiShen = lunar.getDayZhiShen() || '--';
+                else if (typeof lunar.getZhiShen === 'function') zhiShen = lunar.getZhiShen() || '--';
+                else if (lunar.getDayZhiShen) zhiShen = String(lunar.getDayZhiShen);
+                else if (lunar.getZhiShen) zhiShen = String(lunar.getZhiShen);
             } catch (e) { zhiShen = '--'; }
             document.getElementById('metaZhiShen').textContent = zhiShen;
 
@@ -1061,7 +1177,7 @@
 
         // ==================== 弹窗逻辑 ====================
         function openHourModal(index, order, dayGan) {
-            if (!userDayGan) { alert('请先输入八字'); return; }
+            if (!userDayGan) { alert('请先输入八字分析喜忌'); return; }
             currentModalHourIndex = index;
             modalHourList = order;
             renderModalContent(dayGan);
@@ -1084,20 +1200,23 @@
             const zhiFavorable = isFavorable(zhiTenGod, userStrong);
             const zhiRel = getZhiRelation(userDayZhi, hourZhi);
             document.getElementById('modalTitle').textContent = `${hourZhi}时 (${ganZhi.gan}${ganZhi.zhi})`;
+
             let html = `<div><strong>流时天干十神：</strong>【${tenGod}】(${favorable?'喜神':'忌神'})，与命主日干关系：${getTenGodDescription(tenGod)}</div>`;
             html += `<div><strong>流时地支十神：</strong>【${zhiTenGod}】(${zhiFavorable?'喜神':'忌神'})，藏干${zhiMainGan}，与命主日干关系：${getTenGodDescription(zhiTenGod)}</div>`;
             html += `<div><strong>日支关系：</strong>${zhiRel || '无特殊冲合'}</div>`;
-            const overall = favorable && zhiFavorable ? '此时辰整体有利，可积极行动。' : (!favorable && !zhiFavorable ? '此时辰不利，宜静不宜动。' : '吉凶参半，谨慎行事。');
-            html += `<div><strong>综合评价：</strong>${overall}</div>`;
             html += `<div style="margin-top:8px;"><strong>学业：</strong>${favorable?'利于学习考试，思维清晰。':'易分心，需专注。'}</div>`;
             html += `<div><strong>事业：</strong>${favorable?'工作顺利，可积极进取。':'谨慎行事，防压力。'}</div>`;
             html += `<div><strong>爱情：</strong>${zhiRel.includes('六合')?'感情和谐。':'易有摩擦，多沟通。'}</div>`;
             html += `<div><strong>健康：</strong>${favorable?'身心舒畅。':'注意休息。'}</div>`;
             html += `<div><strong>财运：</strong>${tenGod.includes('财')&&favorable?'财运较好。':'财运平平。'}</div>`;
+            
+            const overall = favorable && zhiFavorable ? '此时辰整体有利，可积极行动。' : (!favorable && !zhiFavorable ? '此时辰不利，宜静不宜动。' : '吉凶参半，谨慎行事。');
+            html += `<div style="margin-top:6px; padding-top:6px; border-top:1px dashed #cbd5e1;"><strong>综合评价：</strong>${overall}</div>`;
+            
             document.getElementById('modalBody').innerHTML = html;
         }
 
-        // ==================== 命主八字计算（含详细流日运势） ====================
+        // ==================== 命主八字计算与长久保存 ====================
         function calculatePersonalFortune() {
             const resultBox = document.getElementById('personalFortuneResult');
             try {
@@ -1189,6 +1308,7 @@
                         <div style="margin-top:8px;"><span class="advice-text">💡 综合评价：${overall}</span></div>
                     </div>`;
                 renderDetail();
+                saveBaziInputsToStorage();
             } catch (e) {
                 resultBox.innerHTML = `⚠️ 日期解析失败：${e.message}`;
                 userDayGan = null;
@@ -1243,21 +1363,56 @@
 
         // ==================== 月视图滑动 ====================
         let touchStartXCalendar = 0;
-        document.getElementById('monthGrid').addEventListener('touchstart', (e) => { touchStartXCalendar = e.touches[0].clientX; }, { passive: true });
-        document.getElementById('monthGrid').addEventListener('touchend', (e) => {
-            const dx = e.changedTouches[0].clientX - touchStartXCalendar;
-            if (Math.abs(dx) > 50) { if (dx < 0) changeMonth(1); else changeMonth(-1); }
+        let touchStartYCalendar = 0;
+        const monthGridElement = document.getElementById('monthGrid');
+
+        monthGridElement.addEventListener('touchstart', (e) => {
+            touchStartXCalendar = e.touches[0].clientX;
+            touchStartYCalendar = e.touches[0].clientY;
         }, { passive: true });
-        function changeMonth(delta) {
+
+        monthGridElement.addEventListener('touchend', (e) => {
+            if (isAnimating) return;
+            const dx = e.changedTouches[0].clientX - touchStartXCalendar;
+            const dy = e.changedTouches[0].clientY - touchStartYCalendar;
+            if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+                if (dx < 0) {
+                    animateMonthChange(1);
+                } else {
+                    animateMonthChange(-1);
+                }
+            }
+        }, { passive: true });
+
+        function animateMonthChange(delta) {
             const year = parseInt(document.getElementById('yearSelect').value);
             const month = parseInt(document.getElementById('monthSelect').value);
             let newYear = year, newMonth = month + delta;
             if (newMonth > 12) { newMonth = 1; newYear++; }
             if (newMonth < 1) { newMonth = 12; newYear--; }
             if (newYear < 1900 || newYear > 2100) return;
-            document.getElementById('yearSelect').value = newYear;
-            document.getElementById('monthSelect').value = newMonth;
-            renderCalendar(); renderDetail(); calculatePersonalFortune(); updateDailyInfo();
+
+            isAnimating = true;
+            const monthGrid = document.getElementById('monthGrid');
+            monthGrid.classList.add(delta > 0 ? 'slide-left' : 'slide-right');
+
+            setTimeout(() => {
+                document.getElementById('yearSelect').value = newYear;
+                document.getElementById('monthSelect').value = newMonth;
+                renderCalendar();
+                renderDetail();
+                calculatePersonalFortune();
+                updateDailyInfo();
+                monthGrid.classList.remove('slide-left', 'slide-right');
+                monthGrid.classList.add(delta > 0 ? 'slide-enter-right' : 'slide-enter-left');
+                void monthGrid.offsetWidth;
+                monthGrid.classList.remove('slide-enter-right', 'slide-enter-left');
+                isAnimating = false;
+            }, 350);
+        }
+
+        function changeMonth(delta) {
+            animateMonthChange(delta);
         }
 
         // ==================== 初始化 ====================
@@ -1267,9 +1422,19 @@
             renderDetail();
             calculatePersonalFortune();
             updateDailyInfo();
-            document.getElementById('solarYear').addEventListener('change', updateSolarDays);
-            document.getElementById('solarMonth').addEventListener('change', updateSolarDays);
-            document.getElementById('lunarYear').addEventListener('change', () => { updateLunarMonthOptions(); updateLunarDays(); });
+
+            document.getElementById('solarYear').addEventListener('change', () => { updateSolarDays(); saveBaziInputsToStorage(); });
+            document.getElementById('solarMonth').addEventListener('change', () => { updateSolarDays(); saveBaziInputsToStorage(); });
+            document.getElementById('solarDay').addEventListener('change', saveBaziInputsToStorage);
+            document.getElementById('solarHour').addEventListener('change', saveBaziInputsToStorage);
+            document.getElementById('solarMinute').addEventListener('change', saveBaziInputsToStorage);
+
+            document.getElementById('lunarYear').addEventListener('change', () => { updateLunarMonthOptions(); updateLunarDays(); saveBaziInputsToStorage(); });
+            document.getElementById('lunarMonth').addEventListener('change', () => { updateLunarDays(); saveBaziInputsToStorage(); });
+            document.getElementById('lunarDay').addEventListener('change', saveBaziInputsToStorage);
+            document.getElementById('lunarHour').addEventListener('change', saveBaziInputsToStorage);
+            document.getElementById('lunarMinute').addEventListener('change', saveBaziInputsToStorage);
+
             document.getElementById('cdYear').addEventListener('change', updateCdDays);
             document.getElementById('cdMonth').addEventListener('change', updateCdDays);
         };
