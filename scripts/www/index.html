@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>八字万年历</title>
     <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.12/lunar.js"></script>
     <style>
@@ -28,6 +28,9 @@
             margin: 0;
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+            /* 禁用手势缩放并固定文本大小 */
+            touch-action: manipulation;
+            -webkit-text-size-adjust: 100%;
         }
         html, body {
             height: 100%;
@@ -35,6 +38,7 @@
             background-color: var(--bg-color);
             color: #1e293b;
             -webkit-tap-highlight-color: transparent;
+            user-select: none;
         }
         body {
             max-width: 520px;
@@ -149,12 +153,10 @@
             background-color: #eff6ff;
         }
 
-        /* 当日高亮：黑色实线框 */
         .day-cell.today-ring {
             border: 2px solid #000000 !important;
             background-color: #f8fafc;
         }
-        /* 点击其他日期高亮：#FC28AD 虚线框 */
         .day-cell.selected:not(.today-ring) {
             background-color: rgba(252, 40, 173, 0.06);
             color: #0f172a;
@@ -539,7 +541,7 @@
         </div>
 
         <div class="card user-bazi-section">
-            <div class="section-title">🎯 八字输入</div>
+            <div class="section-title">✍️ 八字输入</div>
             <div class="input-group">
                 <button class="mode-toggle" id="calendarModeBtn" onclick="toggleCalendarMode()" title="切换公历/农历">农</button>
                 <div id="solarInputContainer" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
@@ -601,7 +603,7 @@
     <div id="modalOverlay" class="modal-overlay" style="display:none;" onclick="closeModal()">
         <div class="modal-content" id="modalContent" onclick="event.stopPropagation();">
             <div class="modal-header">
-                <button class="modal-back" onclick="closeModal(event)">←</button>
+                <button class="modal-back" onclick="closeModal(event)">🔙</button>
                 <div class="modal-title" id="modalTitle">时辰详情</div>
                 <div style="width:32px;"></div>
             </div>
@@ -612,7 +614,7 @@
     <div id="countdownModalOverlay" class="modal-overlay" style="display:none;" onclick="closeCountdownModal()">
         <div class="modal-content" style="width:90%;max-width:400px;" onclick="event.stopPropagation();">
             <div class="modal-header">
-                <button class="modal-back" onclick="closeCountdownModal()">←</button>
+                <button class="modal-back" onclick="closeCountdownModal()">🔙</button>
                 <div class="modal-title">倒计时管理</div>
                 <div style="width:32px;"></div>
             </div>
@@ -621,7 +623,7 @@
                 <div id="countdownManageList" style="margin-bottom:16px;"></div>
                 <div class="countdown-form">
                     <div style="font-weight:600;margin-bottom:8px;">添加新倒计时</div>
-                    <input type="text" id="cdNameInput" placeholder="事项名称" style="width:100%;padding:8px;border-radius:8px;border:1px solid #cbd5e1;margin-bottom:8px;">
+                    <input type="text" id="cdNameInput" placeholder="事件名称" style="width:100%;padding:8px;border-radius:8px;border:1px solid #cbd5e1;margin-bottom:8px;">
                     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
                         <select id="cdYear" onchange="updateCdDays()"></select>
                         <select id="cdMonth" onchange="updateCdDays()"></select>
@@ -637,6 +639,49 @@
     </div>
 
     <script>
+        // ==================== 全局防缩放（拦截手势与组合键） ====================
+        // 1. 拦截双指触摸缩放 (Pinch-to-zoom)
+        document.addEventListener('touchstart', function (e) {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        document.addEventListener('touchmove', function (e) {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // 2. 拦截双击缩放 (Double-tap zoom)
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (e) {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+
+        // 3. 拦截 Safari / iOS 特有的手势缩放
+        document.addEventListener('gesturestart', function (e) {
+            e.preventDefault();
+        });
+
+        // 4. 拦截 PC 端 Ctrl + 滚轮缩放
+        document.addEventListener('wheel', function (e) {
+            if (e.ctrlKey) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // 5. 拦截 PC 端 Ctrl/Cmd + (+/-/= /0) 键盘缩放
+        document.addEventListener('keydown', function (e) {
+            if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) {
+                e.preventDefault();
+            }
+        });
+
         // ==================== 基础数据 ====================
         const WU_XING_MAP = {
             '甲':'木','乙':'木','丙':'火','丁':'火','戊':'土','己':'土','庚':'金','辛':'金','壬':'水','癸':'水',
@@ -1211,7 +1256,7 @@
             html += `<div><strong>财运：</strong>${tenGod.includes('财')&&favorable?'财运较好。':'财运平平。'}</div>`;
             
             const overall = favorable && zhiFavorable ? '此时辰整体有利，可积极行动。' : (!favorable && !zhiFavorable ? '此时辰不利，宜静不宜动。' : '吉凶参半，谨慎行事。');
-            html += `<div style="margin-top:6px; padding-top:6px; border-top:1px dashed #cbd5e1;"><strong>综合评价：</strong>${overall}</div>`;
+            html += `<div style="margin-top:6px; padding-top:6px; border-top:1px dashed #cbd5e1;"><strong>💡综合评价：</strong>${overall}</div>`;
             
             document.getElementById('modalBody').innerHTML = html;
         }
