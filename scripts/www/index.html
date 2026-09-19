@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>沉井下沉计算器</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, "Microsoft YaHei", sans-serif; margin: 0; padding: 30px 20px; background: #f9f9f9; }
+
+        /* ===== 主体 ===== */
+        .container {
+            max-width: 600px; margin: auto; background: #fff; padding: 20px;
+            border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.1);
+        }
+        h2 { text-align: center; margin-top: 0; }
+        label { display: block; margin-top: 12px; font-weight: bold; font-size: 14px; }
+        input {
+            width: 100%; padding: 8px; margin-top: 4px;
+            border: 1px solid #ccc; border-radius: 4px; font-size: 14px;
+        }
+
+        /* ===== 按钮行：计算按钮 + 正方形记录按钮 ===== */
+        .btn-row { display: flex; gap: 10px; margin-top: 20px; align-items: stretch; }
+        .calc-btn {
+            flex: 1; padding: 12px; font-size: 16px; background: #007bff; color: #fff;
+            border: none; border-radius: 4px; cursor: pointer;
+        }
+        .calc-btn:hover { background: #0056b3; }
+
+        .menu-wrapper { position: relative; flex: 0 0 auto; }
+        .menu-btn {
+            width: 48px; height: 48px; padding: 0; font-size: 20px; line-height: 1;
+            background: #007bff; color: #fff; border: none; border-radius: 4px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .menu-btn:hover { background: #0056b3; }
+        .menu-btn.active { background: #0056b3; }
+
+        /* ===== 记录面板 ===== */
+        .menu-panel {
+            position: absolute; right: 0; top: calc(100% + 10px);
+            width: 360px; max-height: 70vh; overflow-y: auto;
+            background: #fff; border-radius: 8px;
+            box-shadow: 0 6px 24px rgba(0,0,0,.18);
+            display: none; z-index: 100;
+        }
+        .menu-panel.open { display: block; }
+        .menu-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 14px; border-bottom: 1px solid #eee;
+            position: sticky; top: 0; background: #fff; z-index: 2;
+        }
+        .menu-header span { font-weight: bold; font-size: 14px; color: #333; }
+        .menu-header button {
+            font-size: 12px; padding: 4px 10px; border: 1px solid #ddd;
+            background: #fff; color: #d9534f; border-radius: 4px; cursor: pointer;
+        }
+        .menu-header button:hover { background: #fff5f5; }
+
+        /* ===== 记录条目 ===== */
+        .record-item { display: flex; align-items: stretch; border-bottom: 1px solid #f2f2f2; }
+        .record-item:hover { background: #f7fbff; }
+        .record-main { flex: 1; padding: 10px 12px; cursor: pointer; min-width: 0; }
+        .record-name {
+            font-size: 14px; font-weight: bold; color: #007bff;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .record-time { font-size: 12px; color: #999; margin-top: 2px; }
+        .record-summary { font-size: 12px; color: #555; margin-top: 4px; }
+        .record-actions { display: flex; align-items: center; gap: 4px; padding: 0 10px; }
+        .record-actions button {
+            border: none; background: transparent; cursor: pointer;
+            font-size: 15px; padding: 4px 6px; border-radius: 4px;
+        }
+        .record-actions button:hover { background: #eee; }
+        .empty { padding: 30px 14px; text-align: center; color: #aaa; font-size: 13px; }
+
+        /* ===== 结果区 ===== */
+        .result { margin-top: 20px; padding: 15px; background: #f0f8ff; border-left: 5px solid #007bff; border-radius: 4px; }
+        .result p { margin: 8px 0; font-size: 15px; line-height: 1.6; }
+        .highlight { color: #d9534f; font-weight: bold; }
+        .formula { background: #fff; padding: 10px; border-radius: 4px; border: 1px dashed #ccc; margin: 10px 0; }
+        .formula p { margin: 5px 0; font-size: 14px; }
+
+        .toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: #333; color: #fff; padding: 10px 20px; border-radius: 6px;
+            font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 200;
+        }
+        .toast.show { opacity: 1; }
+
+        /* ===== 小屏适配 ===== */
+        @media (max-width: 680px) {
+            .menu-panel {
+                position: fixed; left: 12px; right: 12px; width: auto;
+                top: auto; margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>沉井下沉计算器</h2>
+
+    <label>水准仪仪高 (m): <input type="number" id="instrumentHeight" value="37.52" step="0.001"></label>
+    <label>沉井上口读数 (m): <input type="number" id="topReading" value="2.345" step="0.001"></label>
+    <label>沉井洞口底到上口高差 (m): <input type="number" id="heightDiff" value="6.78" step="0.001"></label>
+    <label>沉井洞口设计标高 (m): <input type="number" id="designElevation" value="25.508" step="0.001"></label>
+
+    <!-- 计算按钮 + 正方形记录按钮 -->
+    <div class="btn-row">
+        <button class="calc-btn" onclick="calculate()">计算</button>
+        <div class="menu-wrapper">
+            <button class="menu-btn" id="menuBtn" title="计算记录" onclick="toggleMenu(event)">📋</button>
+            <div class="menu-panel" id="menuPanel">
+                <div class="menu-header">
+                    <span>历史记录</span>
+                    <button onclick="clearAll()">清空全部</button>
+                </div>
+                <div id="recordList"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="result" id="result"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= 工具函数 ================= */
+const STORAGE_KEY = 'sinkingWellRecords';
+
+function loadRecords() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch (e) { return []; }
+}
+
+function saveRecords(records) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }
+    catch (e) { showToast('保存失败：浏览器存储空间不足'); }
+}
+
+function formatTime(date) {
+    const p = n => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())} ` +
+           `${p(date.getHours())}:${p(date.getMinutes())}:${p(date.getSeconds())}`;
+}
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
+
+let toastTimer = null;
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+/* ================= 菜单开关 ================= */
+function toggleMenu(e) {
+    e.stopPropagation();
+    const panel = document.getElementById('menuPanel');
+    const btn = document.getElementById('menuBtn');
+    const isOpen = panel.classList.toggle('open');
+    btn.classList.toggle('active', isOpen);
+}
+
+function closeMenu() {
+    document.getElementById('menuPanel').classList.remove('open');
+    document.getElementById('menuBtn').classList.remove('active');
+}
+
+document.addEventListener('click', function (e) {
+    if (!document.getElementById('menuPanel').classList.contains('open')) return;
+    if (!e.target.closest('.menu-wrapper')) closeMenu();
+});
+
+/* ================= 记录渲染 ================= */
+function renderRecords() {
+    const records = loadRecords();
+    const list = document.getElementById('recordList');
+
+    if (!records.length) {
+        list.innerHTML = '<div class="empty">暂无计算记录<br>点击「计算」后会自动保存</div>';
+        return;
+    }
+
+    list.innerHTML = records.map(r => `
+        <div class="record-item">
+            <div class="record-main" onclick="loadRecord('${r.id}')" title="点击载入这组参数">
+                <div class="record-name">${escapeHtml(r.name)}</div>
+                <div class="record-time">${formatTime(new Date(r.time))}</div>
+                <div class="record-summary">
+                    需下沉 <b>${Number(r.sinkNeeded).toFixed(3)}</b> m ｜ 到位读数 <b>${Number(r.targetReading).toFixed(3)}</b> m
+                </div>
+            </div>
+            <div class="record-actions">
+                <button title="重命名" onclick="event.stopPropagation();renameRecord('${r.id}')">✏️</button>
+                <button title="删除" onclick="event.stopPropagation();deleteRecord('${r.id}')">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+/* ================= 记录操作 ================= */
+function addRecord(data) {
+    const records = loadRecords();
+    const now = new Date();
+    records.unshift({
+        id: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        name: '记录 ' + formatTime(now),
+        time: now.getTime(),
+        instrumentHeight: data.instrumentHeight,
+        topReading: data.topReading,
+        heightDiff: data.heightDiff,
+        designElevation: data.designElevation,
+        sinkNeeded: data.sinkNeeded,
+        targetReading: data.targetReading
+    });
+    saveRecords(records);
+    renderRecords();
+}
+
+function renameRecord(id) {
+    const records = loadRecords();
+    const rec = records.find(r => r.id === id);
+    if (!rec) return;
+
+    const newName = prompt('请输入新的记录名称：', rec.name);
+    if (newName === null) return;
+    const trimmed = newName.trim();
+    if (!trimmed) { showToast('名称不能为空'); return; }
+    if (trimmed.length > 40) { showToast('名称过长（最多 40 字）'); return; }
+
+    rec.name = trimmed;
+    saveRecords(records);
+    renderRecords();
+    showToast('重命名成功');
+}
+
+function deleteRecord(id) {
+    const records = loadRecords();
+    const rec = records.find(r => r.id === id);
+    if (!rec) return;
+    if (!confirm(`确定删除「${rec.name}」吗？`)) return;
+
+    saveRecords(records.filter(r => r.id !== id));
+    renderRecords();
+    showToast('已删除');
+}
+
+function clearAll() {
+    const records = loadRecords();
+    if (!records.length) { showToast('暂无记录'); return; }
+    if (!confirm(`确定清空全部 ${records.length} 条记录吗？此操作不可恢复。`)) return;
+
+    saveRecords([]);
+    renderRecords();
+    showToast('已清空全部记录');
+}
+
+function loadRecord(id) {
+    const records = loadRecords();
+    const rec = records.find(r => r.id === id);
+    if (!rec) return;
+
+    document.getElementById('instrumentHeight').value = rec.instrumentHeight;
+    document.getElementById('topReading').value = rec.topReading;
+    document.getElementById('heightDiff').value = rec.heightDiff;
+    document.getElementById('designElevation').value = rec.designElevation;
+
+    closeMenu();
+    calculate(true);   // true = 载入记录时不再新增一条记录
+    showToast('已载入：' + rec.name);
+}
+
+/* ================= 计算主逻辑 ================= */
+function calculate(isFromRecord) {
+    const instrumentHeight = parseFloat(document.getElementById('instrumentHeight').value);
+    const topReading = parseFloat(document.getElementById('topReading').value);
+    const heightDiff = parseFloat(document.getElementById('heightDiff').value);
+    const designElevation = parseFloat(document.getElementById('designElevation').value);
+
+    if ([instrumentHeight, topReading, heightDiff, designElevation].some(isNaN)) {
+        document.getElementById('result').innerHTML = '<p style="color:red;">请输入有效的数字！</p>';
+        return;
+    }
+
+    const currentTopElevation = instrumentHeight - topReading;
+    const currentBottomElevation = currentTopElevation - heightDiff;
+    const sinkNeeded = currentBottomElevation - designElevation;
+    const targetTopElevation = designElevation + heightDiff;
+    const targetReading = instrumentHeight - targetTopElevation;
+
+    const f = num => num.toFixed(3);
+
+    document.getElementById('result').innerHTML = `
+        <p><strong>一、计算公式</strong></p>
+        <div class="formula">
+            <p>1. 当前沉井上口标高 = 水准仪仪高 − 沉井上口读数</p>
+            <p>2. 当前沉井洞口底标高 = 当前沉井上口标高 − 洞口底到上口高差</p>
+            <p>3. 还需要下沉高度 = 当前沉井洞口底标高 − 洞口设计标高</p>
+            <p>4. 到位后沉井上口标高 = 洞口设计标高 + 洞口底到上口高差</p>
+            <p>5. 到位时水准仪读数 = 水准仪仪高 − 到位后沉井上口标高</p>
+        </div>
+
+        <p><strong>二、代入计算</strong></p>
+        <p>1. 当前沉井上口标高 = ${f(instrumentHeight)} − ${f(topReading)} = ${f(currentTopElevation)} m</p>
+        <p>2. 当前沉井洞口底标高 = ${f(currentTopElevation)} − ${f(heightDiff)} = ${f(currentBottomElevation)} m</p>
+        <p>3. 还需要下沉高度 = ${f(currentBottomElevation)} − ${f(designElevation)} = <span class="highlight">${f(sinkNeeded)} m</span></p>
+        <p>4. 到位后沉井上口标高 = ${f(designElevation)} + ${f(heightDiff)} = ${f(targetTopElevation)} m</p>
+        <p>5. 到位时水准仪读数 = ${f(instrumentHeight)} − ${f(targetTopElevation)} = <span class="highlight">${f(targetReading)} m</span></p>
+
+        <p><strong>三、结论</strong></p>
+        <p class="highlight">沉井还需要下沉：${f(sinkNeeded)} m</p>
+        <p class="highlight">下沉到位时水准仪读数应为：${f(targetReading)} m</p>
+        <p>也就是说，当沉井上口的水准仪读数从现在的 ${f(topReading)} 变成 ${f(targetReading)} 时，沉井洞口底就达到设计标高 ${f(designElevation)}。</p>
+    `;
+
+    if (!isFromRecord) {
+        addRecord({ instrumentHeight, topReading, heightDiff, designElevation, sinkNeeded, targetReading });
+    }
+}
+
+/* ================= 初始化 ================= */
+renderRecords();
+</script>
+</body>
+</html>
