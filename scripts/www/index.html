@@ -1,337 +1,783 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>沉井下沉计算器</title>
-    <style>
-        * { box-sizing: border-box; }
-        body { font-family: Arial, "Microsoft YaHei", sans-serif; margin: 0; padding: 30px 20px; background: #f9f9f9; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<title>沉井下沉计算器</title>
+<style>
+:root {
+  --blue: #007aff;
+  --blue-press: #0062cc;
+  --red: #ff3b30;
+  --bg: #f2f2f7;
+  --text: #1c1c1e;
+  --text2: #8e8e93;
+  --sep: rgba(60,60,67,.13);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --ease: cubic-bezier(.32,.72,0,1);
+}
 
-        /* ===== 主体 ===== */
-        .container {
-            max-width: 600px; margin: auto; background: #fff; padding: 20px;
-            border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.1);
-        }
-        h2 { text-align: center; margin-top: 0; }
-        label { display: block; margin-top: 12px; font-weight: bold; font-size: 14px; }
-        input {
-            width: 100%; padding: 8px; margin-top: 4px;
-            border: 1px solid #ccc; border-radius: 4px; font-size: 14px;
-        }
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
 
-        /* ===== 按钮行：计算按钮 + 正方形记录按钮 ===== */
-        .btn-row { display: flex; gap: 10px; margin-top: 20px; align-items: stretch; }
-        .calc-btn {
-            flex: 1; padding: 12px; font-size: 16px; background: #007bff; color: #fff;
-            border: none; border-radius: 4px; cursor: pointer;
-        }
-        .calc-btn:hover { background: #0056b3; }
+html, body {
+  margin: 0; padding: 0; width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: manipulation;
+  overscroll-behavior: none;
+}
 
-        .menu-wrapper { position: relative; flex: 0 0 auto; }
-        .menu-btn {
-            width: 48px; height: 48px; padding: 0; font-size: 20px; line-height: 1;
-            background: #007bff; color: #fff; border: none; border-radius: 4px;
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-        }
-        .menu-btn:hover { background: #0056b3; }
-        .menu-btn.active { background: #0056b3; }
+/* ================= 主界面 ================= */
+#mainScreen {
+  position: fixed; inset: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg);
+  transition: transform .38s var(--ease);
+  will-change: transform;
+  z-index: 1;
+}
+#mainScreen.shifted {
+  transform: translateX(-30%);
+}
+.main-inner {
+  padding: calc(28px + var(--safe-top)) 16px calc(40px + var(--safe-bottom));
+}
 
-        /* ===== 记录面板 ===== */
-        .menu-panel {
-            position: absolute; right: 0; top: calc(100% + 10px);
-            width: 360px; max-height: 70vh; overflow-y: auto;
-            background: #fff; border-radius: 8px;
-            box-shadow: 0 6px 24px rgba(0,0,0,.18);
-            display: none; z-index: 100;
-        }
-        .menu-panel.open { display: block; }
-        .menu-header {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 12px 14px; border-bottom: 1px solid #eee;
-            position: sticky; top: 0; background: #fff; z-index: 2;
-        }
-        .menu-header span { font-weight: bold; font-size: 14px; color: #333; }
-        .menu-header button {
-            font-size: 12px; padding: 4px 10px; border: 1px solid #ddd;
-            background: #fff; color: #d9534f; border-radius: 4px; cursor: pointer;
-        }
-        .menu-header button:hover { background: #fff5f5; }
+.page-title {
+  font-size: 23px;
+  font-weight: 700;
+  text-align: center;
+  margin: 0 0 26px;
+  letter-spacing: .3px;
+}
 
-        /* ===== 记录条目 ===== */
-        .record-item { display: flex; align-items: stretch; border-bottom: 1px solid #f2f2f2; }
-        .record-item:hover { background: #f7fbff; }
-        .record-main { flex: 1; padding: 10px 12px; cursor: pointer; min-width: 0; }
-        .record-name {
-            font-size: 14px; font-weight: bold; color: #007bff;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .record-time { font-size: 12px; color: #999; margin-top: 2px; }
-        .record-summary { font-size: 12px; color: #555; margin-top: 4px; }
-        .record-actions { display: flex; align-items: center; gap: 4px; padding: 0 10px; }
-        .record-actions button {
-            border: none; background: transparent; cursor: pointer;
-            font-size: 15px; padding: 4px 6px; border-radius: 4px;
-        }
-        .record-actions button:hover { background: #eee; }
-        .empty { padding: 30px 14px; text-align: center; color: #aaa; font-size: 13px; }
+.field { display: block; margin-bottom: 14px; }
+.field-label {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 6px;
+  padding-left: 2px;
+}
+.field input {
+  width: 100%;
+  padding: 13px 14px;
+  font-size: 17px;
+  border: 1px solid var(--sep);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  outline: none;
+  font-family: inherit;
+  -webkit-user-select: text;
+  user-select: text;
+  transition: border-color .15s;
+}
+.field input:focus { border-color: var(--blue); }
 
-        /* ===== 结果区 ===== */
-        .result { margin-top: 20px; padding: 15px; background: #f0f8ff; border-left: 5px solid #007bff; border-radius: 4px; }
-        .result p { margin: 8px 0; font-size: 15px; line-height: 1.6; }
-        .highlight { color: #d9534f; font-weight: bold; }
-        .formula { background: #fff; padding: 10px; border-radius: 4px; border: 1px dashed #ccc; margin: 10px 0; }
-        .formula p { margin: 5px 0; font-size: 14px; }
+/* 按钮行 */
+.btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+}
+.calc-btn {
+  flex: 1;
+  height: 52px;
+  font-size: 17px;
+  font-weight: 600;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: 11px;
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background .15s, transform .1s;
+}
+.calc-btn:active { background: var(--blue-press); transform: scale(.97); }
 
-        .toast {
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: #333; color: #fff; padding: 10px 20px; border-radius: 6px;
-            font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 200;
-        }
-        .toast.show { opacity: 1; }
+.menu-btn {
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  font-size: 22px;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background .15s, transform .1s;
+}
+.menu-btn:active { background: var(--blue-press); transform: scale(.94); }
 
-        /* ===== 小屏适配 ===== */
-        @media (max-width: 680px) {
-            .menu-panel {
-                position: fixed; left: 12px; right: 12px; width: auto;
-                top: auto; margin-top: 10px;
-            }
-        }
-    </style>
+/* 结果区 */
+.result {
+  margin-top: 20px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 4px 16px 16px;
+  display: none;
+}
+.result.show { display: block; }
+.result h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 16px 0 4px;
+  color: var(--text);
+}
+.result p {
+  font-size: 15px;
+  line-height: 1.75;
+  margin: 7px 0;
+  word-break: break-word;
+}
+.formula {
+  background: #f7f7fa;
+  border-radius: 9px;
+  padding: 10px 12px;
+  margin: 8px 0;
+}
+.formula p { font-size: 13.5px; margin: 4px 0; color: #444; line-height: 1.65; }
+.highlight { color: var(--red); font-weight: 700; }
+
+/* ================= 计算记录窗口 ================= */
+#recordScreen {
+  position: fixed; inset: 0;
+  z-index: 10;
+  background: var(--bg);
+  transform: translateX(100%);
+  transition: transform .38s var(--ease);
+  will-change: transform;
+  display: flex;
+  flex-direction: column;
+}
+#recordScreen.open { transform: translateX(0); }
+
+.nav-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(var(--safe-top) + 6px) 6px 8px;
+  min-height: 48px;
+  background: rgba(249,249,249,.94);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: .5px solid var(--sep);
+  flex: 0 0 auto;
+}
+.nav-title {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  margin-top: calc(var(--safe-top) / 2);
+  font-size: 17px;
+  font-weight: 600;
+  pointer-events: none;
+}
+.nav-btn {
+  background: none;
+  border: none;
+  font-size: 17px;
+  color: var(--blue);
+  padding: 9px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  border-radius: 8px;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: opacity .12s, background .12s;
+}
+.nav-btn:active { opacity: .45; }
+.nav-btn .arrow {
+  font-size: 21px;
+  line-height: 1;
+  margin-right: 1px;
+}
+.nav-btn.danger { color: var(--red); font-size: 15px; font-weight: 500; }
+
+.record-list-wrap {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 12px calc(30px + var(--safe-bottom));
+}
+.record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.record-item {
+  display: flex;
+  align-items: stretch;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
+  -webkit-user-select: none;
+  user-select: none;
+}
+.record-main {
+  flex: 1;
+  padding: 12px 6px 12px 14px;
+  cursor: pointer;
+  min-width: 0;
+  transition: background .15s;
+}
+.record-main:active { background: #f0f0f5; }
+.record-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.record-time {
+  font-size: 12px;
+  color: var(--text2);
+  margin-top: 3px;
+}
+.record-summary {
+  font-size: 13px;
+  color: #555;
+  margin-top: 6px;
+  line-height: 1.5;
+}
+.record-summary b { color: var(--blue); font-weight: 600; }
+
+.record-actions {
+  display: flex;
+  align-items: center;
+  padding-right: 4px;
+}
+.icon-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  cursor: pointer;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, transform .1s;
+}
+.icon-btn:active { background: #eee; transform: scale(.9); }
+
+.empty-state {
+  text-align: center;
+  color: var(--text2);
+  font-size: 14px;
+  padding: 70px 20px;
+  line-height: 2;
+}
+.empty-state .sub { font-size: 13px; color: #bbb; }
+
+/* ================= 自定义弹窗 ================= */
+.modal-mask {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.42);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 34px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s;
+  z-index: 1000;
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+.modal-mask.open { opacity: 1; pointer-events: auto; }
+
+.modal {
+  background: #fff;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 290px;
+  padding: 20px 16px 14px;
+  transform: scale(.92);
+  transition: transform .22s var(--ease);
+}
+.modal-mask.open .modal { transform: scale(1); }
+
+.modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 16px;
+  line-height: 1.45;
+  word-break: break-all;
+}
+.modal-input {
+  display: none;
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 16px;
+  border: 1px solid #ddd;
+  border-radius: 9px;
+  margin-bottom: 16px;
+  outline: none;
+  font-family: inherit;
+  background: #f7f7fa;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.modal-input:focus { border-color: var(--blue); background: #fff; }
+
+.modal-btns { display: flex; gap: 8px; }
+.modal-btns button {
+  flex: 1;
+  height: 44px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .15s, transform .1s;
+}
+#modalCancel { background: #f2f2f7; color: var(--blue); }
+#modalCancel:active { background: #e5e5ea; }
+#modalOk { background: var(--blue); color: #fff; }
+#modalOk:active { background: var(--blue-press); transform: scale(.97); }
+
+/* ================= Toast ================= */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(60px + var(--safe-bottom));
+  transform: translateX(-50%) translateY(10px);
+  background: rgba(0,0,0,.82);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s, transform .25s;
+  z-index: 2000;
+  max-width: 80vw;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
 </head>
 <body>
 
-<div class="container">
-    <h2>沉井下沉计算器</h2>
+<!-- ================= 主界面 ================= -->
+<div id="mainScreen">
+  <div class="main-inner">
+    <h1 class="page-title">沉井下沉计算</h1>
 
-    <label>水准仪仪高 (m): <input type="number" id="instrumentHeight" value="37.52" step="0.001"></label>
-    <label>沉井上口读数 (m): <input type="number" id="topReading" value="2.345" step="0.001"></label>
-    <label>沉井洞口底到上口高差 (m): <input type="number" id="heightDiff" value="6.78" step="0.001"></label>
-    <label>沉井洞口设计标高 (m): <input type="number" id="designElevation" value="25.508" step="0.001"></label>
+    <label class="field">
+      <span class="field-label">水准仪仪高 (m)</span>
+      <input type="number" id="instrumentHeight" value="37.52" step="0.001" inputmode="decimal">
+    </label>
+    <label class="field">
+      <span class="field-label">沉井上口读数 (m)</span>
+      <input type="number" id="topReading" value="2.345" step="0.001" inputmode="decimal">
+    </label>
+    <label class="field">
+      <span class="field-label">沉井洞口底到上口高差 (m)</span>
+      <input type="number" id="heightDiff" value="6.78" step="0.001" inputmode="decimal">
+    </label>
+    <label class="field">
+      <span class="field-label">沉井洞口设计标高 (m)</span>
+      <input type="number" id="designElevation" value="25.508" step="0.001" inputmode="decimal">
+    </label>
 
-    <!-- 计算按钮 + 正方形记录按钮 -->
     <div class="btn-row">
-        <button class="calc-btn" onclick="calculate()">计算</button>
-        <div class="menu-wrapper">
-            <button class="menu-btn" id="menuBtn" title="计算记录" onclick="toggleMenu(event)">📋</button>
-            <div class="menu-panel" id="menuPanel">
-                <div class="menu-header">
-                    <span>历史记录</span>
-                    <button onclick="clearAll()">清空全部</button>
-                </div>
-                <div id="recordList"></div>
-            </div>
-        </div>
+      <button class="calc-btn" id="calcBtn">计算</button>
+      <button class="menu-btn" id="menuBtn" aria-label="计算记录">📋</button>
     </div>
 
     <div class="result" id="result"></div>
+  </div>
+</div>
+
+<!-- ================= 计算记录窗口 ================= -->
+<div id="recordScreen">
+  <div class="nav-bar">
+    <button class="nav-btn" id="backBtn">
+      <span class="arrow">‹</span>返回
+    </button>
+    <div class="nav-title">计算记录</div>
+    <button class="nav-btn danger" id="clearAllBtn">清空</button>
+  </div>
+  <div class="record-list-wrap">
+    <div class="record-list" id="recordList"></div>
+  </div>
+</div>
+
+<!-- ================= 自定义弹窗 ================= -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle"></div>
+    <input class="modal-input" id="modalInput" type="text" maxlength="40" placeholder="输入名称">
+    <div class="modal-btns">
+      <button id="modalCancel">取消</button>
+      <button id="modalOk">确定</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-/* ================= 工具函数 ================= */
-const STORAGE_KEY = 'sinkingWellRecords';
+(function () {
+  'use strict';
 
-function loadRecords() {
+  /* =========================================================
+     1. 全局禁用放大缩小
+     ========================================================= */
+  // iOS 手势缩放
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (evt) {
+    document.addEventListener(evt, function (e) { e.preventDefault(); }, { passive: false });
+  });
+  // 多指触摸（捏合）
+  document.addEventListener('touchstart', function (e) {
+    if (e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+  // 桌面端 Ctrl + 滚轮
+  document.addEventListener('wheel', function (e) {
+    if (e.ctrlKey) e.preventDefault();
+  }, { passive: false });
+  // 双击缩放兜底
+  document.addEventListener('dblclick', function (e) { e.preventDefault(); }, { passive: false });
+
+  /* =========================================================
+     2. 工具函数
+     ========================================================= */
+  const STORAGE_KEY = 'sinkingWellRecords';
+
+  function loadRecords() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
     catch (e) { return []; }
-}
+  }
 
-function saveRecords(records) {
+  function saveRecords(records) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }
-    catch (e) { showToast('保存失败：浏览器存储空间不足'); }
-}
+    catch (e) { showToast('保存失败：存储空间不足'); }
+  }
 
-function formatTime(date) {
-    const p = n => String(n).padStart(2, '0');
-    return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())} ` +
-           `${p(date.getHours())}:${p(date.getMinutes())}:${p(date.getSeconds())}`;
-}
+  function pad(n) { return String(n).padStart(2, '0'); }
 
-function escapeHtml(str) {
-    return String(str).replace(/[&<>"']/g, c => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-    }[c]));
-}
+  function formatTime(date) {
+    return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate()) +
+           ' ' + pad(date.getHours()) + ':' + pad(date.getMinutes());
+  }
 
-let toastTimer = null;
-function showToast(msg) {
+  function formatFullTime(date) {
+    return formatTime(date) + ':' + pad(date.getSeconds());
+  }
+
+  function escapeHtml(str) {
+    return String(str == null ? '' : str).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  let toastTimer = null;
+  function showToast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
-}
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 1800);
+  }
 
-/* ================= 菜单开关 ================= */
-function toggleMenu(e) {
-    e.stopPropagation();
-    const panel = document.getElementById('menuPanel');
-    const btn = document.getElementById('menuBtn');
-    const isOpen = panel.classList.toggle('open');
-    btn.classList.toggle('active', isOpen);
-}
+  /* =========================================================
+     3. 自定义弹窗（替代 prompt / confirm）
+     iOS 添加到主屏后原生 prompt/confirm 会被禁用，
+     这就是之前重命名/删除失效的根本原因。
+     ========================================================= */
+  function openModal(opts) {
+    return new Promise(function (resolve) {
+      const mask     = document.getElementById('modalMask');
+      const titleEl  = document.getElementById('modalTitle');
+      const inputEl  = document.getElementById('modalInput');
+      const okBtn    = document.getElementById('modalOk');
+      const cancelBtn= document.getElementById('modalCancel');
 
-function closeMenu() {
-    document.getElementById('menuPanel').classList.remove('open');
-    document.getElementById('menuBtn').classList.remove('active');
-}
+      titleEl.textContent = opts.title || '';
 
-document.addEventListener('click', function (e) {
-    if (!document.getElementById('menuPanel').classList.contains('open')) return;
-    if (!e.target.closest('.menu-wrapper')) closeMenu();
-});
+      if (opts.type === 'input') {
+        inputEl.style.display = 'block';
+        inputEl.value = opts.defaultValue || '';
+      } else {
+        inputEl.style.display = 'none';
+        inputEl.value = '';
+      }
 
-/* ================= 记录渲染 ================= */
-function renderRecords() {
+      mask.classList.add('open');
+
+      if (opts.type === 'input') {
+        // 延迟聚焦，等动画结束，保证 iOS 键盘能弹出
+        setTimeout(function () {
+          try { inputEl.focus(); } catch (e) {}
+        }, 120);
+      }
+
+      okBtn.onclick = function () {
+        const val = (opts.type === 'input') ? inputEl.value : true;
+        mask.classList.remove('open');
+        resolve(val);
+      };
+      cancelBtn.onclick = function () {
+        mask.classList.remove('open');
+        resolve(null);
+      };
+      inputEl.onkeydown = function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); okBtn.click(); }
+      };
+    });
+  }
+
+  /* =========================================================
+     4. 记录渲染
+     ========================================================= */
+  function renderRecords() {
     const records = loadRecords();
     const list = document.getElementById('recordList');
 
     if (!records.length) {
-        list.innerHTML = '<div class="empty">暂无计算记录<br>点击「计算」后会自动保存</div>';
-        return;
+      list.innerHTML =
+        '<div class="empty-state">暂无计算记录<div class="sub">点击主界面「计算」后会自动保存</div></div>';
+      return;
     }
 
-    list.innerHTML = records.map(r => `
-        <div class="record-item">
-            <div class="record-main" onclick="loadRecord('${r.id}')" title="点击载入这组参数">
-                <div class="record-name">${escapeHtml(r.name)}</div>
-                <div class="record-time">${formatTime(new Date(r.time))}</div>
-                <div class="record-summary">
-                    需下沉 <b>${Number(r.sinkNeeded).toFixed(3)}</b> m ｜ 到位读数 <b>${Number(r.targetReading).toFixed(3)}</b> m
-                </div>
-            </div>
-            <div class="record-actions">
-                <button title="重命名" onclick="event.stopPropagation();renameRecord('${r.id}')">✏️</button>
-                <button title="删除" onclick="event.stopPropagation();deleteRecord('${r.id}')">🗑️</button>
-            </div>
-        </div>
-    `).join('');
-}
+    list.innerHTML = records.map(function (r) {
+      const sink = (r.sinkNeeded != null) ? Number(r.sinkNeeded).toFixed(3) : '—';
+      const read = (r.targetReading != null) ? Number(r.targetReading).toFixed(3) : '—';
+      return '' +
+        '<div class="record-item" data-id="' + r.id + '">' +
+          '<div class="record-main">' +
+            '<div class="record-name">' + escapeHtml(r.name) + '</div>' +
+            '<div class="record-time">' + formatTime(new Date(r.time)) + '</div>' +
+            '<div class="record-summary">需下沉 <b>' + sink + '</b> m ｜ 到位读数 <b>' + read + '</b> m</div>' +
+          '</div>' +
+          '<div class="record-actions">' +
+            '<button class="icon-btn" data-action="rename" aria-label="重命名">✏️</button>' +
+            '<button class="icon-btn" data-action="delete" aria-label="删除">🗑️</button>' +
+          '</div>' +
+        '</div>';
+    }).join('');
+  }
 
-/* ================= 记录操作 ================= */
-function addRecord(data) {
+  /* =========================================================
+     5. 记录操作
+     ========================================================= */
+  async function renameRecord(id) {
     const records = loadRecords();
-    const now = new Date();
-    records.unshift({
-        id: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-        name: '记录 ' + formatTime(now),
-        time: now.getTime(),
-        instrumentHeight: data.instrumentHeight,
-        topReading: data.topReading,
-        heightDiff: data.heightDiff,
-        designElevation: data.designElevation,
-        sinkNeeded: data.sinkNeeded,
-        targetReading: data.targetReading
-    });
-    saveRecords(records);
-    renderRecords();
-}
-
-function renameRecord(id) {
-    const records = loadRecords();
-    const rec = records.find(r => r.id === id);
+    const rec = records.find(function (r) { return r.id === id; });
     if (!rec) return;
 
-    const newName = prompt('请输入新的记录名称：', rec.name);
-    if (newName === null) return;
-    const trimmed = newName.trim();
+    const newName = await openModal({
+      title: '重命名记录',
+      type: 'input',
+      defaultValue: rec.name
+    });
+    if (newName === null) return;                 // 取消
+
+    const trimmed = String(newName).trim();
     if (!trimmed) { showToast('名称不能为空'); return; }
-    if (trimmed.length > 40) { showToast('名称过长（最多 40 字）'); return; }
+    if (trimmed.length > 40) { showToast('名称最多 40 个字'); return; }
 
     rec.name = trimmed;
     saveRecords(records);
     renderRecords();
-    showToast('重命名成功');
-}
+    showToast('已重命名');
+  }
 
-function deleteRecord(id) {
+  async function deleteRecord(id) {
     const records = loadRecords();
-    const rec = records.find(r => r.id === id);
+    const rec = records.find(function (r) { return r.id === id; });
     if (!rec) return;
-    if (!confirm(`确定删除「${rec.name}」吗？`)) return;
 
-    saveRecords(records.filter(r => r.id !== id));
+    const ok = await openModal({ title: '确定删除「' + rec.name + '」？' });
+    if (!ok) return;
+
+    saveRecords(records.filter(function (r) { return r.id !== id; }));
     renderRecords();
     showToast('已删除');
-}
+  }
 
-function clearAll() {
+  async function clearAll() {
     const records = loadRecords();
     if (!records.length) { showToast('暂无记录'); return; }
-    if (!confirm(`确定清空全部 ${records.length} 条记录吗？此操作不可恢复。`)) return;
+
+    const ok = await openModal({ title: '确定清空全部 ' + records.length + ' 条记录？' });
+    if (!ok) return;
 
     saveRecords([]);
     renderRecords();
     showToast('已清空全部记录');
-}
+  }
 
-function loadRecord(id) {
+  function loadRecord(id) {
     const records = loadRecords();
-    const rec = records.find(r => r.id === id);
+    const rec = records.find(function (r) { return r.id === id; });
     if (!rec) return;
 
     document.getElementById('instrumentHeight').value = rec.instrumentHeight;
-    document.getElementById('topReading').value = rec.topReading;
-    document.getElementById('heightDiff').value = rec.heightDiff;
+    document.getElementById('topReading').value      = rec.topReading;
+    document.getElementById('heightDiff').value      = rec.heightDiff;
     document.getElementById('designElevation').value = rec.designElevation;
 
-    closeMenu();
-    calculate(true);   // true = 载入记录时不再新增一条记录
+    closeRecordScreen();
+    calculate(true);                 // true：载入记录时不再新增记录
     showToast('已载入：' + rec.name);
-}
+  }
 
-/* ================= 计算主逻辑 ================= */
-function calculate(isFromRecord) {
+  function addRecord(data) {
+    const records = loadRecords();
+    const now = new Date();
+    records.unshift({
+      id: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+      name: '记录 ' + formatFullTime(now),
+      time: now.getTime(),
+      instrumentHeight: data.instrumentHeight,
+      topReading: data.topReading,
+      heightDiff: data.heightDiff,
+      designElevation: data.designElevation,
+      sinkNeeded: data.sinkNeeded,
+      targetReading: data.targetReading
+    });
+    saveRecords(records);
+    renderRecords();
+  }
+
+  /* =========================================================
+     6. 窗口切换动画
+     ========================================================= */
+  function openRecordScreen() {
+    renderRecords();
+    document.getElementById('recordScreen').classList.add('open');
+    document.getElementById('mainScreen').classList.add('shifted');
+  }
+
+  function closeRecordScreen() {
+    document.getElementById('recordScreen').classList.remove('open');
+    document.getElementById('mainScreen').classList.remove('shifted');
+  }
+
+  /* =========================================================
+     7. 计算主逻辑
+     ========================================================= */
+  function calculate(isFromRecord) {
     const instrumentHeight = parseFloat(document.getElementById('instrumentHeight').value);
-    const topReading = parseFloat(document.getElementById('topReading').value);
-    const heightDiff = parseFloat(document.getElementById('heightDiff').value);
-    const designElevation = parseFloat(document.getElementById('designElevation').value);
+    const topReading       = parseFloat(document.getElementById('topReading').value);
+    const heightDiff       = parseFloat(document.getElementById('heightDiff').value);
+    const designElevation  = parseFloat(document.getElementById('designElevation').value);
+
+    const resultEl = document.getElementById('result');
 
     if ([instrumentHeight, topReading, heightDiff, designElevation].some(isNaN)) {
-        document.getElementById('result').innerHTML = '<p style="color:red;">请输入有效的数字！</p>';
-        return;
+      resultEl.classList.add('show');
+      resultEl.innerHTML = '<p style="color:var(--red);padding:12px 0;">请输入有效的数字！</p>';
+      return;
     }
 
-    const currentTopElevation = instrumentHeight - topReading;
+    const currentTopElevation    = instrumentHeight - topReading;
     const currentBottomElevation = currentTopElevation - heightDiff;
-    const sinkNeeded = currentBottomElevation - designElevation;
-    const targetTopElevation = designElevation + heightDiff;
-    const targetReading = instrumentHeight - targetTopElevation;
+    const sinkNeeded             = currentBottomElevation - designElevation;
+    const targetTopElevation     = designElevation + heightDiff;
+    const targetReading          = instrumentHeight - targetTopElevation;
 
-    const f = num => num.toFixed(3);
+    const f = function (num) { return num.toFixed(3); };
 
-    document.getElementById('result').innerHTML = `
-        <p><strong>一、计算公式</strong></p>
-        <div class="formula">
-            <p>1. 当前沉井上口标高 = 水准仪仪高 − 沉井上口读数</p>
-            <p>2. 当前沉井洞口底标高 = 当前沉井上口标高 − 洞口底到上口高差</p>
-            <p>3. 还需要下沉高度 = 当前沉井洞口底标高 − 洞口设计标高</p>
-            <p>4. 到位后沉井上口标高 = 洞口设计标高 + 洞口底到上口高差</p>
-            <p>5. 到位时水准仪读数 = 水准仪仪高 − 到位后沉井上口标高</p>
-        </div>
+    resultEl.innerHTML =
+      '<h3>一、计算公式</h3>' +
+      '<div class="formula">' +
+        '<p>1. 当前沉井上口标高 = 水准仪仪高 − 沉井上口读数</p>' +
+        '<p>2. 当前沉井洞口底标高 = 当前沉井上口标高 − 洞口底到上口高差</p>' +
+        '<p>3. 还需要下沉高度 = 当前沉井洞口底标高 − 洞口设计标高</p>' +
+        '<p>4. 到位后沉井上口标高 = 洞口设计标高 + 洞口底到上口高差</p>' +
+        '<p>5. 到位时水准仪读数 = 水准仪仪高 − 到位后沉井上口标高</p>' +
+      '</div>' +
+      '<h3>二、代入计算</h3>' +
+      '<p>1. 当前沉井上口标高 = ' + f(instrumentHeight) + ' − ' + f(topReading) + ' = ' + f(currentTopElevation) + ' m</p>' +
+      '<p>2. 当前沉井洞口底标高 = ' + f(currentTopElevation) + ' − ' + f(heightDiff) + ' = ' + f(currentBottomElevation) + ' m</p>' +
+      '<p>3. 还需要下沉高度 = ' + f(currentBottomElevation) + ' − ' + f(designElevation) + ' = <span class="highlight">' + f(sinkNeeded) + ' m</span></p>' +
+      '<p>4. 到位后沉井上口标高 = ' + f(designElevation) + ' + ' + f(heightDiff) + ' = ' + f(targetTopElevation) + ' m</p>' +
+      '<p>5. 到位时水准仪读数 = ' + f(instrumentHeight) + ' − ' + f(targetTopElevation) + ' = <span class="highlight">' + f(targetReading) + ' m</span></p>' +
+      '<h3>三、结论</h3>' +
+      '<p class="highlight">沉井还需要下沉：' + f(sinkNeeded) + ' m</p>' +
+      '<p class="highlight">下沉到位时水准仪读数应为：' + f(targetReading) + ' m</p>' +
+      '<p>也就是说，当沉井上口的水准仪读数从现在的 ' + f(topReading) + ' 变成 ' + f(targetReading) +
+        ' 时，沉井洞口底就达到设计标高 ' + f(designElevation) + '。</p>';
 
-        <p><strong>二、代入计算</strong></p>
-        <p>1. 当前沉井上口标高 = ${f(instrumentHeight)} − ${f(topReading)} = ${f(currentTopElevation)} m</p>
-        <p>2. 当前沉井洞口底标高 = ${f(currentTopElevation)} − ${f(heightDiff)} = ${f(currentBottomElevation)} m</p>
-        <p>3. 还需要下沉高度 = ${f(currentBottomElevation)} − ${f(designElevation)} = <span class="highlight">${f(sinkNeeded)} m</span></p>
-        <p>4. 到位后沉井上口标高 = ${f(designElevation)} + ${f(heightDiff)} = ${f(targetTopElevation)} m</p>
-        <p>5. 到位时水准仪读数 = ${f(instrumentHeight)} − ${f(targetTopElevation)} = <span class="highlight">${f(targetReading)} m</span></p>
-
-        <p><strong>三、结论</strong></p>
-        <p class="highlight">沉井还需要下沉：${f(sinkNeeded)} m</p>
-        <p class="highlight">下沉到位时水准仪读数应为：${f(targetReading)} m</p>
-        <p>也就是说，当沉井上口的水准仪读数从现在的 ${f(topReading)} 变成 ${f(targetReading)} 时，沉井洞口底就达到设计标高 ${f(designElevation)}。</p>
-    `;
+    resultEl.classList.add('show');
 
     if (!isFromRecord) {
-        addRecord({ instrumentHeight, topReading, heightDiff, designElevation, sinkNeeded, targetReading });
+      addRecord({ instrumentHeight, topReading, heightDiff, designElevation, sinkNeeded, targetReading });
     }
-}
+  }
 
-/* ================= 初始化 ================= */
-renderRecords();
+  /* =========================================================
+     8. 事件绑定（事件委托，避免内联 onclick 失效）
+     ========================================================= */
+  document.getElementById('calcBtn').addEventListener('click', function () { calculate(false); });
+  document.getElementById('menuBtn').addEventListener('click', openRecordScreen);
+  document.getElementById('backBtn').addEventListener('click', closeRecordScreen);
+  document.getElementById('clearAllBtn').addEventListener('click', clearAll);
+
+  // 记录列表：委托处理「重命名 / 删除 / 载入」
+  document.getElementById('recordList').addEventListener('click', function (e) {
+    const item = e.target.closest('.record-item');
+    if (!item) return;
+    const id = item.dataset.id;
+
+    const actionBtn = e.target.closest('[data-action]');
+    if (actionBtn) {
+      e.stopPropagation();
+      const action = actionBtn.dataset.action;
+      if (action === 'rename') renameRecord(id);
+      else if (action === 'delete') deleteRecord(id);
+      return;
+    }
+    // 点击条目主体 → 载入参数
+    loadRecord(id);
+  });
+
+  /* =========================================================
+     9. 初始化
+     ========================================================= */
+  renderRecords();
+
+})();
 </script>
 </body>
 </html>
