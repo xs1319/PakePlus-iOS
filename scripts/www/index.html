@@ -93,6 +93,7 @@ html, body {
   text-align: center;
 }
 .field input:focus { border-color: var(--blue); }
+.field input::placeholder { color: #c7c7cc; font-weight: 400; }
 
 /* 自动计算字段 */
 .field input[readonly] {
@@ -316,31 +317,31 @@ html, body {
       <!-- 第 1 排 -->
       <label class="field">
         <span class="field-label">设计流水标高 (m)</span>
-        <input type="number" id="designWaterLevel" value="25.508" step="0.001" inputmode="decimal">
+        <input type="number" id="designWaterLevel" step="0.001" inputmode="decimal" placeholder="请输入">
       </label>
       <label class="field">
         <span class="field-label">管道壁厚 (m)</span>
-        <input type="number" id="wallThickness" value="0.1" step="0.001" inputmode="decimal">
+        <input type="number" id="wallThickness" step="0.001" inputmode="decimal" placeholder="请输入">
       </label>
 
       <!-- 第 2 排 -->
       <label class="field">
         <span class="field-label">洞口底到上口结构高差 (m)</span>
-        <input type="number" id="structureDiff" value="5.1" step="0.001" inputmode="decimal">
+        <input type="number" id="structureDiff" step="0.001" inputmode="decimal" placeholder="请输入">
       </label>
       <label class="field">
         <span class="field-label">后视点高程 (m)</span>
-        <input type="number" id="backSightElevation" value="36.0" step="0.001" inputmode="decimal">
+        <input type="number" id="backSightElevation" step="0.001" inputmode="decimal" placeholder="请输入">
       </label>
 
       <!-- 第 3 排 -->
       <label class="field">
         <span class="field-label">水准仪仪高 (m)</span>
-        <input type="number" id="instrumentHeight" value="37.52" step="0.001" inputmode="decimal">
+        <input type="number" id="instrumentHeight" step="0.001" inputmode="decimal" placeholder="请输入">
       </label>
       <label class="field">
         <span class="field-label">沉井上口读数 (m)</span>
-        <input type="number" id="topReading" value="2.345" step="0.001" inputmode="decimal">
+        <input type="number" id="topReading" step="0.001" inputmode="decimal" placeholder="请输入">
       </label>
 
       <!-- 分隔线 -->
@@ -666,8 +667,7 @@ html, body {
     document.getElementById('instrumentHeight').value    = rec.instrumentHeight;
     document.getElementById('topReading').value          = rec.topReading;
 
-    // 载入时，把该记录的输入数据写入"上次已保存"快照，
-    // 这样如果用户不修改直接点计算，就不会重复新增记录
+    // 载入时把该记录数据写入"上次已保存"快照，未修改直接计算不会重复新增
     const loadedData = getInputs();
     lastSavedSnapshot = snapshotOf(loadedData);
 
@@ -760,16 +760,12 @@ html, body {
 
     resultEl.classList.add('show');
 
-    // ===== 是否新增记录的逻辑 =====
-    // isFromRecord = true  →  由载入记录触发，不新增
-    // 数据与 lastSavedSnapshot 相同  →  说明未修改，不新增
-    // 数据有变化  →  新增一条记录
+    // ===== 是否新增记录 =====
     if (isFromRecord) return;
 
     const snap = snapshotOf(data);
     if (lastSavedSnapshot !== null && snap === lastSavedSnapshot) {
-      // 输入数据未变化，不新增记录
-      return;
+      return;   // 数据未变化，不新增
     }
     addRecord(data, r);
   }
