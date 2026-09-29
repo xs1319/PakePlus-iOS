@@ -172,8 +172,8 @@
     .cost-card:active { background: #f0f6ff; transform: scale(0.99); }
     .cost-card-header { border-bottom: 1.5px dashed #e1ebf4; padding-bottom: 8px; margin-bottom: 8px; }
     .cost-card-title { font-size: 0.95rem; font-weight: 700; color: #1e4460; display: flex; justify-content: space-between; align-items: center; }
-    .cost-card-sub { font-size: 0.75rem; color: #6b8aa8; margin-top: 4px; }
-    .cost-row { display: flex; justify-content: space-between; font-size: 0.85rem; color: #3a5c78; margin-bottom: 6px; }
+    .cost-card-sub { font-size: 0.7rem; color: #6b8aa8; margin-top: 4px; }
+    .cost-row { display: flex; justify-content: space-between; font-size: 0.8rem; color: #3a5c78; margin-bottom: 6px; }
     .cost-row span:last-child { font-weight: 600; }
     
     .total-summary { background: white; border-radius: 20px; padding: 18px; border: 2px solid #cce0f0; }
@@ -245,7 +245,6 @@
       margin-left: 6px;
       display: inline;
     }
-    /* 直接成本合计 - 浅色居中样式，加细边框 */
     .subtotal-direct {
       background: linear-gradient(135deg, #eef3f8, #dde8f2) !important;
       box-shadow: 0 4px 14px rgba(30,68,96,0.10) !important;
@@ -409,6 +408,7 @@
           <div class="input-item"><label>钢筋 (元/吨)</label><input id="priceMatRebar" value="4800"></div>
           <div class="input-item"><label>混凝土 (元/m³)</label><input id="priceMatConc" value="520"></div>
           <div class="input-item"><label>砖 (元/块)</label><input id="priceMatBrick" value="1.9"></div>
+          <div class="input-item"><label>砂浆 (元/m³)</label><input id="priceMatMortar" value="300"></div>
         </div>
         
         <div class="group-label">🚜 机械费</div>
@@ -419,6 +419,7 @@
         
         <div class="group-label">📋 费率</div>
         <div class="param-grid">
+          <div class="input-item"><label>措施费率 (%)</label><input id="measureRate" value="2"></div>
           <div class="input-item"><label>管理费率 (%)</label><input id="manageRate" value="5"></div>
           <div class="input-item"><label>利润比率 (%)</label><input id="profitRate" value="12"></div>
           <div class="input-item"><label>增值税率 (%)</label><input id="taxRate" value="9"></div>
@@ -469,9 +470,11 @@
           <div class="input-item"><label>底板钢筋长系数</label><input id="kLen" value="0.8862" step="0.0001"></div>
           <div class="input-item"><label>搭接倍数(d)</label><input id="lapFactor" value="35"></div>
           <div class="input-item"><label>保护层厚(mm)</label><input id="protect" value="30"></div>
+          <div class="input-item"><label>混凝土换算系数</label><input id="concreteFactor" value="0.95" step="0.01"></div>
           <div class="input-item"><label>砖尺寸:长(m)</label><input id="brickL" value="0.225"></div>
           <div class="input-item"><label>砖尺寸:宽(m)</label><input id="brickW" value="0.115"></div>
           <div class="input-item"><label>砖尺寸:高(m)</label><input id="brickH" value="0.055"></div>
+          <div class="input-item"><label>灰缝厚度(mm)</label><input id="mortarJoint" value="5" step="0.1"></div>
         </div>
         <button id="applySettingsBtn" class="btn-calc" style="margin-top:20px;">应用并返回</button>
       </div>
@@ -515,7 +518,16 @@
       if (e.touches && e.touches.length > 1) { e.preventDefault(); }
     }, { passive: false });
 
-    const DEFAULT_CONFIG = { barLength: 9.0, kLen:0.8862, protect:30, lapFactor:35, brick:[0.225,0.115,0.055], lossRate:1.15 };
+    const DEFAULT_CONFIG = { 
+      barLength: 9.0, 
+      kLen:0.8862, 
+      protect:30, 
+      lapFactor:35, 
+      brick:[0.225,0.115,0.055], 
+      lossRate:1.15,
+      mortarJoint: 5,
+      concreteFactor: 0.95
+    };
     let config = Object.assign({}, DEFAULT_CONFIG, { brick: DEFAULT_CONFIG.brick.slice() });
     let unlocked = false;
     let globalCalcData = {}; 
@@ -654,6 +666,8 @@
       setV('kLen', config.kLen);
       setV('lapFactor', config.lapFactor);
       setV('protect', config.protect);
+      setV('concreteFactor', config.concreteFactor);
+      setV('mortarJoint', config.mortarJoint);
       if(Array.isArray(config.brick)){
         setV('brickL', config.brick[0]);
         setV('brickW', config.brick[1]);
@@ -682,6 +696,11 @@
       config.kLen = parseFloat(config.kLen) || DEFAULT_CONFIG.kLen;
       config.lapFactor = parseFloat(config.lapFactor) || DEFAULT_CONFIG.lapFactor;
       config.protect = parseFloat(config.protect) || DEFAULT_CONFIG.protect;
+      config.concreteFactor = parseFloat(config.concreteFactor) || DEFAULT_CONFIG.concreteFactor;
+      config.mortarJoint = parseFloat(config.mortarJoint);
+      if(isNaN(config.mortarJoint)) config.mortarJoint = DEFAULT_CONFIG.mortarJoint;
+      // 兼容旧版：旧版以m为单位，若小于1则视为旧值，乘1000转为mm
+      if (config.mortarJoint < 1) config.mortarJoint = config.mortarJoint * 1000;
       config.brick = [parseFloat(config.brick[0])||0.225, parseFloat(config.brick[1])||0.115, parseFloat(config.brick[2])||0.055];
       fillSettingsInputs();
     }
@@ -799,7 +818,9 @@
         priceLabTemplate: document.getElementById('priceLabTemplate').value, priceLabRebar: document.getElementById('priceLabRebar').value,
         priceLabConc: document.getElementById('priceLabConc').value, priceLabMasonry: document.getElementById('priceLabMasonry').value,
         priceMatRebar: document.getElementById('priceMatRebar').value, priceMatConc: document.getElementById('priceMatConc').value, priceMatBrick: document.getElementById('priceMatBrick').value,
+        priceMatMortar: document.getElementById('priceMatMortar').value,
         priceMachExc: document.getElementById('priceMachExc').value, priceMachTrans: document.getElementById('priceMachTrans').value,
+        measureRate: document.getElementById('measureRate').value,
         manageRate: document.getElementById('manageRate').value, profitRate: document.getElementById('profitRate').value, taxRate: document.getElementById('taxRate').value,
       };
       const layers = document.querySelectorAll('#standardLayersContainer .sub-card');
@@ -870,7 +891,6 @@
       cData.push({ part:'封底', formula: `说明: 圆柱体积 = π × (内径D/2)² × 封底厚Hs<br>公式: π×(${D_m.toFixed(2)}/2)²×${seal_m.toFixed(2)} = ${vSeal.toFixed(2)} m³`, res: vSeal.toFixed(2) });
       const vSlab = PI*(D_m/2)*(D_m/2)*B_m; V+=vSlab;
       cData.push({ part:'底板', formula: `说明: 圆柱体积 = π × (内径D/2)² × 底板厚B<br>公式: π×(${D_m.toFixed(2)}/2)²×${B_m.toFixed(2)} = ${vSlab.toFixed(2)} m³`, res: vSlab.toFixed(2) });
-      // 垫层：半径 = 刃脚外侧半径 + 1.5m，层数 = 井壁层数
       const cushionRadius = D_m/2 + A1_m + 1.5;
       const cushionLayers = layers;
       const singleCushionVol = PI * cushionRadius * cushionRadius * cushionThick_m;
@@ -881,24 +901,35 @@
       }
       const vRB = PI*H4_m*A4_m*(D_m+A4_m); V+=vRB;
       cData.push({ part:'圈梁', formula: `说明: 圆环体积 = π × 高H4 × 壁厚A4 × (内径D + 壁厚A4)<br>公式: π×${H4_m.toFixed(2)}×${A4_m.toFixed(2)}×(${D_m.toFixed(2)}+${A4_m.toFixed(2)}) = ${vRB.toFixed(2)} m³`, res: vRB.toFixed(2) });
+      // 重排：垫层移到第一个
+      const cushionIdx = cData.findIndex(it => it.part.indexOf('垫层') === 0);
+      if (cushionIdx > 0) {
+        const cushionItem = cData.splice(cushionIdx, 1)[0];
+        cData.unshift(cushionItem);
+      }
       cData.total = V.toFixed(2);
       globalCalcData.cushionInfo = { radius: cushionRadius, layers: cushionLayers, thickness: cushionThick_m, volume: vCushion };
 
-      // 砖砌体
+      // ===== 砖砌体与砂浆 =====
       const mData = globalCalcData.masonry;
       const brickVol = PI*H3_m*A3_m*(D_m+A3_m);
-      const unitVol = (config.brick[0]+0.005)*(config.brick[1]+0.005)*(config.brick[2]+0.005);
+      const mortarJointM = config.mortarJoint / 1000; // mm → m
+      const unitVol = (config.brick[0]+mortarJointM)*(config.brick[1]+mortarJointM)*(config.brick[2]+mortarJointM);
       const Q = Math.ceil(brickVol / unitVol);
+      const singleBrickNetVol = config.brick[0]*config.brick[1]*config.brick[2];
+      const V_mortar = Math.max(0, brickVol - Q * singleBrickNetVol);
+      
       mData.push({ part:'墙体总体积', formula: `说明: 砖墙圆环体积 = π × 高H3 × 壁厚A3 × (内径D + 壁厚A3)<br>公式: π×${H3_m.toFixed(2)}×${A3_m.toFixed(2)}×(${D_m.toFixed(2)}+${A3_m.toFixed(2)}) = ${brickVol.toFixed(3)} m³`, res: brickVol.toFixed(3) + ' m³' });
-      mData.push({ part:'单砖含灰缝体积', formula: `说明: 单块灰砖体积 = (长+灰缝) × (宽+灰缝) × (高+灰缝)<br>公式: (${config.brick[0]}+0.005) × (${config.brick[1]}+0.005) × (${config.brick[2]}+0.005) = ${unitVol.toFixed(5)} m³`, res: unitVol.toFixed(5) + ' m³' });
+      mData.push({ part:'单砖含灰缝体积', formula: `说明: 单块灰砖体积 = (长+灰缝) × (宽+灰缝) × (高+灰缝)，灰缝厚 ${config.mortarJoint}mm = ${mortarJointM.toFixed(4)}m<br>公式: (${config.brick[0]}+${mortarJointM.toFixed(4)}) × (${config.brick[1]}+${mortarJointM.toFixed(4)}) × (${config.brick[2]}+${mortarJointM.toFixed(4)}) = ${unitVol.toFixed(5)} m³`, res: unitVol.toFixed(5) + ' m³' });
       mData.push({ 
         part:'所需砖块数量', 
         formula: `说明: 砖块总数 = 墙体总体积 ÷ 单砖含灰缝体积 (向上取整)<br>   = 【π × 高H3 × 壁厚A3 × (内径D + 壁厚A3)】÷ 【(长+灰缝) × (宽+灰缝) × (高+灰缝)】<br>公式: 【${brickVol.toFixed(3)}】 ÷ 【${unitVol.toFixed(5)}】 = ${Q} 块`, 
         res: Q + ' 块' 
       });
-      mData.total = Q;
+      mData.push({ part:'砂浆体积', formula: `说明: 砂浆体积 = 墙体总体积 − 砖块净体积总和<br>公式: ${brickVol.toFixed(3)} − ${Q} × (${config.brick[0]}×${config.brick[1]}×${config.brick[2]}) = ${V_mortar.toFixed(3)} m³`, res: V_mortar.toFixed(3) + ' m³' });
+      mData.total = brickVol.toFixed(3);
 
-      // 土方工程量：外运总量不变；长臂挖机下沉深度 = 总深度 - 开挖深度
+      // ===== 土方工程量 =====
       const eData = globalCalcData.earthwork;
       const extD = D_m + 2*A1_m;
       const totalDepth = H1_m + H2_m + H3_m;
@@ -910,6 +941,7 @@
       eData.push({ part:'体积计算', formula: `说明: 基坑圆柱体积 = π × (外径/2)² × 总深<br>公式: π × (${(extD/2).toFixed(2)})² × ${totalDepth.toFixed(2)} = ${Vsoil.toFixed(2)} m³`, res: Vsoil.toFixed(2) });
       eData.total = Vsoil.toFixed(2);
 
+      // ===== 钢筋 =====
       const rData = globalCalcData.rebar; const rSum = globalCalcData.rebarSum; const coeff = 0.00617; let totalRebarKg = 0;
       const rebarByPart = { 
         '刃脚': { total: 0, items: [] }, 
@@ -1012,44 +1044,69 @@
       globalCalcData.rebarByPart = rebarByPart;
       
       const G_ton = totalRebarKg/1000;
+
+      // ===== 成本计算 =====
       const isLabor = currentMode === 'labor';
       const c = { 
         lT: v('priceLabTemplate'), lR: v('priceLabRebar'), lC: v('priceLabConc'), lM: v('priceLabMasonry'),
         mT: isLabor ? 0 : v('priceMatRebar'), 
         mC: isLabor ? 0 : v('priceMatConc'), 
         mM: v('priceMatBrick'),
-        eE: v('priceMachExc'), eT: v('priceMachTrans'), mRt: v('manageRate')/100, pRt: v('profitRate')/100, tRt: v('taxRate')/100
+        mMortar: v('priceMatMortar'),
+        eE: v('priceMachExc'), eT: v('priceMachTrans'),
+        measureRt: v('measureRate')/100,
+        mRt: v('manageRate')/100, 
+        pRt: v('profitRate')/100, 
+        tRt: v('taxRate')/100
       };
-      /* ===== 成本分级 =====
-         直接成本 = 人工 + 材料 + 机械
-         管理费   = 直接成本 × 管理费率
-         利润     = (直接成本 + 管理费) × 利润率
-         税金     = (直接成本 + 管理费 + 利润) × 增值税率
-         含税总价 = 直接成本 + 管理费 + 利润 + 税金
-         长臂挖机工程量 = π×(外径/2)²×(总深度−开挖深度)（土方外运总量不变）*/
-      const labCost = S*c.lT + G_ton*c.lR + V*c.lC + Q*c.lM;
-      const matCost = G_ton*c.mT + V*c.mC + Q*c.mM;
+      const concreteFactor = config.concreteFactor;
+      
+      // 混凝土拆分
+      const V_normal = vB + vS + vSlab + vRB; // 刃脚、井壁、底板、圈梁
+      const V_special = vSeal + vCushion; // 封底、垫层
+      
+      // 人工费
+      const labConcreteCost = V_normal * c.lC + V_special * c.lC * concreteFactor;
+      const labCost = S*c.lT + G_ton*c.lR + labConcreteCost + Q*c.lM;
+      
+      // 材料费
+      const matConcreteCost = V_normal * c.mC + V_special * c.mC * concreteFactor;
+      const matMortarCost = V_mortar * c.mMortar;
+      const matCost = G_ton*c.mT + matConcreteCost + Q*c.mM + matMortarCost;
+      
+      // 机械费
       const machCost = Vmach*c.eE + Vsoil*c.eT;
-      const direct = labCost + matCost + machCost;
+      
+      // 人材机
+      const directFee = labCost + matCost + machCost;
+      // 措施费
+      const measureCost = directFee * c.measureRt;
+      // 直接成本（含措施费）
+      const direct = directFee + measureCost;
+      // 管理费
       const mgmtCost = direct * c.mRt;
+      // 其余费用
+      const otherCost = measureCost + mgmtCost;
+      // 利润基数
       const totalPre = direct + mgmtCost;
       const profit = totalPre * c.pRt;
       const tax = (totalPre + profit) * c.tRt;
       const finalPrice = totalPre + profit + tax;
       
       const pct = (val) => ((totalPre>0)?((val/totalPre)*100).toFixed(1):'0.0');
-      globalCalcData.cost = { labCost, matCost, machCost, direct, mgmtCost, totalPre, profit, tax, finalPrice, c, S, G_ton, V, Q, Vsoil, Vmach };
+      globalCalcData.cost = { labCost, matCost, machCost, directFee, measureCost, direct, mgmtCost, otherCost, totalPre, profit, tax, finalPrice, c, S, G_ton, V, Q, Vsoil, Vmach, V_mortar };
 
       const laborItems = [];
       if (S > 0 && c.lT > 0) laborItems.push({ part:'模板', qtyStr:`${S.toFixed(2)} m²`, priceStr:`${c.lT} 元/m²`, formulaStr:`${S.toFixed(2)} × ${c.lT}`, amount:S*c.lT });
       if (G_ton > 0 && c.lR > 0) laborItems.push({ part:'钢筋', qtyStr:`${G_ton.toFixed(4)} t`, priceStr:`${c.lR} 元/t`, formulaStr:`${G_ton.toFixed(4)} × ${c.lR}`, amount:G_ton*c.lR });
-      if (V > 0 && c.lC > 0) laborItems.push({ part:'混凝土', qtyStr:`${V.toFixed(2)} m³`, priceStr:`${c.lC} 元/m³`, formulaStr:`${V.toFixed(2)} × ${c.lC}`, amount:V*c.lC });
+      if (V > 0 && c.lC > 0) laborItems.push({ part:'混凝土', qtyStr:`${V.toFixed(2)} m³`, priceStr:`${c.lC} 元/m³`, formulaStr:`${V.toFixed(2)} × ${c.lC}`, amount:labConcreteCost });
       if (Q > 0 && c.lM > 0) laborItems.push({ part:'砖砌体', qtyStr:`${Q} 块`, priceStr:`${c.lM} 元/块`, formulaStr:`${Q} × ${c.lM}`, amount:Q*c.lM });
 
       const materialItems = [];
       if (G_ton > 0 && c.mT > 0) materialItems.push({ part:'钢筋', qtyStr:`${G_ton.toFixed(4)} t`, priceStr:`${c.mT} 元/t`, formulaStr:`${G_ton.toFixed(4)} × ${c.mT}`, amount:G_ton*c.mT });
-      if (V > 0 && c.mC > 0) materialItems.push({ part:'混凝土', qtyStr:`${V.toFixed(2)} m³`, priceStr:`${c.mC} 元/m³`, formulaStr:`${V.toFixed(2)} × ${c.mC}`, amount:V*c.mC });
+      if (V > 0 && c.mC > 0) materialItems.push({ part:'混凝土', qtyStr:`${V.toFixed(2)} m³`, priceStr:`${c.mC} 元/m³`, formulaStr:`${V_normal.toFixed(2)}×${c.mC} + ${V_special.toFixed(2)}×${c.mC}×${concreteFactor}`, amount:matConcreteCost });
       if (Q > 0 && c.mM > 0) materialItems.push({ part:'砖块', qtyStr:`${Q} 块`, priceStr:`${c.mM} 元/块`, formulaStr:`${Q} × ${c.mM}`, amount:Q*c.mM });
+      if (V_mortar > 0 && c.mMortar > 0) materialItems.push({ part:'砂浆', qtyStr:`${V_mortar.toFixed(3)} m³`, priceStr:`${c.mMortar} 元/m³`, formulaStr:`${V_mortar.toFixed(3)} × ${c.mMortar}`, amount:matMortarCost });
 
       const machineItems = [];
       if (Vmach > 0 && c.eE > 0) machineItems.push({ part:'长臂挖机', qtyStr:`${Vmach.toFixed(2)} m³`, priceStr:`${c.eE} 元/m³`, formulaStr:`${Vmach.toFixed(2)} × ${c.eE}`, amount:Vmach*c.eE });
@@ -1059,23 +1116,24 @@
         laborItems, laborTotal: labCost,
         materialItems, materialTotal: matCost,
         machineItems, machineTotal: machCost,
-        direct: direct, mgmtRate: c.mRt, mgmtCost: mgmtCost,
-        totalPre: totalPre, profitRate: c.pRt, profit: profit,
-        taxRate: c.tRt, tax: tax, finalPrice: finalPrice,
+        directFee, measureCost, direct, mgmtCost, otherCost,
+        totalPre, profit, tax, finalPrice,
+        measureRate: c.measureRt, mgmtRate: c.mRt, profitRate: c.pRt, taxRate: c.tRt,
         labCost, matCost, machCost, Vsoil: Vsoil, Vmach: Vmach, eE: c.eE, eT: c.eT
       };
 
-      /* ===== 工程量卡片（顺序：砖砌体、模板、钢筋、混凝土、机械、土方）===== */
+      // ===== 工程量卡片（顺序：砖砌体、模板、钢筋、混凝土、机械、土方）=====
       const qItems = [];
 
-      // 1. 砖砌体（第一位）
-      if (Q > 0) {
+      // 1. 砖砌体
+      if (brickVol > 0) {
         qItems.push(`<div class="cost-card" onclick="openModal('masonry')">
           <div class="cost-card-header">
-            <div class="cost-card-title">🧱 砖砌体 <span>${Q}</span></div>
-            <div class="cost-card-sub">单位 块</div>
+            <div class="cost-card-title">🧱 砖砌体 <span>${brickVol.toFixed(2)}</span></div>
+            <div class="cost-card-sub">单位 m³</div>
           </div>
           <div class="cost-row"><span>砖块</span><span>${Q} 块</span></div>
+          <div class="cost-row"><span>砂浆</span><span>${V_mortar.toFixed(3)} m³</span></div>
         </div>`);
       }
 
@@ -1093,9 +1151,9 @@
         </div>`);
       }
 
-      // 3. 钢筋
+      // 3. 钢筋（层间搭接移到第一个）
       if (totalRebarKg > 0) {
-        const partNames = ['刃脚', '井壁', '层间搭接', '底板', '圈梁'];
+        const partNames = ['层间搭接', '刃脚', '井壁', '底板', '圈梁'];
         const rows = partNames.map(name => {
           const g = rebarByPart[name];
           if (g && g.total > 0) {
@@ -1154,37 +1212,38 @@
       if (labCost > 0) {
         costCards.push(`<div class="cost-card" onclick="openModal('laborCost')">
           <div class="cost-card-header">
-            <div class="cost-card-title">👷 人工费 <span>${labCost.toFixed(2)}</span></div>
+            <div class="cost-card-title">👷 人工费 <span>${labCost.toFixed(2)} 元</span></div>
             <div class="cost-card-sub">占比 ${pct(labCost)}%</div>
           </div>
-          ${laborItems.map(it => `<div class="cost-row"><span>${it.part}</span><span>${it.amount.toFixed(2)}</span></div>`).join('')}
+          ${laborItems.map(it => `<div class="cost-row"><span>${it.part}</span><span>${it.amount.toFixed(2)} 元</span></div>`).join('')}
         </div>`);
       }
       if (matCost > 0) {
         costCards.push(`<div class="cost-card" onclick="openModal('materialCost')">
           <div class="cost-card-header">
-            <div class="cost-card-title">🎨 材料费 <span>${matCost.toFixed(2)}</span></div>
+            <div class="cost-card-title">🎨 材料费 <span>${matCost.toFixed(2)} 元</span></div>
             <div class="cost-card-sub">占比 ${pct(matCost)}%</div>
           </div>
-          ${materialItems.map(it => `<div class="cost-row"><span>${it.part}</span><span>${it.amount.toFixed(2)}</span></div>`).join('')}
+          ${materialItems.map(it => `<div class="cost-row"><span>${it.part}</span><span>${it.amount.toFixed(2)} 元</span></div>`).join('')}
         </div>`);
       }
       if (machCost > 0) {
         costCards.push(`<div class="cost-card" onclick="openModal('machineCost')">
           <div class="cost-card-header">
-            <div class="cost-card-title">🚜 机械费 <span>${machCost.toFixed(2)}</span></div>
+            <div class="cost-card-title">🚜 机械费 <span>${machCost.toFixed(2)} 元</span></div>
             <div class="cost-card-sub">占比 ${pct(machCost)}%</div>
           </div>
-          ${machineItems.map(it => `<div class="cost-row"><span>${it.part}</span><span>${it.amount.toFixed(2)}</span></div>`).join('')}
+          ${machineItems.map(it => `<div class="cost-row"><span>${it.part}</span><span>${it.amount.toFixed(2)} 元</span></div>`).join('')}
         </div>`);
       }
-      if (mgmtCost > 0) {
-        costCards.push(`<div class="cost-card" onclick="openModal('managementCost')">
+      if (otherCost > 0) {
+        costCards.push(`<div class="cost-card" onclick="openModal('otherCost')">
           <div class="cost-card-header">
-            <div class="cost-card-title">📋 管理费 <span>${mgmtCost.toFixed(2)}</span></div>
-            <div class="cost-card-sub">占比 ${pct(mgmtCost)}% (费率${(c.mRt*100)}%)</div>
+            <div class="cost-card-title">📋 其余费用 <span>${otherCost.toFixed(2)} 元</span></div>
+            <div class="cost-card-sub">占比 ${pct(otherCost)}%</div>
           </div>
-          <div class="cost-row"><span>各项统筹</span><span>${mgmtCost.toFixed(2)}</span></div>
+          <div class="cost-row"><span>措施费</span><span>${measureCost.toFixed(2)} 元</span></div>
+          <div class="cost-row"><span>管理费</span><span>${mgmtCost.toFixed(2)} 元</span></div>
         </div>`);
       }
 
@@ -1207,7 +1266,7 @@
 
       if (shouldSave) {
         const inputs = captureInputs();
-        const resObj = { S, G: totalRebarKg, V, Q, Vsoil, Vmach, direct, mgmtCost, profit, tax, finalPrice, labCost, matCost, machCost };
+        const resObj = { S, G: totalRebarKg, V, Q, Vsoil, Vmach, V_mortar, directFee, measureCost, direct, mgmtCost, otherCost, profit, tax, finalPrice, labCost, matCost, machCost };
         const codeVal = (document.getElementById('wellCode')?.value || '').trim();
         const codeStr = codeVal || 'Untitled';
         const modeStr = getModeStr();
@@ -1248,7 +1307,7 @@
       else if(type === 'masonry') {
         title = '砖砌体工程量明细'; legend = basicLegend;
         html = globalCalcData.masonry.filter(it => it.res && parseFloat(it.res) > 0).map(item => `<div class="detail-block"><div class="d-title">${item.part}</div><div class="d-row formula">${formatMath(item.formula)}</div><div class="d-sum">${item.res}</div></div>`).join('');
-        html += `<div class="grand-total">砖砌体合计用量 <strong>${globalCalcData.masonry.total} 块</strong></div>`;
+        html += `<div class="grand-total">砖砌体合计用量 <strong>${globalCalcData.masonry.total} m³</strong></div>`;
       }
       else if(type === 'earthwork') {
         title = '土方工程量明细'; legend = basicLegend;
@@ -1288,7 +1347,7 @@
         let allHtml = '';
         const cd = globalCalcData.costDetail;
         
-        // 砖砌体工程（第一位）
+        // 砖砌体工程
         if (globalCalcData.masonry.total > 0) {
           const masFiltered = globalCalcData.masonry.filter(it => parseFloat(it.res) > 0);
           if (masFiltered.length > 0) {
@@ -1296,11 +1355,11 @@
             masFiltered.forEach(it => {
               allHtml += `<div class="detail-block"><div class="d-title">${it.part}</div><div class="d-row formula">${formatMath(it.formula)}</div><div class="d-sum">${it.res}</div></div>`;
             });
-            allHtml += `<div class="subtotal">🧱 砖砌体总量：<span>${globalCalcData.masonry.total} 块</span></div>`;
+            allHtml += `<div class="subtotal">🧱 砖砌体总量：<span>${globalCalcData.masonry.total} m³</span></div>`;
           }
         }
 
-        // 模板工程（第二位）
+        // 模板工程
         const tplFiltered = globalCalcData.template.filter(it => parseFloat(it.res) > 0);
         if (tplFiltered.length > 0) {
           allHtml += `<div class="section-title"><span>📐 模板工程</span></div>`;
@@ -1369,7 +1428,7 @@
           allHtml += `<div class="subtotal">🚜 机械工程量合计：<span>${(ei.Vmach||0).toFixed(2)} m³</span></div>`;
         }
         
-        // 土方工程量（纯工程量，不含价格）
+        // 土方工程量
         const earthFiltered = globalCalcData.earthwork.filter(it => !it.res || parseFloat(it.res) > 0);
         if (earthFiltered.length > 0) {
           allHtml += `<div class="section-title"><span>⛏️ 土方工程量</span></div>`;
@@ -1387,7 +1446,7 @@
       }
       else if(type === 'costSummary') {
         title = '成本统计';
-        legend = `<div class="legend-box"><strong>沉井编号：${wellCodeWithMode}</strong><br><strong>沉井尺寸：</strong>${sizeInfo}<br><br>按层级统计：①直接成本（人工+材料+机械）→ ②管理费 → ③利润 → ④税金，逐级计算并附完整公式。</div>`;
+        legend = `<div class="legend-box"><strong>沉井编号：${wellCodeWithMode}</strong><br><strong>沉井尺寸：</strong>${sizeInfo}<br><br>按层级统计：①直接成本（人材机+措施费）→ ②管理费 → ③利润 → ④税金，逐级计算并附完整公式。</div>`;
         const cd = globalCalcData.costDetail;
         
         let sections = '';
@@ -1411,21 +1470,39 @@
           sections += `<div class="section-title"><span>🚜 机械费</span></div>${items}<div class="subtotal">🚜 机械费小计：<span>${cd.machineTotal.toFixed(2)} 元</span></div>`;
         }
         
-        // 直接成本合计：浅色居中样式 + 细边框
+        // 措施费
+        sections += `<div class="section-title"><span>📋 措施费</span></div>
+          <div class="detail-block">
+            <div class="d-title">计算基数</div>
+            <div class="d-row"><span>人材机</span><span>${cd.directFee.toFixed(2)} 元</span></div>
+            <div class="d-row"><span>措施费率</span><span>${(cd.measureRate*100)}%</span></div>
+            <div class="d-row formula">${formatMath(`说明: 措施费 = 人材机 × 措施费率<br>公式: ${cd.directFee.toFixed(2)} × ${(cd.measureRate*100)}% = ${cd.measureCost.toFixed(2)} 元`)}</div>
+          </div>
+          <div class="subtotal">📋 措施费小计：<span>${cd.measureCost.toFixed(2)} 元</span></div>`;
+        
+        // 直接成本（人材机+措施费）
         sections += `<div class="subtotal subtotal-direct">
-          <div class="sd-label">💰 直接成本合计（人工+材料+机械）</div>
+          <div class="sd-label">💰 直接成本（人材机+措施费）</div>
           <div class="sd-value">${cd.direct.toFixed(2)} 元</div>
         </div>`;
         
+        // 管理费
         sections += `<div class="section-title"><span>📋 管理费</span></div>
           <div class="detail-block">
             <div class="d-title">计算基数</div>
-            <div class="d-row"><span>直接成本（人+材+机）</span><span>${cd.direct.toFixed(2)} 元</span></div>
+            <div class="d-row"><span>直接成本（人材机+措施费）</span><span>${cd.direct.toFixed(2)} 元</span></div>
             <div class="d-row"><span>管理费率</span><span>${(cd.mgmtRate*100)}%</span></div>
             <div class="d-row formula">${formatMath(`说明: 管理费 = 直接成本 × 管理费率<br>公式: ${cd.direct.toFixed(2)} × ${(cd.mgmtRate*100)}% = ${cd.mgmtCost.toFixed(2)} 元`)}</div>
           </div>
           <div class="subtotal">📋 管理费小计：<span>${cd.mgmtCost.toFixed(2)} 元</span></div>`;
         
+        // 其余费用
+        sections += `<div class="subtotal subtotal-direct">
+          <div class="sd-label">📋 其余费用（措施费+管理费）</div>
+          <div class="sd-value">${cd.otherCost.toFixed(2)} 元</div>
+        </div>`;
+        
+        // 利润
         const profitBase = cd.direct + cd.mgmtCost;
         sections += `<div class="section-title"><span>📈 利润</span></div>
           <div class="detail-block">
@@ -1438,6 +1515,7 @@
           </div>
           <div class="subtotal">📈 利润小计：<span>${cd.profit.toFixed(2)} 元</span></div>`;
         
+        // 税金
         const taxBase = profitBase + cd.profit;
         sections += `<div class="section-title"><span>🧾 税金</span></div>
           <div class="detail-block">
@@ -1451,6 +1529,7 @@
           </div>
           <div class="subtotal">🧾 税金小计：<span>${cd.tax.toFixed(2)} 元</span></div>`;
         
+        // 综合汇总
         sections += `<div class="section-title"><span>🧾 综合汇总</span></div>
           <div class="detail-block" style="border-color:#cce0f0;">
             <div class="d-row"><span>直接成本</span><span style="color:#1e4460; font-weight:700;">${cd.direct.toFixed(2)} 元</span></div>
@@ -1475,15 +1554,15 @@
         let h = '';
         h += `<div class="section-title"><span>💰 直接成本</span></div>
           <div class="detail-block">
-            <div class="d-title">人材机构成</div>
+            <div class="d-title">人材机+措施费</div>
             <div class="d-row"><span>人工费</span><span>${cd.labCost.toFixed(2)} 元</span></div>
             <div class="d-row"><span>材料费</span><span>${cd.matCost.toFixed(2)} 元</span></div>
             <div class="d-row"><span>机械费</span><span>${cd.machCost.toFixed(2)} 元</span></div>
-            <div class="d-row formula">${formatMath(`说明: 直接成本 = 人工费 + 材料费 + 机械费<br>公式: ${cd.labCost.toFixed(2)} + ${cd.matCost.toFixed(2)} + ${cd.machCost.toFixed(2)} = ${cd.direct.toFixed(2)} 元`)}</div>
+            <div class="d-row"><span>措施费</span><span>${cd.measureCost.toFixed(2)} 元</span></div>
+            <div class="d-row formula">${formatMath(`说明: 直接成本 = 人材机 + 措施费<br>公式: ${cd.directFee.toFixed(2)} + ${cd.measureCost.toFixed(2)} = ${cd.direct.toFixed(2)} 元`)}</div>
           </div>
           <div class="subtotal">💰 直接成本小计：<span>${cd.direct.toFixed(2)} 元</span></div>`;
         
-        // 管理费 —— 简化：基数（文字）、说明、公式
         h += `<div class="section-title"><span>📋 管理费</span></div>
           <div class="detail-block">
             <div class="d-row"><span>基数</span><span>直接成本</span></div>
@@ -1492,7 +1571,6 @@
           </div>
           <div class="subtotal">📋 管理费小计：<span>${cd.mgmtCost.toFixed(2)} 元</span></div>`;
         
-        // 利润 —— 简化
         h += `<div class="section-title"><span>📈 利润</span></div>
           <div class="detail-block">
             <div class="d-row"><span>基数</span><span>直接成本 + 管理费</span></div>
@@ -1501,7 +1579,6 @@
           </div>
           <div class="subtotal">📈 利润小计：<span>${cd.profit.toFixed(2)} 元</span></div>`;
         
-        // 税金 —— 简化
         h += `<div class="section-title"><span>🧾 税金</span></div>
           <div class="detail-block">
             <div class="d-row"><span>基数</span><span>直接成本 + 管理费 + 利润</span></div>
@@ -1510,7 +1587,6 @@
           </div>
           <div class="subtotal">🧾 税金小计：<span>${cd.tax.toFixed(2)} 元</span></div>`;
         
-        // 含税总价 —— 加细边框
         h += `<div class="section-title"><span>🏁 含税总价</span></div>
           <div class="detail-block" style="border-color:#cce0f0;">
             <div class="d-row"><span>直接成本</span><span style="color:#1e4460; font-weight:700;">${cd.direct.toFixed(2)} 元</span></div>
@@ -1568,25 +1644,24 @@
         `).join('');
         html += `<div class="grand-total">机械费合计 <strong>${cd.machineTotal.toFixed(2)} 元</strong></div>`;
       }
-      else if(type === 'managementCost') {
+      else if(type === 'otherCost') {
         const cd = globalCalcData.costDetail;
-        title = '管理费明细';
-        legend = `<div class="legend-box"><strong>沉井编号：${wellCodeWithMode}</strong><br><strong>沉井尺寸：</strong>${sizeInfo}<br><br><strong>计算公式：</strong><br>管理费 = (人工费 + 材料费 + 机械费) × 管理费率 = 直接成本 × 管理费率</div>`;
-        let directRows = '';
-        if (cd.labCost > 0) directRows += `<div class="d-row"><span>人工费</span><span>${cd.labCost.toFixed(2)} 元</span></div>`;
-        if (cd.matCost > 0) directRows += `<div class="d-row"><span>材料费</span><span>${cd.matCost.toFixed(2)} 元</span></div>`;
-        if (cd.machCost > 0) directRows += `<div class="d-row"><span>机械费</span><span>${cd.machCost.toFixed(2)} 元</span></div>`;
+        title = '其余费用明细';
+        legend = `<div class="legend-box"><strong>沉井编号：${wellCodeWithMode}</strong><br><strong>沉井尺寸：</strong>${sizeInfo}<br><br><strong>计算公式：</strong><br>措施费 = 人材机 × 措施费率；管理费 = 直接成本 × 管理费率</div>`;
         html = `
           <div class="detail-block">
-            <div class="d-title">📋 直接成本</div>
-            ${directRows}
-            <div class="d-sum">直接成本 ${cd.direct.toFixed(2)} 元</div>
+            <div class="d-title">📋 措施费</div>
+            <div class="d-row"><span>计算基数（人材机）</span><span>${cd.directFee.toFixed(2)} 元</span></div>
+            <div class="d-row"><span>措施费率</span><span>${(cd.measureRate*100)}%</span></div>
+            <div class="d-row formula">${formatMath(`公式：${cd.directFee.toFixed(2)} × ${(cd.measureRate*100)}% = ${cd.measureCost.toFixed(2)} 元`)}</div>
           </div>
           <div class="detail-block">
-            <div class="d-title">📋 管理费计算</div>
-            <div class="d-row formula">${formatMath(`公式：直接成本 ${cd.direct.toFixed(2)} × 管理费率 ${(cd.mgmtRate*100)}\% =${cd.mgmtCost.toFixed(2)} 元`)}</div>
+            <div class="d-title">📋 管理费</div>
+            <div class="d-row"><span>计算基数（直接成本）</span><span>${cd.direct.toFixed(2)} 元</span></div>
+            <div class="d-row"><span>管理费率</span><span>${(cd.mgmtRate*100)}%</span></div>
+            <div class="d-row formula">${formatMath(`公式：${cd.direct.toFixed(2)} × ${(cd.mgmtRate*100)}% = ${cd.mgmtCost.toFixed(2)} 元`)}</div>
           </div>
-          <div class="grand-total">管理费合计 <strong>${cd.mgmtCost.toFixed(2)} 元</strong></div>
+          <div class="grand-total">其余费用合计 <strong>${cd.otherCost.toFixed(2)} 元</strong></div>
         `;
       }
       titleEl.innerText = title; bodyEl.innerHTML = legend + html; document.body.classList.add('modal-open'); modal.classList.add('active');
@@ -1602,7 +1677,7 @@
         document.getElementById('lockPanel').classList.remove('hidden');
         document.getElementById('historySection').classList.remove('hidden');
         document.getElementById('settingsContent').classList.add('hidden');
-        ['barLength','lossRate','kLen','lapFactor','protect','brickL','brickW','brickH'].forEach(inpId => document.getElementById(inpId).disabled = true);
+        ['barLength','lossRate','kLen','lapFactor','protect','concreteFactor','brickL','brickW','brickH','mortarJoint'].forEach(inpId => document.getElementById(inpId).disabled = true);
       }
     };
 
@@ -1649,13 +1724,14 @@
         const excAmt = vMach * excPrice;
         const transAmt = res.Vsoil * transPrice;
         let machRows = '';
-        if (excPrice > 0 && vMach > 0) machRows += `<div class="detail-item"><span>机械费用(长臂挖机)</span><span>${excAmt.toFixed(2)} 元</span></div>`;
+        if (excPrice > 0 && vMach > 0) machRows += `<div class="detail-item"><span>长臂挖机</span><span>${excAmt.toFixed(2)} 元</span></div>`;
         if (transPrice > 0 && res.Vsoil > 0) machRows += `<div class="detail-item"><span>土方外运</span><span>${transAmt.toFixed(2)} 元</span></div>`;
 
         let matRows = '';
         if (hasNonZeroVal(inp.priceMatRebar)) matRows += `<div class="detail-item"><span>钢筋</span><span>${inp.priceMatRebar} 元/t</span></div>`;
         if (hasNonZeroVal(inp.priceMatConc)) matRows += `<div class="detail-item"><span>混凝土</span><span>${inp.priceMatConc} 元/m³</span></div>`;
         if (hasNonZeroVal(inp.priceMatBrick)) matRows += `<div class="detail-item"><span>砖</span><span>${inp.priceMatBrick} 元/块</span></div>`;
+        if (hasNonZeroVal(inp.priceMatMortar)) matRows += `<div class="detail-item"><span>砂浆</span><span>${inp.priceMatMortar} 元/m³</span></div>`;
 
         const rDirect = recDirect(res);
         const rProfit = recProfit(res);
@@ -1666,6 +1742,7 @@
         if (res.labCost > 0) costRows += `<div class="detail-item"><span>人工费</span><span>${res.labCost.toFixed(2)} 元</span></div>`;
         if (res.matCost > 0) costRows += `<div class="detail-item"><span>材料费</span><span>${res.matCost.toFixed(2)} 元</span></div>`;
         costRows += machRows;
+        if (res.measureCost > 0) costRows += `<div class="detail-item"><span>措施费</span><span>${res.measureCost.toFixed(2)} 元</span></div>`;
 
         return `
         <div class="record-item" id="rec-item-${r.id}" onclick="toggleRecord(this, ${r.id})">
@@ -1693,7 +1770,6 @@
               <div class="detail-item"><span>圈梁高度</span><span>${inp.H4.toFixed(2)} m</span></div><div class="detail-item"><span>圈梁壁厚</span><span>${inp.A4.toFixed(2)} m</span></div>
               <div class="detail-item"><span>底板厚度</span><span>${inp.B.toFixed(2)} m</span></div><div class="detail-item"><span>封底厚度</span><span>${inp.sealThick.toFixed(2)} m</span></div>
               <div class="detail-item"><span>垫层厚度</span><span>${(inp.cushionThick !== undefined ? parseFloat(inp.cushionThick).toFixed(2) : '0.10')} m</span></div>
-              <div class="detail-item"><span>垫层层数</span><span>${layers} 层</span></div>
               <div class="detail-item"><span>开挖深度</span><span>${(inp.excavDepth !== undefined ? parseFloat(inp.excavDepth).toFixed(2) : '2.00')} m</span></div>
             </div></div>
 
@@ -1735,6 +1811,7 @@
               </div>
               <div class="detail-sub-label">📋 费率</div>
               <div class="detail-grid">
+                <div class="detail-item"><span>措施费率</span><span>${inp.measureRate} %</span></div>
                 <div class="detail-item"><span>管理费率</span><span>${inp.manageRate} %</span></div>
                 <div class="detail-item"><span>利润比率</span><span>${inp.profitRate} %</span></div>
                 <div class="detail-item"><span>增值税率</span><span>${inp.taxRate} %</span></div>
@@ -1742,8 +1819,10 @@
             </div>
 
             <div class="detail-section"><h4>📊 工程量</h4><div class="detail-grid">
-              <div class="detail-item"><span>模板</span><span>${res.S.toFixed(2)} m²</span></div><div class="detail-item"><span>钢筋</span><span>${Math.round(res.G)} kg</span></div>
-              <div class="detail-item"><span>混凝土</span><span>${res.V.toFixed(2)} m³</span></div><div class="detail-item"><span>砖砌体</span><span>${res.Q} 块</span></div>
+              <div class="detail-item"><span>砖砌体</span><span>${res.V_mortar !== undefined ? (parseFloat(res.V_mortar) + 0).toFixed(2) : ''} m³</span></div>
+              <div class="detail-item"><span>模板</span><span>${res.S.toFixed(2)} m²</span></div>
+              <div class="detail-item"><span>钢筋</span><span>${Math.round(res.G)} kg</span></div>
+              <div class="detail-item"><span>混凝土</span><span>${res.V.toFixed(2)} m³</span></div>
               <div class="detail-item"><span>机械(长臂挖机)</span><span>${(res.Vmach !== undefined ? res.Vmach : res.Vsoil).toFixed(2)} m³</span></div>
               <div class="detail-item"><span>土方外运</span><span>${res.Vsoil.toFixed(2)} m³</span></div>
             </div></div>
@@ -1763,6 +1842,16 @@
     }
 
     window.toggleRecord = function(el, id){ 
+      // 先折叠所有其他已展开的记录
+      document.querySelectorAll('.record-item').forEach(item => {
+        if (item.id !== `rec-item-${id}`) {
+          const detail = item.querySelector('.record-detail');
+          if (detail && !detail.classList.contains('hidden')) {
+            detail.classList.add('hidden');
+          }
+        }
+      });
+      // 切换当前记录
       el.classList.toggle('expanded'); 
       document.getElementById(`detail-${id}`).classList.toggle('hidden'); 
       closeAllMenus(); 
@@ -1813,6 +1902,8 @@
           if(rec.config) {
             config = Object.assign({}, config, rec.config);
             if(!Array.isArray(config.brick) || config.brick.length < 3) config.brick = DEFAULT_CONFIG.brick.slice();
+            // 兼容旧版灰缝单位
+            if (config.mortarJoint !== undefined && config.mortarJoint < 1) config.mortarJoint = config.mortarJoint * 1000;
             saveConfig();
             fillSettingsInputs();
           }
@@ -1905,6 +1996,7 @@
       if (hasNonZeroVal(inp.priceMatRebar)) matSection += `  钢筋： ${inp.priceMatRebar}元/t\n`;
       if (hasNonZeroVal(inp.priceMatConc)) matSection += `  砼： ${inp.priceMatConc}元/m³\n`;
       if (hasNonZeroVal(inp.priceMatBrick)) matSection += `  砖： ${inp.priceMatBrick}元/块\n`;
+      if (hasNonZeroVal(inp.priceMatMortar)) matSection += `  砂浆： ${inp.priceMatMortar}元/m³\n`;
       
       const rDirect = recDirect(res);
       const rProfit = recProfit(res);
@@ -1919,11 +2011,13 @@
       const excAmt = vMach * excPrice;
       const transAmt = res.Vsoil * transPrice;
       const machV = excAmt + transAmt;
+      const measureV = res.measureCost || 0;
 
       let feeSection = '';
       if (labV > 0) feeSection += `人工费： ${labV.toFixed(2)} 元\n`;
       if (matV > 0) feeSection += `材料费： ${matV.toFixed(2)} 元\n`;
       if (machV > 0) feeSection += `机械费： ${machV.toFixed(2)} 元\n`;
+      if (measureV > 0) feeSection += `措施费： ${measureV.toFixed(2)} 元\n`;
       feeSection += `-------------------\n`;
       feeSection += `直接成本： ${rDirect.toFixed(2)} 元\n`;
       feeSection += `管理费： ${rMgmt.toFixed(2)} 元\n`;
@@ -1948,7 +2042,7 @@
 圈梁壁厚： ${inp.A4.toFixed(2)}m
 底板厚度： ${inp.B.toFixed(2)}m
 封底厚度： ${inp.sealThick.toFixed(2)}m
-垫层厚度： ${(inp.cushionThick !== undefined ? parseFloat(inp.cushionThick).toFixed(2) : '0.10')}m（${layers}层）
+垫层厚度： ${(inp.cushionThick !== undefined ? parseFloat(inp.cushionThick).toFixed(2) : '0.10')}m
 开挖深度： ${(inp.excavDepth !== undefined ? parseFloat(inp.excavDepth).toFixed(2) : '2.00')}m
 
 ===================
@@ -1981,6 +2075,7 @@ ${matSection}【机械费】
   长臂挖机： ${inp.priceMachExc}元/m³
   土方外运： ${inp.priceMachTrans}元/m³
 【费率】
+  措施费率： ${inp.measureRate}%
   管理费： ${inp.manageRate}%
   利润比率： ${inp.profitRate}% 
   增值税率： ${inp.taxRate}%
@@ -1988,7 +2083,7 @@ ${matSection}【机械费】
 ===================
 四、工程量统计
 ===================
-砖砌体： ${res.Q} 块
+砖砌体： ${res.V_mortar !== undefined ? (parseFloat(res.V_mortar) + 0).toFixed(2) : ''} m³
 模板： ${res.S.toFixed(2)} m²
 钢筋： ${Math.round(res.G)} kg
 混凝土： ${res.V.toFixed(2)} m³
@@ -2011,7 +2106,7 @@ ${feeSection}`;
       if(type === 'quantitySummary') {
         text += `═══════════════════════════════\n一、工程量统计\n═══════════════════════════════\n\n`;
         
-        // 砖砌体工程（第一位）
+        // 砖砌体工程
         if (globalCalcData.masonry.total > 0) {
           const masFiltered = globalCalcData.masonry.filter(it => parseFloat(it.res) > 0);
           if (masFiltered.length > 0) {
@@ -2036,11 +2131,11 @@ ${feeSection}`;
               }
               text += `\n`;
             });
-            text += `  ☆ 小计：砖砌体总量 ${globalCalcData.masonry.total} 块\n\n`;
+            text += `  ☆ 小计：砖砌体总量 ${globalCalcData.masonry.total} m³\n\n`;
           }
         }
 
-        // 模板工程（第二位）
+        // 模板工程
         const tplFiltered = globalCalcData.template.filter(it => parseFloat(it.res) > 0);
         if (tplFiltered.length > 0) {
           text += `【模板工程】\n\n`;
@@ -2092,7 +2187,6 @@ ${feeSection}`;
           text += `  ☆ 小计：混凝土总方量 ${globalCalcData.concrete.total} m³\n\n`;
         }
         
-        // 机械工程量
         const ei = globalCalcData.earthworkInfo || {};
         if ((ei.Vmach || 0) > 0) {
           text += `【机械工程量】\n\n`;
@@ -2101,7 +2195,6 @@ ${feeSection}`;
           text += `  ☆ 小计：机械工程量 ${(ei.Vmach||0).toFixed(2)} m³\n\n`;
         }
         
-        // 土方工程量
         if (globalCalcData.earthwork.total > 0) {
           text += `【土方工程量】\n\n`;
           const earthFiltered = globalCalcData.earthwork.filter(it => !it.res || parseFloat(it.res) > 0);
@@ -2143,10 +2236,12 @@ ${feeSection}`;
           });
         }
         
-        text += `【直接成本】合计 ${cd.direct.toFixed(2)} 元 （人工+材料+机械）\n\n`;
-        
+        text += `【措施费】合计 ${cd.measureCost.toFixed(2)} 元\n`;
+        text += `     公式：人材机 ${cd.directFee.toFixed(2)} × 措施费率 ${(cd.measureRate*100)}% = ${cd.measureCost.toFixed(2)} 元\n\n`;
+        text += `【直接成本】合计 ${cd.direct.toFixed(2)} 元 （人材机+措施费）\n\n`;
         text += `【管理费】合计 ${cd.mgmtCost.toFixed(2)} 元\n`;
         text += `     公式：直接成本 ${cd.direct.toFixed(2)} × 管理费率 ${(cd.mgmtRate*100)}% = ${cd.mgmtCost.toFixed(2)} 元\n\n`;
+        text += `【其余费用】合计 ${cd.otherCost.toFixed(2)} 元 （措施费+管理费）\n\n`;
         
         const profitBase = cd.direct + cd.mgmtCost;
         text += `【利润】合计 ${cd.profit.toFixed(2)} 元\n`;
@@ -2171,7 +2266,7 @@ ${feeSection}`;
         const cd = globalCalcData.costDetail;
         text += `═══════════════════════════════\n三、总价汇总\n═══════════════════════════════\n\n`;
         text += `【直接成本】 ${cd.direct.toFixed(2)} 元\n`;
-        text += `     公式：人工费 ${cd.labCost.toFixed(2)} + 材料费 ${cd.matCost.toFixed(2)} + 机械费 ${cd.machCost.toFixed(2)} = ${cd.direct.toFixed(2)} 元\n\n`;
+        text += `     公式：人材机 ${cd.directFee.toFixed(2)} + 措施费 ${cd.measureCost.toFixed(2)} = ${cd.direct.toFixed(2)} 元\n\n`;
         text += `【管理费】 ${cd.mgmtCost.toFixed(2)} 元\n`;
         text += `     基数：直接成本\n`;
         text += `     说明：管理费 = 直接成本 × 管理费率\n`;
@@ -2237,16 +2332,14 @@ ${feeSection}`;
         return;
       }
       
-      if(type === 'managementCost') {
+      if(type === 'otherCost') {
         const cd = globalCalcData.costDetail;
-        text += `【管理费明细】\n\n`;
-        text += `直接成本明细：\n`;
-        if (cd.labCost > 0) text += `  人工费：${cd.labCost.toFixed(2)} 元\n`;
-        if (cd.matCost > 0) text += `  材料费：${cd.matCost.toFixed(2)} 元\n`;
-        if (cd.machCost > 0) text += `  机械费：${cd.machCost.toFixed(2)} 元\n`;
-        text += `  直接成本：${cd.direct.toFixed(2)} 元\n\n`;
-        text += `管理费公式：直接成本 ${cd.direct.toFixed(2)} × 管理费率 ${(cd.mgmtRate*100)}% = ${cd.mgmtCost.toFixed(2)} 元\n\n`;
-        text += `★ 管理费合计：${cd.mgmtCost.toFixed(2)} 元\n`;
+        text += `【其余费用明细】\n\n`;
+        text += `【措施费】${cd.measureCost.toFixed(2)} 元\n`;
+        text += `     公式：人材机 ${cd.directFee.toFixed(2)} × 措施费率 ${(cd.measureRate*100)}% = ${cd.measureCost.toFixed(2)} 元\n\n`;
+        text += `【管理费】${cd.mgmtCost.toFixed(2)} 元\n`;
+        text += `     公式：直接成本 ${cd.direct.toFixed(2)} × 管理费率 ${(cd.mgmtRate*100)}% = ${cd.mgmtCost.toFixed(2)} 元\n\n`;
+        text += `★ 其余费用合计：${cd.otherCost.toFixed(2)} 元\n`;
         executeFallbackCopy(text, btn);
         return;
       }
@@ -2318,21 +2411,27 @@ ${feeSection}`;
         document.getElementById('historySection').classList.add('hidden'); 
         document.getElementById('settingsContent').classList.remove('hidden'); 
         fillSettingsInputs();
-        ['barLength','lossRate','kLen','lapFactor','protect','brickL','brickW','brickH'].forEach(id => document.getElementById(id).disabled = false);
+        ['barLength','lossRate','kLen','lapFactor','protect','concreteFactor','brickL','brickW','brickH','mortarJoint'].forEach(id => document.getElementById(id).disabled = false);
       } else { alert('密码错误，请重试'); }
     };
     
     document.getElementById('applySettingsBtn').onclick = () => {
       if(unlocked) {
-        config.barLength = parseFloat(document.getElementById('barLength').value); config.lossRate = parseFloat(document.getElementById('lossRate').value);
-        config.kLen = parseFloat(document.getElementById('kLen').value); config.lapFactor = parseFloat(document.getElementById('lapFactor').value);
+        config.barLength = parseFloat(document.getElementById('barLength').value); 
+        config.lossRate = parseFloat(document.getElementById('lossRate').value);
+        config.kLen = parseFloat(document.getElementById('kLen').value); 
+        config.lapFactor = parseFloat(document.getElementById('lapFactor').value);
         config.protect = parseFloat(document.getElementById('protect').value);
+        config.concreteFactor = parseFloat(document.getElementById('concreteFactor').value);
+        config.mortarJoint = parseFloat(document.getElementById('mortarJoint').value);
         config.brick = [parseFloat(document.getElementById('brickL').value), parseFloat(document.getElementById('brickW').value), parseFloat(document.getElementById('brickH').value)];
         if(isNaN(config.barLength)) config.barLength = DEFAULT_CONFIG.barLength;
         if(isNaN(config.lossRate)) config.lossRate = DEFAULT_CONFIG.lossRate;
         if(isNaN(config.kLen)) config.kLen = DEFAULT_CONFIG.kLen;
         if(isNaN(config.lapFactor)) config.lapFactor = DEFAULT_CONFIG.lapFactor;
         if(isNaN(config.protect)) config.protect = DEFAULT_CONFIG.protect;
+        if(isNaN(config.concreteFactor)) config.concreteFactor = DEFAULT_CONFIG.concreteFactor;
+        if(isNaN(config.mortarJoint)) config.mortarJoint = DEFAULT_CONFIG.mortarJoint;
         if(isNaN(config.brick[0])) config.brick[0] = DEFAULT_CONFIG.brick[0];
         if(isNaN(config.brick[1])) config.brick[1] = DEFAULT_CONFIG.brick[1];
         if(isNaN(config.brick[2])) config.brick[2] = DEFAULT_CONFIG.brick[2];
