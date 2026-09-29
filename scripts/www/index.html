@@ -628,12 +628,6 @@
       return `${getWellCodeStr()}（${getModeStr(mode)}）`;
     }
 
-    // ==========================================================
-    // 【修复】buildSizeInfoFromInputs 兼容字符串输入
-    // 原实现直接对可能为字符串的输入调用 .toFixed()，
-    // 从历史记录复制时 inp.cushionThick / inp.excavDepth 为字符串，
-    // 会抛 TypeError 导致整个复制内容变成错误提示。
-    // ==========================================================
     function buildSizeInfoFromInputs(inp){
       const n = (v, fallback) => {
         const x = parseFloat(v);
@@ -1354,7 +1348,8 @@
             masFiltered.forEach(it => {
               allHtml += `<div class="detail-block"><div class="d-title">${it.part}</div><div class="d-row formula">${formatMath(it.formula)}</div><div class="d-sum">${it.res}</div></div>`;
             });
-            allHtml += `<div class="subtotal">🧱 砖砌体总量：<span>${globalCalcData.masonry.total} m³</span></div>`;
+            const brickCount = globalCalcData.cost && globalCalcData.cost.Q ? globalCalcData.cost.Q : 0;
+            allHtml += `<div class="subtotal">🧱 砖块总量：<span>${brickCount} 块</span></div>`;
           }
         }
 
@@ -1488,6 +1483,11 @@
             <div class="d-row formula">${formatMath(`说明: 管理费 = 直接成本 × 管理费率<br>公式: ${cd.direct.toFixed(2)} × ${(cd.mgmtRate*100)}% = ${cd.mgmtCost.toFixed(2)} 元`)}</div>
           </div>
           <div class="subtotal">📋 管理费小计：<span>${cd.mgmtCost.toFixed(2)} 元</span></div>`;
+        
+        sections += `<div class="subtotal subtotal-direct">
+          <div class="sd-label">📋 其余费用（措施费+管理费）</div>
+          <div class="sd-value">${cd.otherCost.toFixed(2)} 元</div>
+        </div>`;
         
         const profitBase = cd.direct + cd.mgmtCost;
         sections += `<div class="section-title"><span>📈 利润</span></div>
@@ -1910,11 +1910,6 @@
       } 
     };
 
-    // ==========================================================
-    // 【修复】计算记录复制全文
-    // 1. 接收 event 参数并阻止冒泡，避免触发父级 toggleRecord 而提前关闭菜单
-    // 2. buildSizeInfoFromInputs 已做数字兼容，不再抛 TypeError
-    // ==========================================================
     window.copyRecordText = function(e, btn, id) {
       if (e && e.stopPropagation) { e.stopPropagation(); }
       if (e && e.preventDefault) { e.preventDefault(); }
@@ -1979,9 +1974,6 @@
       closeDeleteModal();
     }
 
-    // ==========================================================
-    // 【复制核心】同步 execCommand 优先（在手势上下文中完成）
-    // ==========================================================
     function doCopy(text) {
       if (!text) return Promise.resolve(false);
       
@@ -2258,7 +2250,8 @@ ${feeSection}`;
               }
               text += `\n`;
             });
-            text += `  ☆ 小计：砖砌体总量 ${globalCalcData.masonry.total} m³\n\n`;
+            const brickCount = globalCalcData.cost && globalCalcData.cost.Q ? globalCalcData.cost.Q : 0;
+            text += `  ☆ 小计：砖块总量 ${brickCount} 块\n\n`;
           }
         }
 
