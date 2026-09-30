@@ -1819,8 +1819,13 @@
       bodyEl.scrollTop = 0;
     };
 
-    window.closeModal = function(id) { 
-      document.getElementById(id).classList.remove('active'); 
+              window.closeModal = function(id) { 
+      const el = document.getElementById(id);
+      if (el) {
+        el.style.transition = '';
+        el.style.transform  = '';
+        el.classList.remove('active');
+      }
       document.body.classList.remove('modal-open'); 
       if(id === 'settingsOverlay') {
         unlocked = false;
@@ -1829,7 +1834,6 @@
         document.getElementById('historySection').classList.remove('hidden');
         document.getElementById('settingsContent').classList.add('hidden');
         ['barLength','lossRate','kLen','lapFactor','protect','concreteFactor','brickL','brickW','brickH','mortarJoint'].forEach(inpId => document.getElementById(inpId).disabled = true);
-        // 重置选择状态
         selectMode = false;
         selectedRecords.clear();
         updateBatchActionBar();
@@ -2201,7 +2205,7 @@
       document.getElementById('deleteModalOverlay').classList.add('active');
     };
 
-       // ===== 结算单相关 =====
+                  // ===== 结算单相关 =====
     // 共用：打开结算单界面
     function doOpenSettlement(recs) {
       settlementRecords = Array.isArray(recs) ? recs.slice() : [];
@@ -2230,7 +2234,7 @@
       copyBtn.disabled = false;
       copyBtn.classList.add('hidden');
 
-      closeModal('settingsOverlay');
+      // 注意：不再关闭 settingsOverlay，让「参数与记录」保留在下面
       setTimeout(() => {
         document.getElementById('settlementModal').classList.add('active');
         document.body.classList.add('modal-open');
@@ -2768,8 +2772,9 @@
       });
     };
 
-    window.closeRenameModal = function() {
-      document.getElementById('renameModalOverlay').classList.remove('active');
+   window.closeRenameModal = function() {
+      const el = document.getElementById('renameModalOverlay');
+      if (el) { el.style.transition = ''; el.style.transform = ''; el.classList.remove('active'); }
       activeRenameId = null;
     }
 
@@ -2787,8 +2792,9 @@
       closeRenameModal();
     }
 
-    window.closeDeleteModal = function() {
-      document.getElementById('deleteModalOverlay').classList.remove('active');
+        window.closeDeleteModal = function() {
+      const el = document.getElementById('deleteModalOverlay');
+      if (el) { el.style.transition = ''; el.style.transform = ''; el.classList.remove('active'); }
       pendingDeleteIds = [];
     }
 
@@ -3409,7 +3415,7 @@ ${feeSection}`;
     syncH2(); restoreLast();
     bindSelectModeBtn();
 
-        // ===== 全局右滑返回手势（iPhone 跟手版） =====
+           // ===== 全局右滑返回手势（iPhone 跟手版） =====
     (function bindSwipeBackGesture(){
       const EDGE_ZONE = 30;          // 左侧边缘触控区宽度
       const SWIPE_THRESHOLD = 80;    // 触发返回所需的最小横向位移
