@@ -696,6 +696,9 @@
     let selectedRecords = new Set();
     let pendingDeleteIds = [];
 
+    // ===== 井壁分层钢筋缓存（用于层数变化时保留用户已填值） =====
+    let layerCache = {};
+
     // ===== 结算单相关状态 =====
     let settlementRecords = [];
     let extraItems = [{ name: '', qty: '', price: '' }];
@@ -942,7 +945,23 @@
       renderStandardLayers(); 
     }
     
-    function renderStandardLayers(){
+    // renderStandardLayers: saveFirst=true 时先把当前 DOM 值保存进 layerCache，再重渲染
+    function renderStandardLayers(saveFirst){
+      if (saveFirst === undefined) saveFirst = true;
+
+      if (saveFirst) {
+        document.querySelectorAll('#standardLayersContainer .sub-card').forEach(function(card, idx){
+          const i = idx + 1;
+          const bp = 5 + (i - 1) * 4;
+          const data = {};
+          ['φ'+bp, 'L'+bp, 'φ'+(bp+1), 'L'+(bp+1), 'φ'+(bp+2), 'L'+(bp+2), 'φ'+(bp+3), 'L'+(bp+3)].forEach(function(k){
+            const el = document.getElementById(k);
+            if (el) data[k] = el.value;
+          });
+          layerCache[i] = data;
+        });
+      }
+
       const H2m = parseFloat(H2_input.value) || 0;
       const layers = H2m > 0 ? Math.ceil(H2m / 7.0) : 1;
       const perLayer = layers > 0 ? (H2m / layers) : 0;
@@ -950,14 +969,19 @@
       let html = '';
       for (let i = 1; i <= layers; i++) {
         const basePhi = 5 + (i-1)*4;
-        const savedPhi1 = document.getElementById(`φ${basePhi}`)?.value || '12';
-        const savedL1 = document.getElementById(`L${basePhi}`)?.value || '150';
-        const savedPhi2 = document.getElementById(`φ${basePhi+1}`)?.value || '12';
-        const savedL2 = document.getElementById(`L${basePhi+1}`)?.value || '150';
-        const savedPhi3 = document.getElementById(`φ${basePhi+2}`)?.value || '14';
-        const savedL3 = document.getElementById(`L${basePhi+2}`)?.value || '200';
-        const savedPhi4 = document.getElementById(`φ${basePhi+3}`)?.value || '14';
-        const savedL4 = document.getElementById(`L${basePhi+3}`)?.value || '200';
+        const cache = layerCache[i] || {};
+        const val = function(k, def){
+          return (cache[k] !== undefined && cache[k] !== '') ? cache[k] : def;
+        };
+
+        const savedPhi1 = val('φ'+basePhi, '12');
+        const savedL1   = val('L'+basePhi, '150');
+        const savedPhi2 = val('φ'+(basePhi+1), '12');
+        const savedL2   = val('L'+(basePhi+1), '150');
+        const savedPhi3 = val('φ'+(basePhi+2), '14');
+        const savedL3   = val('L'+(basePhi+2), '200');
+        const savedPhi4 = val('φ'+(basePhi+3), '14');
+        const savedL4   = val('L'+(basePhi+3), '200');
 
         html += `
           <div class="sub-card">
@@ -1019,7 +1043,8 @@
       let h2 = totalFlowH() - H3(); 
       if(h2 < 0) h2 = 0; 
       H2_input.value = h2.toFixed(3);
-      renderStandardLayers();
+      layerCache = {};                 // 从历史记录恢复时清空，避免上层数据残留
+      renderStandardLayers(false);     // 不从旧 DOM 抓取，直接走缓存(空)->默认值
 
       Object.keys(data).forEach(k=>{ 
         if (k === 'mode') return;
@@ -1124,9 +1149,9 @@
       };
       
       function logR(part, d, sp, isHorz, hOrD, diaC) {
-        if(!d || !hOrD) return;
+        if(!d || !hOrD || !sp || sp <= 0 || !diaC || diaC <= 0) return;
         let w = 0, fStr = '';
-        if(isHorz) {
+               if(isHorz) {
           const n = Math.ceil(hOrD / sp + 1); const cLen = PI * diaC; const splices = Math.ceil(cLen / config.barLength);
           const singleLap = config.lapFactor * d / 1000; const tLap = splices * singleLap * n;
           const totalLen = cLen * n + tLap;
@@ -1153,7 +1178,7 @@
         }
       }
       function logLap(part, d, sp, diaC) {
-        if(!d) return;
+        if(!d || !sp || sp <= 0 || !diaC || diaC <= 0) return;
         const n = Math.ceil(PI * diaC / sp); const singleLap = config.lapFactor * d / 1000;
         const totalLen = singleLap * n;
         const w = coeff * d * d * totalLen;
@@ -1183,7 +1208,7 @@
       const single = config.kLen * D_m;
       ['17','18','19','20'].forEach((id, idx)=>{
         const names = ['底板上水平','底板上纵筋','底板下水平','底板下纵筋']; const d = v(`φ${id}`), sp = v(`L${id}`)/1000;
-        if(!d) return; const n = Math.ceil(D_m/sp); const totalLen = single * n; const w = coeff*d*d*totalLen;
+        if(!d || !sp || sp <= 0) return; const n = Math.ceil(D_m/sp); const totalLen = single * n; const w = coeff*d*d*totalLen;
         const fStr = `说明: 长度=(单根长×根数)，根数=⌈内径/间距⌉；重量=0.00617×直径²×长度<br>公式: 根数=⌈${D_m.toFixed(2)}/${sp}⌉=${n}根，长度=(${single.toFixed(2)}×${n})=${totalLen.toFixed(2)}m，重量=0.00617×${d}²×${totalLen.toFixed(2)} = ${w.toFixed(1)} kg`;
         rData.push({ part: `${names[idx]} (Φ${d})`, formula: fStr, res: w.toFixed(1) }); 
         rSum[d] = (rSum[d]||0) + w; 
@@ -1255,7 +1280,7 @@
       const finalPrice = totalPre + profit + tax;
       
       const pct = (val) => ((totalPre>0)?((val/totalPre)*100).toFixed(1):'0.0');
-      globalCalcData.cost = { labCost, matCost, machCost, directFee, measureCost, direct, mgmtCost, otherCost, totalPre, profit, tax, finalPrice, c, S, G_ton, V, Q, Vsoil, Vmach, V_mortar };
+      globalCalcData.cost = { labCost, matCost, machCost, directFee, measureCost, direct, mgmtCost, otherCost, totalPre, profit, tax, finalPrice, c, S, G_ton, V, Q, Vsoil, Vmach, V_mortar, brickVol };
 
       const laborItems = [];
       if (S > 0 && c.lT > 0) laborItems.push({ part:'模板', qtyStr:`${S.toFixed(2)} m²`, priceStr:`${c.lT} 元/m²`, formulaStr:`${S.toFixed(2)} × ${c.lT}`, amount:S*c.lT });
@@ -1412,31 +1437,44 @@
         </div>
       `;
 
-           if (shouldSave) {
+      if (shouldSave) {
         const inputs = captureInputs();
-        const templateParts = {};
-        globalCalcData.template.forEach(it => {
-          const n = parseFloat(it.res);
-          if (!isNaN(n) && n > 0) templateParts[it.part] = n;
-        });
-        const concreteParts = {};
-        globalCalcData.concrete.forEach(it => {
-          const n = parseFloat(it.res);
-          if (!isNaN(n) && n > 0) concreteParts[it.part] = n;
-        });
-        const rebarParts = {};
-        Object.keys(rebarByPart).forEach(k => {
-          if (rebarByPart[k] && rebarByPart[k].total > 0) rebarParts[k] = rebarByPart[k].total;
-        });
-        const resObj = { S, G: totalRebarKg, V, Q, Vsoil, Vmach, V_mortar, directFee, measureCost, direct, mgmtCost, otherCost, profit, tax, finalPrice, labCost, matCost, machCost, templateParts, concreteParts, rebarParts };
-        const codeVal = (document.getElementById('wellCode')?.value || '').trim();
-        const codeStr = codeVal || 'Untitled';
-        const modeStr = getModeStr();
-        const totalWan = (finalPrice / 10000).toFixed(2);
-        const label = `编号：${codeStr}（${modeStr}）；内径${D_m.toFixed(2)}米，流水总深度${totalFlowH().toFixed(2)}米；总价${totalWan}万元`;
-        const record = { id: Date.now(), label: label, mode: currentMode, timestamp: new Date().toLocaleString(), inputs, config: {...config}, results: resObj };
-        saveRecord(record);
-        localStorage.setItem(LAST_INPUT_KEY, JSON.stringify({inputs, config}));
+
+        // ★ 判重：输入 + 全局参数 完全一致则跳过保存（避免反复点“开始计算”堆积重复记录）
+        const currentSig = JSON.stringify({ inputs: inputs, config: config });
+        let lastSig = '';
+        try {
+          const last = JSON.parse(localStorage.getItem(LAST_INPUT_KEY));
+          if (last && last.inputs) {
+            lastSig = JSON.stringify({ inputs: last.inputs, config: last.config || {} });
+          }
+        } catch(e) {}
+
+        if (currentSig !== lastSig) {
+          const templateParts = {};
+          globalCalcData.template.forEach(it => {
+            const n = parseFloat(it.res);
+            if (!isNaN(n) && n > 0) templateParts[it.part] = n;
+          });
+          const concreteParts = {};
+          globalCalcData.concrete.forEach(it => {
+            const n = parseFloat(it.res);
+            if (!isNaN(n) && n > 0) concreteParts[it.part] = n;
+          });
+          const rebarParts = {};
+          Object.keys(rebarByPart).forEach(k => {
+            if (rebarByPart[k] && rebarByPart[k].total > 0) rebarParts[k] = rebarByPart[k].total;
+          });
+          const resObj = { S, G: totalRebarKg, V, Q, Vsoil, Vmach, V_mortar, brickVol, directFee, measureCost, direct, mgmtCost, otherCost, profit, tax, finalPrice, labCost, matCost, machCost, templateParts, concreteParts, rebarParts };
+          const codeVal = (document.getElementById('wellCode')?.value || '').trim();
+          const codeStr = codeVal || 'Untitled';
+          const modeStr = getModeStr();
+          const totalWan = (finalPrice / 10000).toFixed(2);
+          const label = `编号：${codeStr}（${modeStr}）；内径${D_m.toFixed(2)}米，流水总深度${totalFlowH().toFixed(2)}米；总价${totalWan}万元`;
+          const record = { id: Date.now(), label: label, mode: currentMode, timestamp: new Date().toLocaleString(), inputs: inputs, config: Object.assign({}, config), results: resObj };
+          saveRecord(record);
+          localStorage.setItem(LAST_INPUT_KEY, JSON.stringify({ inputs: inputs, config: config }));
+        }
       }
     }
 
@@ -1848,9 +1886,9 @@
 
     function loadRecords(){ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
     function saveRecord(record){
-      const records = loadRecords(); records.push(record); if(records.length>50) records.shift();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); renderHistory();
-    }
+  const records = loadRecords(); records.push(record); if(records.length>100) records.shift();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); renderHistory();
+}
 
     // ================== 多选逻辑 ==================
     function updateSelectBtnText() {
@@ -2025,7 +2063,7 @@
             </div>
 
             <div class="detail-section"><h4>📊 工程量</h4><div class="detail-grid">
-              <div class="detail-item"><span>砖砌体</span><span>${(res.V_mortar !== undefined ? (parseFloat(res.V_mortar) + 0).toFixed(2) : '0.00')} m³</span></div>
+              <div class="detail-item"><span>砖砌体</span><span>${(res.brickVol !== undefined ? parseFloat(res.brickVol).toFixed(2) : '0.00')} m³</span></div>
               <div class="detail-item"><span>模板</span><span>${(res.S||0).toFixed(2)} m²</span></div>
               <div class="detail-item"><span>钢筋</span><span>${Math.round(res.G||0)} kg</span></div>
               <div class="detail-item"><span>混凝土</span><span>${(res.V||0).toFixed(2)} m³</span></div>
@@ -3022,7 +3060,7 @@ ${matSection}【机械费】
 ===================
 四、工程量统计
 ===================
-砖砌体： ${(res.V_mortar !== undefined ? (parseFloat(res.V_mortar) + 0).toFixed(2) : '0.00')} m³
+砖砌体： ${(res.brickVol !== undefined ? parseFloat(res.brickVol).toFixed(2) : '0.00')} m³
 模板： ${(res.S||0).toFixed(2)} m²
 钢筋： ${Math.round(res.G||0)} kg
 混凝土： ${(res.V||0).toFixed(2)} m³
