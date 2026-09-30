@@ -3409,12 +3409,16 @@ ${feeSection}`;
     syncH2(); restoreLast();
     bindSelectModeBtn();
 
-    // ===== 全局右滑返回手势（参考 iPhone 左边缘返回） =====
+        // ===== 全局右滑返回手势（iPhone 跟手版） =====
     (function bindSwipeBackGesture(){
-      const EDGE_ZONE = 30;        // 左侧边缘触控区宽度
-      const SWIPE_THRESHOLD = 80;  // 触发返回所需的最小横向距离
-      let startX = 0, startY = 0;
+      const EDGE_ZONE = 30;          // 左侧边缘触控区宽度
+      const SWIPE_THRESHOLD = 80;    // 触发返回所需的最小横向位移
+      const VELOCITY_THRESHOLD = 0.5;// 触发返回的最小速度(px/ms)，甩一下也能返回
+      const ANIM_DURATION = 420;     // 与 CSS transition 时长保持一致
+
+      let startX = 0, startY = 0, startTime = 0;
       let tracking = false, decided = false, horizontal = false;
+      let activeEl = null;
 
       function isLayerActive(id) {
         const el = document.getElementById(id);
@@ -3422,33 +3426,41 @@ ${feeSection}`;
       }
       // 按层级返回当前最上层可关闭的层
       function getTopLayer() {
-        if (isLayerActive('renameModalOverlay')) return 'rename';
-        if (isLayerActive('deleteModalOverlay')) return 'delete';
-        if (isLayerActive('detailModal'))        return 'detailModal';
-        if (isLayerActive('settlementModal'))    return 'settlementModal';
-        if (isLayerActive('settingsOverlay'))    return 'settingsOverlay';
+        if (isLayerActive('renameModalOverlay')) return document.getElementById('renameModalOverlay');
+        if (isLayerActive('deleteModalOverlay')) return document.getElementById('deleteModalOverlay');
+        if (isLayerActive('detailModal'))        return document.getElementById('detailModal');
+        if (isLayerActive('settlementModal'))    return document.getElementById('settlementModal');
+        if (isLayerActive('settingsOverlay'))    return document.getElementById('settingsOverlay');
         return null;
       }
-      function triggerBack() {
-        const layer = getTopLayer();
-        if (!layer) return false;
-        if (layer === 'rename') {
+      function doClose(id) {
+        if (id === 'renameModalOverlay') {
           if (typeof window.closeRenameModal === 'function') window.closeRenameModal();
-        } else if (layer === 'delete') {
+        } else if (id === 'deleteModalOverlay') {
           if (typeof window.closeDeleteModal === 'function') window.closeDeleteModal();
         } else {
-          if (typeof window.closeModal === 'function') window.closeModal(layer);
+          if (typeof window.closeModal === 'function') window.closeModal(id);
         }
-        return true;
+      }
+      function cleanup(el) {
+        if (!el) return;
+        el.style.transition = '';
+        el.style.transform  = '';
       }
 
       document.addEventListener('touchstart', function(e){
         if (e.touches.length !== 1) { tracking = false; return; }
         const t = e.touches[0];
         if (t.clientX > EDGE_ZONE) { tracking = false; return; }
-        if (!getTopLayer()) { tracking = false; return; }
-        startX = t.clientX; startY = t.clientY;
-        tracking = true; decided = false; horizontal = false;
+        const el = getTopLayer();
+        if (!el) { tracking = false; return; }
+        activeEl = el;
+        startX = t.clientX;
+        startY = t.clientY;
+        startTime = Date.now();
+        tracking = true;
+        decided = false;
+        horizontal = false;
       }, { passive: true });
 
       document.addEventListener('touchmove', function(e){
@@ -3456,24 +3468,74 @@ ${feeSection}`;
         const t = e.touches[0];
         const dx = t.clientX - startX;
         const dy = t.clientY - startY;
+
         if (!decided) {
           if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
           decided = true;
           if (dx > 0 && Math.abs(dx) > Math.abs(dy)) {
             horizontal = true;
+            if (activeEl) activeEl.style.transition = 'none';  // 进入跟手模式
           } else {
+            // 判定为纵向/反向滑动，放弃本次手势
             tracking = false;
+            cleanup(activeEl);
+            activeEl = null;
             return;
           }
         }
-        if (horizontal && dx >= SWIPE_THRESHOLD) {
-          tracking = false;
-          triggerBack();
-        }
-      }, { passive: true });
 
-      document.addEventListener('touchend',  function(){ tracking = false; }, { passive: true });
-      document.addEventListener('touchcancel', function(){ tracking = false; }, { passive: true });
+        if (horizontal && activeEl) {
+          if (e.cancelable) e.preventDefault();  // 跟手时阻止页面滚动
+          const move = Math.max(0, dx);
+          activeEl.style.transform = `translate3d(${move}px, 0, 0)`;
+        }
+      }, { passive: false });
+
+      function finishGesture(e) {
+        if (!tracking) return;
+        tracking = false;
+
+        if (!horizontal || !activeEl) {
+          cleanup(activeEl);
+          activeEl = null;
+          return;
+        }
+
+        const t = (e.changedTouches && e.changedTouches[0]) || {};
+        const dx = Math.max(0, (t.clientX || startX) - startX);
+        const dt = Math.max(Date.now() - startTime, 1);
+        const velocity = dx / dt;
+
+        const el = activeEl;
+        activeEl = null;
+
+        // 恢复 CSS 过渡，进入动画阶段
+        el.style.transition = '';
+        // 强制 reflow，让浏览器识别接下来的 transform 变化要带动画
+        void el.offsetWidth;
+
+        const shouldClose = (dx >= SWIPE_THRESHOLD) || (velocity >= VELOCITY_THRESHOLD);
+
+        if (shouldClose) {
+          // 从当前位置继续滑出屏幕
+          el.style.transform = 'translate3d(100%, 0, 0)';
+          setTimeout(() => {
+            cleanup(el);
+            doClose(el.id);
+          }, ANIM_DURATION);
+        } else {
+          // 未达阈值，回弹
+          el.style.transform = 'translate3d(0, 0, 0)';
+          setTimeout(() => {
+            if (el.style.transform === 'translate3d(0, 0, 0)') {
+              el.style.transform = '';
+            }
+          }, ANIM_DURATION);
+        }
+      }
+
+      document.addEventListener('touchend',    finishGesture, { passive: true });
+      document.addEventListener('touchcancel', finishGesture, { passive: true });
     })();
   })();
 </script>
