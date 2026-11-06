@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#ffffff">
+<title>数字华容道</title>
+<style>
+  :root {
+    /* 蓝色系（加深版） */
+    --blue-900: #0f3a50;
+    --blue-800: #1a5a7a;
+    --blue-700: #2c7799;
+    --blue-600: #4a8db0;
+    --blue-400: #8eb9d1;
+    --blue-300: #b5d0e0;
+    --blue-200: #cfe1ec;
+    --blue-150: #dceaf3;
+    --blue-100: #e5eff6;
+
+    --ink: var(--blue-800);
+    --ink-2: var(--blue-700);
+    --ink-3: #7d9cad;
+    --line: var(--blue-200);
+    --board-bg: #dceaf3;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    height: 100%;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    position: fixed;
+    inset: 0;
+    height: 100%;
+    overflow: hidden;
+    background: #ffffff;
+    color: var(--blue-900);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #app { position: relative; width: 100%; height: 100%; }
+
+  /* ---------------- 屏幕 ---------------- */
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    padding: calc(env(safe-area-inset-top, 0px) + 12px) 18px calc(env(safe-area-inset-bottom, 0px) + 14px);
+    overflow: hidden;
+    background: #ffffff;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(10px);
+    transition: opacity .24s ease, transform .24s ease;
+  }
+  .screen.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  /* ---------------- 顶栏 ---------------- */
+  .topbar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    height: 46px;
+    gap: 4px;
+  }
+  .topbar-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: center;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-indent: 4px;
+    color: var(--blue-900);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .icon-btn {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    color: var(--blue-800);
+    font-size: 22px;
+    line-height: 1;
+    font-family: inherit;
+    padding: 0;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: transform .12s ease, opacity .12s ease;
+  }
+  .icon-btn:active { transform: scale(.86); opacity: .5; }
+  .icon-btn.spacer { pointer-events: none; visibility: hidden; }
+
+  /* ---------------- 首页 ---------------- */
+  .home {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 18px;
+    max-width: 460px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  .brand { text-align: center; }
+  .logo {
+    display: grid;
+    grid-template-columns: repeat(2, 22px);
+    grid-template-rows: repeat(2, 22px);
+    gap: 7px;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  .logo i {
+    border: 1.5px solid var(--blue-800);
+    background: var(--blue-100);
+    border-radius: 7px;
+    display: block;
+  }
+  .logo i.blank { border: 1.5px dashed var(--blue-300); background: transparent; }
+  .brand h1 {
+    margin: 0 0 8px;
+    font-size: 27px;
+    font-weight: 700;
+    letter-spacing: 5px;
+    text-indent: 5px;
+    color: var(--blue-900);
+  }
+  .brand p {
+    margin: 0;
+    font-size: 12px;
+    letter-spacing: 2.5px;
+    color: var(--ink-3);
+  }
+
+  .modes {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .mode {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 14px 18px;
+    background: #fff;
+    border: 1.5px solid var(--blue-300);
+    border-radius: 16px;
+    font-family: inherit;
+    color: var(--blue-800);
+    text-align: left;
+    cursor: pointer;
+    transition: transform .12s ease, background .16s ease, color .16s ease, border-color .16s ease;
+  }
+  .mode:active {
+    transform: scale(.975);
+    background: var(--blue-800);
+    border-color: var(--blue-800);
+    color: #fff;
+  }
+  .mode:active .mode-meta em { color: rgba(255,255,255,.6); }
+  .mode:active .mode-arrow { color: rgba(255,255,255,.55); }
+  .mode-size {
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    font-variant-numeric: tabular-nums;
+    color: inherit;
+  }
+  .mode-meta {
+    margin-left: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+  .mode-meta b {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    color: inherit;
+  }
+  .mode-meta em {
+    font-style: normal;
+    font-size: 11px;
+    letter-spacing: .5px;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+    transition: color .16s ease;
+  }
+  .mode-arrow {
+    margin-left: 14px;
+    font-size: 20px;
+    color: var(--blue-400);
+    line-height: 1;
+    transition: color .16s ease;
+  }
+
+  /* =====================================================
+     选关
+     ===================================================== */
+  .levels-head {
+    flex: 0 0 auto;
+    text-align: center;
+    padding: 6px 0 16px;
+  }
+  .levels-size {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    color: var(--blue-900);
+    font-variant-numeric: tabular-nums;
+  }
+  .levels-sub {
+    margin-top: 6px;
+    font-size: 12.5px;
+    letter-spacing: 1px;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .levels-sub b { color: var(--blue-800); font-weight: 700; }
+
+  .levels-grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+    padding: 4px 2px 28px;
+  }
+
+  .level-btn {
+    position: relative;
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: #ffffff;
+    color: var(--blue-700);
+    font-family: inherit;
+    cursor: pointer;
+    overflow: hidden;
+    -webkit-appearance: none;
+    appearance: none;
+    transform: scale(1);
+    transition:
+      transform .18s cubic-bezier(.2, .9, .3, 1.15),
+      background .16s ease,
+      border-color .16s ease,
+      color .16s ease,
+      box-shadow .18s ease;
+  }
+  .level-btn::before {
+    content: '';
+    display: block;
+    padding-top: 100%;
+  }
+  .level-btn .level-num {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: .3px;
+    font-variant-numeric: tabular-nums;
+    transition: font-size .16s ease;
+  }
+  /* 🏆 奖杯：右下角 */
+  .level-btn .level-trophy {
+    position: absolute;
+    right: 3px;
+    bottom: 2px;
+    font-size: 9px;
+    font-style: normal;
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  /* 已通关：浅蓝底 + 深蓝字 */
+  .level-btn.done {
+    background: var(--blue-150);
+    border-color: var(--blue-300);
+    color: var(--blue-900);
+  }
+  .level-btn.done .level-num { font-weight: 700; }
+
+  /* 当前关卡：细边框 + 轻微放大 */
+  .level-btn.current {
+    border-color: var(--blue-800);
+    background: #ffffff;
+    color: var(--blue-900);
+    transform: scale(1.06);
+    box-shadow: 0 3px 10px rgba(26, 90, 122, .18);
+    z-index: 1;
+  }
+  .level-btn.current .level-num { font-size: 17px; font-weight: 700; }
+  .level-btn.current.done { background: var(--blue-150); }
+
+  /* 按下：明显放大 */
+  .level-btn:active {
+    transform: scale(1.14);
+    border-color: var(--blue-800);
+    background: #ffffff;
+    color: var(--blue-900);
+    box-shadow: 0 6px 16px rgba(26, 90, 122, .22);
+    z-index: 3;
+  }
+  .level-btn:active .level-num { font-size: 18px; font-weight: 700; }
+  .level-btn.done:active { background: var(--blue-150); }
+
+  /* ---------------- 游戏 ---------------- */
+  .game-sub {
+    flex: 0 0 auto;
+    text-align: center;
+    font-size: 12.5px;
+    letter-spacing: 1.5px;
+    color: var(--ink-3);
+    padding: 2px 0 4px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stats {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 56px;
+    padding: 8px 0 6px;
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .stat-label {
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    color: var(--ink-3);
+  }
+  .stat-val {
+    font-size: 21px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .5px;
+    color: var(--blue-900);
+  }
+
+  .best-badge {
+    flex: 0 0 auto;
+    align-self: center;
+    margin: 10px auto 0;
+    padding: 7px 15px;
+    border-radius: 999px;
+    background: var(--blue-100);
+    color: var(--blue-800);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .best-badge[hidden] { display: none; }
+
+  .board-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 8px;
+  }
+
+  .board {
+    position: relative;
+    background: var(--board-bg);
+    border-radius: 20px;
+    touch-action: none;
+  }
+  .board.no-anim .tile { transition: none !important; }
+
+  .tile {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    color: var(--blue-900);
+    border: 1px solid var(--blue-300);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.5px;
+    box-shadow: 0 1px 2px rgba(26, 90, 122, .1);
+    transition: transform .17s cubic-bezier(.22, .8, .28, 1);
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    touch-action: none;
+    cursor: pointer;
+    animation: tileIn .2s ease both;
+  }
+  @keyframes tileIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* ---------------- 胜利浮层 ---------------- */
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(220, 234, 243, .92);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease;
+    z-index: 20;
+  }
+  .overlay.show { opacity: 1; pointer-events: auto; }
+
+  .overlay-card {
+    width: min(300px, 78vw);
+    padding: 30px 24px 24px;
+    background: #fff;
+    border: 1.5px solid var(--blue-300);
+    border-radius: 22px;
+    text-align: center;
+    transform: scale(.94);
+    transition: transform .3s cubic-bezier(.2, .9, .3, 1.15);
+    box-shadow: 0 12px 40px rgba(26, 90, 122, .12);
+  }
+  .overlay.show .overlay-card { transform: scale(1); }
+
+  .win-mark {
+    width: 46px;
+    height: 46px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    background: var(--blue-800);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    line-height: 1;
+  }
+  .overlay-card h2 {
+    margin: 0 0 6px;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 6px;
+    text-indent: 6px;
+    color: var(--blue-900);
+  }
+  .win-record {
+    display: block;
+    height: 16px;
+    margin-bottom: 16px;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    color: var(--ink-3);
+  }
+  .win-record.new {
+    color: var(--blue-800);
+    font-weight: 700;
+  }
+
+  .win-stats {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 24px;
+  }
+  .win-stat { display: flex; flex-direction: column; gap: 5px; }
+  .win-stat span {
+    font-size: 21px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--blue-900);
+  }
+  .win-stat em {
+    font-style: normal;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--ink-3);
+  }
+  .win-actions { display: flex; gap: 12px; }
+  .win-actions button { flex: 1; }
+
+  .ghost-btn, .solid-btn {
+    padding: 13px 16px;
+    border-radius: 13px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: transform .12s ease, opacity .15s ease;
+  }
+  .ghost-btn {
+    background: #fff;
+    color: var(--blue-800);
+    border: 1.5px solid var(--blue-800);
+  }
+  .solid-btn {
+    background: var(--blue-800);
+    color: #fff;
+    border: 1.5px solid var(--blue-800);
+  }
+  .ghost-btn:active, .solid-btn:active { transform: scale(.95); opacity: .82; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ 首页 ============ -->
+  <section class="screen active" id="screen-home">
+    <div class="home">
+      <div class="brand">
+        <div class="logo"><i></i><i></i><i></i><i class="blank"></i></div>
+        <h1>数字华容道</h1>
+        <p>将数字按顺序排列</p>
+      </div>
+      <div class="modes" id="modes"></div>
+    </div>
+  </section>
+
+  <!-- ============ 选关 ============ -->
+  <section class="screen" id="screen-levels">
+    <div class="topbar">
+      <button class="icon-btn" id="btnLevelsBack" aria-label="返回">←</button>
+      <div class="topbar-title">数字华容道</div>
+      <div class="icon-btn spacer"></div>
+    </div>
+    <div class="levels-head">
+      <div class="levels-size" id="levelsSize">4 × 4</div>
+      <div class="levels-sub" id="levelsSub">已完成 0 / 50</div>
+    </div>
+    <div class="levels-grid" id="levelsGrid"></div>
+  </section>
+
+  <!-- ============ 游戏 ============ -->
+  <section class="screen" id="screen-game">
+    <div class="topbar">
+      <button class="icon-btn" id="btnGameBack" aria-label="返回">←</button>
+      <div class="topbar-title">数字华容道</div>
+      <button class="icon-btn" id="btnRestart" aria-label="重玩">↻</button>
+    </div>
+
+    <div class="game-sub" id="gameSub">4 × 4 · 第 1 关</div>
+
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-label">步数</span>
+        <span class="stat-val" id="moveCount">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">时间</span>
+        <span class="stat-val" id="timeCount">00:00</span>
+      </div>
+    </div>
+
+    <div class="best-badge" id="bestBadge" hidden></div>
+
+    <div class="board-wrap">
+      <div class="board" id="board"></div>
+    </div>
+
+    <div class="overlay" id="winOverlay">
+      <div class="overlay-card">
+        <div class="win-mark">✓</div>
+        <h2>完成</h2>
+        <span class="win-record" id="winRecord"></span>
+        <div class="win-stats">
+          <div class="win-stat"><span id="winMoves">0</span><em>步数</em></div>
+          <div class="win-stat"><span id="winTime">00:00</span><em>时间</em></div>
+        </div>
+        <div class="win-actions">
+          <button class="ghost-btn" id="winReplay">重玩</button>
+          <button class="solid-btn" id="winNext">下一关</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* =====================================================
+     1. 禁止缩放 / 双击放大 / 双指手势
+     ===================================================== */
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (evt) {
+    document.addEventListener(evt, function (e) { e.preventDefault(); }, { passive: false });
+  });
+
+  document.addEventListener('touchmove', function (e) {
+    if (e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('dblclick', function (e) { e.preventDefault(); }, { passive: false });
+
+  var lastTouchEnd = 0;
+  document.addEventListener('touchend', function (e) {
+    var now = Date.now();
+    if (now - lastTouchEnd <= 320) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+
+
+  /* =====================================================
+     2. 常量与工具
+     ===================================================== */
+  var LEVEL_COUNT = 50;
+  var STORAGE_KEY = 'hrd_progress_v2';
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  var boardEl       = $('board');
+  var modesEl       = $('modes');
+  var levelsGridEl  = $('levelsGrid');
+  var levelsSizeEl  = $('levelsSize');
+  var levelsSubEl   = $('levelsSub');
+  var gameSubEl     = $('gameSub');
+  var moveCountEl   = $('moveCount');
+  var timeCountEl   = $('timeCount');
+  var bestBadgeEl   = $('bestBadge');
+  var winOverlayEl  = $('winOverlay');
+  var winMovesEl    = $('winMoves');
+  var winTimeEl     = $('winTime');
+  var winRecordEl   = $('winRecord');
+  var winNextEl     = $('winNext');
+
+  function fmtTime(sec) {
+    var m = Math.floor(sec / 60);
+    var s = sec % 60;
+    return (m < 10 ? '0' + m : '' + m) + ':' + (s < 10 ? '0' + s : '' + s);
+  }
+
+  /* 确定性伪随机（同一关卡每次生成相同盘面） */
+  function mulberry32(a) {
+    return function () {
+      a |= 0;
+      a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function neighbors(i, size) {
+    var r = Math.floor(i / size);
+    var c = i % size;
+    var res = [];
+    if (r > 0) res.push(i - size);
+    if (r < size - 1) res.push(i + size);
+    if (c > 0) res.push(i - 1);
+    if (c < size - 1) res.push(i + 1);
+    return res;
+  }
+
+  function isSolvedState(tiles, size) {
+    var total = size * size;
+    for (var i = 0; i < total - 1; i++) {
+      if (tiles[i] !== i + 1) return false;
+    }
+    return tiles[total - 1] === 0;
+  }
+
+  function generatePuzzle(size, level) {
+    var total = size * size;
+    var steps = Math.round(total * 2.5 + level * size * 1.5);
+
+    for (var attempt = 0; attempt < 10; attempt++) {
+      var rnd = mulberry32(size * 100003 + level * 7919 + attempt * 104729 + 17);
+
+      var tiles = new Array(total);
+      for (var i = 0; i < total - 1; i++) tiles[i] = i + 1;
+      tiles[total - 1] = 0;
+
+      var blank = total - 1;
+      var prev = -1;
+
+      for (var s = 0; s < steps; s++) {
+        var nb = neighbors(blank, size);
+        if (prev >= 0 && nb.length > 1) {
+          nb = nb.filter(function (x) { return x !== prev; });
+        }
+        var pick = nb[Math.floor(rnd() * nb.length)];
+        tiles[blank] = tiles[pick];
+        tiles[pick] = 0;
+        prev = blank;
+        blank = pick;
+      }
+
+      if (!isSolvedState(tiles, size)) return tiles;
+    }
+
+    var fallback = new Array(total);
+    for (var k = 0; k < total - 1; k++) fallback[k] = k + 1;
+    fallback[total - 1] = 0;
+    fallback[total - 2] = 0;
+    fallback[total - 1] = total - 1;
+    return fallback;
+  }
+
+
+  /* =====================================================
+     3. 进度 / 最佳记录存储
+     ===================================================== */
+  var progress = {};
+  try {
+    progress = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {};
+  } catch (e) { progress = {}; }
+
+  if (!progress._last || typeof progress._last !== 'object') progress._last = {};
+  if (!progress.best || typeof progress.best !== 'object') progress.best = {};
+
+  function saveProgress() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)); } catch (e) {}
+  }
+
+  function getProgress(size) {
+    var arr = progress[String(size)];
+    return Array.isArray(arr) ? arr : [];
+  }
+
+  function markDone(size, level) {
+    var arr = getProgress(size);
+    if (arr.indexOf(level) === -1) {
+      arr.push(level);
+      progress[String(size)] = arr;
+      saveProgress();
+    }
+  }
+
+  function setLastLevel(size, level) {
+    progress._last[String(size)] = level;
+    saveProgress();
+  }
+
+  function getLastLevel(size) {
+    var v = progress._last[String(size)];
+    return (typeof v === 'number' && v >= 1 && v <= LEVEL_COUNT) ? v : 0;
+  }
+
+  function getBest(size, level) {
+    var s = progress.best[String(size)];
+    if (!s) return null;
+    var r = s[String(level)];
+    if (!r || typeof r.moves !== 'number' || typeof r.time !== 'number') return null;
+    return r;
+  }
+
+  function updateBest(size, level, moves, time) {
+    var sk = String(size), lk = String(level);
+    if (!progress.best[sk]) progress.best[sk] = {};
+    var cur = progress.best[sk][lk];
+
+    if (!cur) {
+      progress.best[sk][lk] = { moves: moves, time: time };
+      saveProgress();
+    } else {
+      var changed = false;
+      if (moves < cur.moves) { cur.moves = moves; changed = true; }
+      if (time < cur.time) { cur.time = time; changed = true; }
+      if (changed) saveProgress();
+    }
+  }
+
+
+  /* =====================================================
+     4. 屏幕切换
+     ===================================================== */
+  function showScreen(id) {
+    var screens = document.querySelectorAll('.screen');
+    for (var i = 0; i < screens.length; i++) {
+      screens[i].classList.toggle('active', screens[i].id === id);
+    }
+  }
+
+
+  /* =====================================================
+     5. 首页（6 个难度）
+     ===================================================== */
+  var MODES = [
+    { size: 4, desc: '简单' },
+    { size: 5, desc: '中等' },
+    { size: 6, desc: '较难' },
+    { size: 7, desc: '困难' },
+    { size: 8, desc: '大师' },
+    { size: 9, desc: '专家' }
+  ];
+
+  function renderHome() {
+    modesEl.innerHTML = '';
+
+    MODES.forEach(function (cfg) {
+      var done = getProgress(cfg.size).length;
+
+      var btn = document.createElement('button');
+      btn.className = 'mode';
+      btn.type = 'button';
+      btn.innerHTML =
+        '<span class="mode-size">' + cfg.size + '×' + cfg.size + '</span>' +
+        '<span class="mode-meta">' +
+          '<b>' + cfg.desc + '</b>' +
+          '<em>' + done + ' / ' + LEVEL_COUNT + ' 关</em>' +
+        '</span>' +
+        '<span class="mode-arrow">›</span>';
+
+      btn.addEventListener('click', function () { openLevels(cfg.size); });
+      modesEl.appendChild(btn);
+    });
+  }
+
+
+  /* =====================================================
+     6. 选关页
+     ===================================================== */
+  function openLevels(size) {
+    levelsSizeEl.textContent = size + ' × ' + size;
+
+    var done = getProgress(size);
+    levelsSubEl.innerHTML =
+      '已完成 <b>' + done.length + '</b> / ' + LEVEL_COUNT;
+
+    renderLevels(size);
+    showScreen('screen-levels');
+
+    requestAnimationFrame(function () {
+      var last = getLastLevel(size);
+      var target = last;
+      if (!target) {
+        for (var i = 1; i <= LEVEL_COUNT; i++) {
+          if (done.indexOf(i) === -1) { target = i; break; }
+        }
+      }
+      if (!target) target = LEVEL_COUNT;
+
+      var btn = levelsGridEl.children[target - 1];
+      if (btn && target > 1) {
+        btn.scrollIntoView({ block: 'center' });
+      } else {
+        levelsGridEl.scrollTop = 0;
+      }
+    });
+  }
+
+  function renderLevels(size) {
+    var done = getProgress(size);
+    var last = getLastLevel(size);
+
+    levelsGridEl.innerHTML = '';
+
+    for (var lv = 1; lv <= LEVEL_COUNT; lv++) {
+      (function (level) {
+        var isDone = done.indexOf(level) !== -1;
+
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'level-btn'
+          + (isDone ? ' done' : '')
+          + (level === last ? ' current' : '');
+
+        var num = document.createElement('span');
+        num.className = 'level-num';
+        num.textContent = level;
+        b.appendChild(num);
+
+        if (isDone) {
+          var tp = document.createElement('i');
+          tp.className = 'level-trophy';
+          tp.textContent = '🏆';
+          b.appendChild(tp);
+        }
+
+        b.addEventListener('click', function () { startLevel(size, level); });
+        levelsGridEl.appendChild(b);
+      })(lv);
+    }
+  }
+
+
+  /* =====================================================
+     7. 游戏状态
+     ===================================================== */
+  var game = {
+    size: 4,
+    level: 1,
+    tiles: [],
+    blank: 0,
+    moves: 0,
+    els: {},
+    geom: null,
+    started: false,
+    solved: false,
+    startTs: 0,
+    timerId: null
+  };
+
+  function stopTimer() {
+    if (game.timerId) {
+      clearInterval(game.timerId);
+      game.timerId = null;
+    }
+  }
+
+  function startTimer() {
+    if (game.started) return;
+    game.started = true;
+    game.startTs = Date.now();
+    game.timerId = setInterval(function () {
+      var s = Math.floor((Date.now() - game.startTs) / 1000);
+      timeCountEl.textContent = fmtTime(s);
+    }, 200);
+  }
+
+  function computeGeom() {
+    var wrap = boardEl.parentElement;
+    var w = wrap.clientWidth;
+    var h = wrap.clientHeight;
+    var s = Math.floor(Math.max(160, Math.min(w, h)));
+
+    boardEl.style.width = s + 'px';
+    boardEl.style.height = s + 'px';
+
+    var n = game.size;
+    var gap;
+    if (n <= 4) gap = 8;
+    else if (n <= 6) gap = 7;
+    else if (n === 7) gap = 6;
+    else if (n === 8) gap = 5;
+    else gap = 4;
+
+    var tile = (s - gap * (n + 1)) / n;
+
+    game.geom = { gap: gap, tile: tile, board: s };
+  }
+
+  function styleTileSize(el) {
+    var n = game.size;
+    var tile = game.geom.tile;
+    el.style.width = tile + 'px';
+    el.style.height = tile + 'px';
+
+    var ratio;
+    if (n <= 4) ratio = 0.42;
+    else if (n === 5) ratio = 0.40;
+    else if (n === 6) ratio = 0.36;
+    else if (n === 7) ratio = 0.33;
+    else if (n === 8) ratio = 0.30;
+    else ratio = 0.27;
+
+    el.style.fontSize = Math.max(9, Math.round(tile * ratio)) + 'px';
+    el.style.borderRadius = Math.max(5, Math.round(tile * 0.18)) + 'px';
+  }
+
+  function buildTiles() {
+    boardEl.innerHTML = '';
+    game.els = {};
+
+    var n = game.size;
+    var total = n * n;
+
+    for (var i = 0; i < total; i++) {
+      var v = game.tiles[i];
+      if (v === 0) continue;
+
+      var el = document.createElement('div');
+      el.className = 'tile';
+      el.dataset.value = String(v);
+      el.textContent = String(v);
+      styleTileSize(el);
+
+      boardEl.appendChild(el);
+      game.els[v] = el;
+    }
+
+    boardEl.classList.add('no-anim');
+    applyTransforms();
+    void boardEl.offsetWidth;
+    boardEl.classList.remove('no-anim');
+  }
+
+  function applyTransforms() {
+    var n = game.size;
+    var gap = game.geom.gap;
+    var tile = game.geom.tile;
+    var step = tile + gap;
+
+    for (var key in game.els) {
+      if (!Object.prototype.hasOwnProperty.call(game.els, key)) continue;
+      var el = game.els[key];
+      var v = Number(el.dataset.value);
+      var i = game.tiles.indexOf(v);
+      if (i < 0) continue;
+      var r = Math.floor(i / n);
+      var c = i % n;
+      el.style.transform =
+        'translate(' + (gap + c * step) + 'px,' + (gap + r * step) + 'px)';
+    }
+  }
+
+  function startLevel(size, level) {
+    stopTimer();
+
+    game.size = size;
+    game.level = level;
+    game.moves = 0;
+    game.started = false;
+    game.solved = false;
+    game.startTs = 0;
+    game.els = {};
+    game.geom = null;
+
+    game.tiles = generatePuzzle(size, level);
+    game.blank = game.tiles.indexOf(0);
+
+    setLastLevel(size, level);
+
+    moveCountEl.textContent = '0';
+    timeCountEl.textContent = '00:00';
+    gameSubEl.textContent = size + ' × ' + size + ' · 第 ' + level + ' 关';
+    winOverlayEl.classList.remove('show');
+    winRecordEl.textContent = '';
+    winRecordEl.className = 'win-record';
+
+    var best = getBest(size, level);
+    if (best) {
+      bestBadgeEl.hidden = false;
+      bestBadgeEl.textContent = '🏆 最佳 ' + best.moves + ' 步 · ' + fmtTime(best.time);
+    } else {
+      bestBadgeEl.hidden = true;
+      bestBadgeEl.textContent = '';
+    }
+
+    boardEl.innerHTML = '';
+    showScreen('screen-game');
+
+    requestAnimationFrame(function () {
+      computeGeom();
+      buildTiles();
+    });
+  }
+
+  function checkSolved() {
+    var total = game.size * game.size;
+    for (var i = 0; i < total - 1; i++) {
+      if (game.tiles[i] !== i + 1) return false;
+    }
+    return game.tiles[total - 1] === 0;
+  }
+
+
+  /* =====================================================
+     8. 核心：整行 / 整列滑动
+     ===================================================== */
+  function trySlideTo(value) {
+    if (game.solved || !game.geom) return 0;
+
+    var n = game.size;
+    var i = game.tiles.indexOf(value);
+    var j = game.blank;
+    if (i < 0 || i === j) return 0;
+
+    var ir = Math.floor(i / n), ic = i % n;
+    var jr = Math.floor(j / n), jc = j % n;
+    var p, moved = 0;
+
+    if (ir === jr) {
+      if (jc < ic) {
+        for (p = j + 1; p <= i; p++) game.tiles[p - 1] = game.tiles[p];
+        moved = i - j;
+      } else {
+        for (p = j - 1; p >= i; p--) game.tiles[p + 1] = game.tiles[p];
+        moved = j - i;
+      }
+    } else if (ic === jc) {
+      if (jr < ir) {
+        for (p = j + n; p <= i; p += n) game.tiles[p - n] = game.tiles[p];
+        moved = (i - j) / n;
+      } else {
+        for (p = j - n; p >= i; p -= n) game.tiles[p + n] = game.tiles[p];
+        moved = (j - i) / n;
+      }
+    } else {
+      return 0;
+    }
+
+    game.tiles[i] = 0;
+    game.blank = i;
+    game.moves += moved;
+
+    moveCountEl.textContent = String(game.moves);
+    applyTransforms();
+    startTimer();
+
+    if (checkSolved()) handleWin();
+    return moved;
+  }
+
+  function slideByDirection(value, dir) {
+    if (game.solved || !game.geom) return;
+
+    var n = game.size;
+    var i = game.tiles.indexOf(value);
+    var j = game.blank;
+    if (i < 0 || i === j) return;
+
+    var ir = Math.floor(i / n), ic = i % n;
+    var jr = Math.floor(j / n), jc = j % n;
+
+    if (dir === 'left') {
+      if (ir !== jr || jc >= ic) return;
+    } else if (dir === 'right') {
+      if (ir !== jr || jc <= ic) return;
+    } else if (dir === 'up') {
+      if (ic !== jc || jr >= ir) return;
+    } else if (dir === 'down') {
+      if (ic !== jc || jr <= ir) return;
+    } else {
+      return;
+    }
+
+    trySlideTo(value);
+  }
+
+
+  /* =====================================================
+     9. 触摸 / 鼠标交互
+     ===================================================== */
+  var dragState = null;
+
+  function onPointerDown(e) {
+    if (game.solved || !game.geom) return;
+    var el = e.target && e.target.closest ? e.target.closest('.tile') : null;
+    if (!el) return;
+
+    dragState = {
+      id: e.pointerId,
+      x: e.clientX,
+      y: e.clientY,
+      value: Number(el.dataset.value),
+      moved: false
+    };
+  }
+
+  function onPointerMove(e) {
+    if (!dragState || e.pointerId !== dragState.id) return;
+    if (dragState.moved) return;
+
+    var dx = e.clientX - dragState.x;
+    var dy = e.clientY - dragState.y;
+
+    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+
+    dragState.moved = true;
+
+    var dir;
+    if (Math.abs(dx) >= Math.abs(dy)) {
+      dir = dx > 0 ? 'right' : 'left';
+    } else {
+      dir = dy > 0 ? 'down' : 'up';
+    }
+    slideByDirection(dragState.value, dir);
+  }
+
+  function onPointerUp(e) {
+    if (!dragState || e.pointerId !== dragState.id) return;
+
+    if (!dragState.moved) {
+      trySlideTo(dragState.value);
+    }
+    dragState = null;
+  }
+
+  boardEl.addEventListener('pointerdown', onPointerDown);
+  window.addEventListener('pointermove', onPointerMove, { passive: true });
+  window.addEventListener('pointerup', onPointerUp);
+  window.addEventListener('pointercancel', function (e) {
+    if (dragState && e.pointerId === dragState.id) dragState = null;
+  });
+
+  if (!window.PointerEvent) {
+    var touchStart = null;
+    boardEl.addEventListener('touchstart', function (e) {
+      if (game.solved || !game.geom) return;
+      var t = e.touches[0];
+      var el = e.target && e.target.closest ? e.target.closest('.tile') : null;
+      if (!el) return;
+      touchStart = { x: t.clientX, y: t.clientY, value: Number(el.dataset.value), moved: false };
+    }, { passive: true });
+
+    boardEl.addEventListener('touchmove', function (e) {
+      if (!touchStart || touchStart.moved) return;
+      var t = e.touches[0];
+      var dx = t.clientX - touchStart.x;
+      var dy = t.clientY - touchStart.y;
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      touchStart.moved = true;
+      var dir = Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+      slideByDirection(touchStart.value, dir);
+    }, { passive: true });
+
+    boardEl.addEventListener('touchend', function () {
+      if (touchStart && !touchStart.moved) trySlideTo(touchStart.value);
+      touchStart = null;
+    }, { passive: true });
+  }
+
+
+  /* =====================================================
+     10. 胜利
+     ===================================================== */
+  function handleWin() {
+    game.solved = true;
+    stopTimer();
+
+    var elapsed = game.started
+      ? Math.floor((Date.now() - game.startTs) / 1000)
+      : 0;
+
+    markDone(game.size, game.level);
+
+    var prevBest = getBest(game.size, game.level);
+    var isNewMoves = !prevBest || game.moves < prevBest.moves;
+    var isNewTime = !prevBest || elapsed < prevBest.time;
+    updateBest(game.size, game.level, game.moves, elapsed);
+
+    winMovesEl.textContent = String(game.moves);
+    winTimeEl.textContent = fmtTime(elapsed);
+
+    if (!prevBest) {
+      winRecordEl.textContent = '🏆 首次通关记录';
+      winRecordEl.className = 'win-record new';
+    } else if (isNewMoves || isNewTime) {
+      var parts = [];
+      if (isNewMoves) parts.push('步数');
+      if (isNewTime) parts.push('时间');
+      winRecordEl.textContent = '🏆 新纪录 · ' + parts.join(' / ');
+      winRecordEl.className = 'win-record new';
+    } else {
+      winRecordEl.textContent = '最佳 ' + prevBest.moves + ' 步 · ' + fmtTime(prevBest.time);
+      winRecordEl.className = 'win-record';
+    }
+
+    if (game.level >= LEVEL_COUNT) {
+      winNextEl.textContent = '选关';
+      winNextEl.onclick = function () {
+        winOverlayEl.classList.remove('show');
+        openLevels(game.size);
+      };
+    } else {
+      winNextEl.textContent = '下一关';
+      winNextEl.onclick = function () {
+        winOverlayEl.classList.remove('show');
+        startLevel(game.size, game.level + 1);
+      };
+    }
+
+    setTimeout(function () { winOverlayEl.classList.add('show'); }, 200);
+  }
+
+
+  /* =====================================================
+     11. 其它事件
+     ===================================================== */
+  $('btnLevelsBack').addEventListener('click', function () {
+    renderHome();
+    showScreen('screen-home');
+  });
+
+  $('btnGameBack').addEventListener('click', function () {
+    stopTimer();
+    game.solved = true;
+    openLevels(game.size);
+  });
+
+  $('btnRestart').addEventListener('click', function () {
+    startLevel(game.size, game.level);
+  });
+
+  $('winReplay').addEventListener('click', function () {
+    startLevel(game.size, game.level);
+  });
+
+  function relayout() {
+    var gameScreen = $('screen-game');
+    if (!gameScreen.classList.contains('active')) return;
+    if (!game.geom || !game.tiles.length) return;
+
+    computeGeom();
+
+    for (var key in game.els) {
+      if (!Object.prototype.hasOwnProperty.call(game.els, key)) continue;
+      styleTileSize(game.els[key]);
+    }
+
+    boardEl.classList.add('no-anim');
+    applyTransforms();
+    void boardEl.offsetWidth;
+    boardEl.classList.remove('no-anim');
+  }
+
+  window.addEventListener('resize', relayout);
+  window.addEventListener('orientationchange', function () {
+    setTimeout(relayout, 260);
+  });
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+      if (game.started && !game.solved) {
+        stopTimer();
+        var sec = Math.floor((Date.now() - game.startTs) / 1000);
+        timeCountEl.textContent = fmtTime(sec);
+      }
+    } else {
+      if (game.started && !game.solved && !game.timerId) {
+        var parts = timeCountEl.textContent.split(':');
+        var sec2 = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+        game.startTs = Date.now() - sec2 * 1000;
+        game.timerId = setInterval(function () {
+          var s = Math.floor((Date.now() - game.startTs) / 1000);
+          timeCountEl.textContent = fmtTime(s);
+        }, 200);
+      }
+    }
+  });
+
+
+  /* =====================================================
+     12. 启动
+     ===================================================== */
+  renderHome();
+  showScreen('screen-home');
+
+})();
+</script>
+</body>
+</html>
