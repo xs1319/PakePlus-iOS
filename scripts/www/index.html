@@ -530,7 +530,7 @@ body{
 }
 [data-theme="light"] .search-target .tgt{text-shadow:none;}
 .search-board{width:min(100%,70vh);aspect-ratio:1;gap:clamp(3px,.75vmin,7px);}
-.sym-cell{font-size:clamp(24px,5.2vmin,52px);font-weight:600;border-radius:clamp(5px,.9vmin,10px);color:var(--text-soft);}
+.sym-cell{font-size:clamp(24px,5.2vmin,52px);font-weight:600;border-radius:clamp(5px,.9vmin,10px);color:var(--text-accent);}
 
 .stroop-wrap{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -2255,8 +2255,9 @@ const GAME_LIST = [
         const cs2 = getComputedStyle(stage);
         const pw = (parseFloat(cs2.paddingLeft) || 0) + (parseFloat(cs2.paddingRight) || 0);
         const ph = (parseFloat(cs2.paddingTop) || 0) + (parseFloat(cs2.paddingBottom) || 0);
-        W = Math.max(160, Math.floor(stage.clientWidth - pw));
-        H = Math.max(160, Math.floor(stage.clientHeight - ph));
+        // 减去 40px 额外高度，让出顶部空间，避免遮挡返回和历史按钮
+        W = Math.max(160, Math.floor(stage.clientWidth - pw) - 20);
+        H = Math.max(160, Math.floor(stage.clientHeight - ph) - 50);
         canvas.width = Math.round(W * dpr);
         canvas.height = Math.round(H * dpr);
         canvas.style.width = W + 'px';
@@ -2447,7 +2448,7 @@ const GAME_LIST = [
 
 {
   id:'math', name:'闪电心算', icon:'➗', tag:'脑力', color:'#06d6a0',
-  desc:'60 秒快速心算 · 加减 100 以内 · 乘除限于九九乘法表',
+  desc:'60 秒快速心算 · 按年龄自适应难度',
   start(stage, api, life){
     let correct = 0, wrong = 0, over = false, left = 60;
     const wrap = document.createElement('div');
@@ -2462,12 +2463,37 @@ const GAME_LIST = [
     }
     function newQ(){
       if(over) return;
-      const type = rndInt(0, 3);
-      let a, b, ans, text;
-      if(type === 0){ a = rndInt(11, 89); b = rndInt(11, 100 - a); ans = a + b; text = `${a} + ${b}`; }
-      else if(type === 1){ a = rndInt(40, 100); b = rndInt(10, a - 10); ans = a - b; text = `${a} − ${b}`; }
-      else if(type === 2){ a = rndInt(2, 9); b = rndInt(2, 9); ans = a * b; text = `${a} × ${b}`; }
-      else { b = rndInt(2, 9); ans = rndInt(2, 9); a = b * ans; text = `${a} ÷ ${b}`; }
+      
+      const u = Users.current();
+      const age = parseInt(u ? u.age : '', 10) || 28; // 未填默认成人
+      let type, a, b, ans, text;
+
+      if(age <= 10){
+        // ≤10岁：20以内加减法，九九乘法表
+        const types = [0, 1, 2, 3];
+        type = pick(types);
+        if(type === 0){ a = rndInt(2, 15); b = rndInt(2, 20 - a); ans = a + b; text = `${a} + ${b}`; }
+        else if(type === 1){ a = rndInt(10, 20); b = rndInt(2, a - 2); ans = a - b; text = `${a} − ${b}`; }
+        else if(type === 2){ a = rndInt(2, 9); b = rndInt(2, 9); ans = a * b; text = `${a} × ${b}`; }
+        else { b = rndInt(2, 9); ans = rndInt(2, 9); a = b * ans; text = `${a} ÷ ${b}`; }
+      } else if(age <= 20){
+        // 11~20岁：100以内加减法，九九乘法表
+        const types = [0, 1, 2, 3];
+        type = pick(types);
+        if(type === 0){ a = rndInt(11, 89); b = rndInt(11, 100 - a); ans = a + b; text = `${a} + ${b}`; }
+        else if(type === 1){ a = rndInt(40, 100); b = rndInt(10, a - 10); ans = a - b; text = `${a} − ${b}`; }
+        else if(type === 2){ a = rndInt(2, 9); b = rndInt(2, 9); ans = a * b; text = `${a} × ${b}`; }
+        else { b = rndInt(2, 9); ans = rndInt(2, 9); a = b * ans; text = `${a} ÷ ${b}`; }
+      } else {
+        // >20岁：100以内加减法，两位数乘一位数
+        const types = [0, 1, 2, 3];
+        type = pick(types);
+        if(type === 0){ a = rndInt(11, 89); b = rndInt(11, 100 - a); ans = a + b; text = `${a} + ${b}`; }
+        else if(type === 1){ a = rndInt(40, 100); b = rndInt(10, a - 10); ans = a - b; text = `${a} − ${b}`; }
+        else if(type === 2){ a = rndInt(11, 19); b = rndInt(2, 9); ans = a * b; text = `${a} × ${b}`; }
+        else { b = rndInt(2, 9); ans = rndInt(11, 19); a = b * ans; text = `${a} ÷ ${b}`; }
+      }
+      
       q.textContent = text + ' = ?';
       const set = new Set([ans]);
       let guard = 0;
@@ -2661,7 +2687,6 @@ function renderMenu(){
         <span>已玩 ${rec.plays||0} 次</span>
         <span class="card-best">${rec.best||0} 分</span>
       </div>`;
-    // 主界面卡片改用 click，防止上下滑动时误触
     card.addEventListener('click', ()=>{ SFX.click(); openGame(g.id); });
     menuGrid.appendChild(card);
   });
