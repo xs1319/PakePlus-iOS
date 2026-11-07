@@ -219,7 +219,16 @@ body{
   66%{transform:translate(-5vmin,6vmin) scale(.95);}
 }
 
-#app{position:fixed;inset:0;z-index:1;display:flex;flex-direction:column;}
+/* #app 侧滑过渡效果 */
+#app{
+  position:fixed;inset:0;z-index:1;display:flex;flex-direction:column;
+  background:var(--bg-page);
+  transition:transform .25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow .25s;
+}
+#app.swiping{
+  transition:none;
+  box-shadow: -10px 0 30px rgba(0,0,0,0.3);
+}
 
 /* 顶栏 */
 .topbar{
@@ -821,21 +830,19 @@ select.text-input option{background:var(--bg-page);color:var(--text-main);}
 .theme-preview-light span:nth-child(2){background:linear-gradient(140deg,#a05cd0,#1ba8d8);}
 .theme-preview-light span:nth-child(3){background:linear-gradient(140deg,#d9608a,#a05cd0);}
 
-/* 主题名称颜色：以 html 根节点为准，不再受 button 的影响 */
+/* 主题名称颜色 */
 .theme-name{
   font-size:clamp(11.5px,1.8vmin,13px);
   font-weight:800;
   text-align:center;
   opacity:1 !important;
 }
-
 html[data-theme="light"] .theme-name {
-  color: #1a2332 !important; /* 白色模式：绝对黑色 */
+  color: #1a2332 !important;
   -webkit-text-fill-color: #1a2332 !important;
 }
-
 html[data-theme="dark"] .theme-name {
-  color: #eaf2ff !important; /* 黑暗模式：绝对白色 */
+  color: #eaf2ff !important;
   -webkit-text-fill-color: #eaf2ff !important;
 }
 
@@ -1086,7 +1093,6 @@ html[data-theme="dark"] .theme-name {
         <h3>🎨 主题</h3>
         <div class="settings-note">选择您喜欢的界面风格，主题会立即应用到整个游戏。</div>
         <div class="theme-grid">
-          <!-- 注意这里改成了 data-mode，避开系统主题的 data-theme 属性 -->
           <button class="theme-option" data-mode="light">
             <div class="theme-preview theme-preview-light">
               <span></span><span></span><span></span>
@@ -1169,7 +1175,7 @@ html[data-theme="dark"] .theme-name {
 <script>
 "use strict";
 
-/* ---------- 全局禁用缩放（仅保留 iOS 专属手势和 Ctrl+滚轮，去掉了冗余的 touch 监听，大幅提升响应） ---------- */
+/* ---------- 全局禁用缩放 ---------- */
 (function disableZoom(){
   ['gesturestart','gesturechange','gestureend'].forEach(ev=>{
     document.addEventListener(ev, e=>{ e.preventDefault(); }, { passive:false });
@@ -1179,7 +1185,98 @@ html[data-theme="dark"] .theme-name {
   }, { passive:false });
 })();
 
-/* ---------- 工具 ---------- */
+/* ---------- 右滑返回逻辑（模拟 iOS 原生边缘手势） ---------- */
+(function initSwipeBack(){
+  let startX = 0, startY = 0, startTime = 0;
+  let isEdge = false, isSwiping = false;
+  let dx = 0, dy = 0;
+  const app = document.getElementById('app');
+  const edgeWidth = 35; // 边缘触发宽度
+  const threshold = 80; // 触发返回的滑动距离
+  const maxY = 60;      // 最大纵向容忍度
+
+  document.addEventListener('touchstart', e => {
+    if(e.target.closest('input, textarea, select')) return;
+    if(e.touches.length > 1) return;
+    
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    startTime = Date.now();
+    
+    isEdge = startX <= edgeWidth;
+    isSwiping = false;
+    dx = 0;
+    dy = 0;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if(!isEdge || isSwiping === 'cancel') return;
+    if(e.touches.length > 1) { isSwiping = false; return; }
+
+    dx = e.touches[0].clientX - startX;
+    dy = e.touches[0].clientY - startY;
+
+    if(dx > 0 && dx > Math.abs(dy) * 1.5){
+      if(!isSwiping){
+        isSwiping = true;
+        app.classList.add('swiping');
+      }
+      let moveX = Math.pow(dx, 0.85); 
+      if(moveX > window.innerWidth) moveX = window.innerWidth;
+      app.style.transform = `translateX(${moveX}px)`;
+      if(e.cancelable) e.preventDefault();
+    } else if(Math.abs(dy) > 20) {
+      isSwiping = 'cancel';
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchend', e => {
+    if(!isEdge) return;
+    if(isSwiping === true) {
+      app.classList.remove('swiping');
+      const dt = Date.now() - startTime;
+      
+      if(dx > threshold && dt < 800 && Math.abs(dy) < maxY) {
+        app.style.transform = `translateX(100vw)`;
+        
+        setTimeout(() => {
+          const cConfirm = document.querySelector('.confirm-overlay.show');
+          const cHist = document.querySelector('#overlayHist.show');
+          const cOverlay = document.querySelector('#overlay.show');
+          
+          if(cConfirm) {
+            const cancelBtn = cConfirm.querySelector('[data-act="cancel"]');
+            if(cancelBtn) cancelBtn.click();
+            else cConfirm.classList.remove('show');
+          } else if (cHist) {
+            cHist.classList.remove('show');
+          } else if (cOverlay) {
+            cOverlay.classList.remove('show');
+          } else if (screenGame.classList.contains('active')) {
+            backToMenu();
+          } else if (screenSettings.classList.contains('active')) {
+            backToMenu();
+          }
+          
+          app.style.transition = 'none';
+          app.style.transform = `translateX(0)`;
+          void app.offsetWidth;
+          app.style.transition = '';
+          
+        }, 200);
+      } else {
+        app.style.transform = `translateX(0)`;
+      }
+    } else if (isSwiping === 'cancel') {
+      app.classList.remove('swiping');
+      app.style.transform = `translateX(0)`;
+    }
+    
+    setTimeout(() => { isEdge = false; isSwiping = false; }, 50);
+  }, { passive: true });
+})();
+
+/* ---------- 工具 & 震动反馈 ---------- */
 const $  = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 const rnd = (a,b) => Math.random()*(b-a)+a;
@@ -1199,6 +1296,12 @@ function esc(s){
 function isLightTheme(){
   return document.documentElement.getAttribute('data-theme') === 'light';
 }
+
+const Haptics = {
+  error(){ try{ if(navigator.vibrate) navigator.vibrate(50); }catch(e){} },
+  fail(){ try{ if(navigator.vibrate) navigator.vibrate([100, 50, 100]); }catch(e){} },
+  lose(){ try{ if(navigator.vibrate) navigator.vibrate(80); }catch(e){} }
+};
 
 let toastTimer = null;
 function toast(msg){
@@ -1338,7 +1441,6 @@ const Theme = {
   syncUI(){
     const cur = this.current();
     $$('.theme-option').forEach(btn=>{
-      // 读取 dataset.mode 而不是 dataset.theme
       btn.classList.toggle('active', btn.dataset.mode === cur);
     });
   }
@@ -1730,7 +1832,7 @@ function makeLife(){
   };
 }
 
-/* ---------- 游戏 ---------- */
+/* ---------- 游戏列表 ---------- */
 const GAME_LIST = [
 
 {
@@ -1759,7 +1861,7 @@ const GAME_LIST = [
             api.end(score, `用时 ${sec.toFixed(2)} 秒 · 错误 ${errors} 次`);
           }else api.stat(`进度 <b>${next-1}</b>/${TOTAL} · 错误 ${errors}`);
         }else{
-          errors++; SFX.wrong();
+          errors++; SFX.wrong(); Haptics.error();
           b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake');
           api.stat(`进度 <b>${next-1}</b>/${TOTAL} · 错误 ${errors}`);
         }
@@ -1814,7 +1916,7 @@ const GAME_LIST = [
           life.setTimeout(()=>{ level++; newRound(); }, 520);
         }
       }else{
-        cell.classList.add('bad'); phase = 'over'; SFX.lose();
+        cell.classList.add('bad'); phase = 'over'; SFX.lose(); Haptics.fail();
         const passed = level - 1;
         const score = Scoring.score('flash', { level: passed });
         api.end(score, `通过 ${passed} 关 · 最高记忆 ${Math.min(level+1,14)} 格`);
@@ -1861,7 +1963,7 @@ const GAME_LIST = [
         b.addEventListener('pointerdown', ()=>{
           if(over) return;
           if(col === answer){ correct++; SFX.correct(); b.classList.add('pop'); }
-          else{ wrong++; SFX.wrong(); b.classList.add('shake'); }
+          else{ wrong++; SFX.wrong(); Haptics.error(); b.classList.add('shake'); }
           updateStat();
           life.setTimeout(()=>b.classList.remove('pop','shake'), 260);
           nextQ();
@@ -1921,7 +2023,7 @@ const GAME_LIST = [
             api.stat(`找到 <b>${found}</b> · 得分 <b>${score}</b>`);
             build();
           }else{
-            wrong++; SFX.wrong();
+            wrong++; SFX.wrong(); Haptics.error();
             d.classList.remove('shake'); void d.offsetWidth; d.classList.add('shake');
             const score = Scoring.score('odd', { found, wrong });
             api.stat(`找到 <b>${found}</b> · 得分 <b>${score}</b>`);
@@ -1979,7 +2081,7 @@ const GAME_LIST = [
       else if(state === 'wait'){
         state = 'idle'; token++;
         round = Math.max(0, round - 1); earlyClicks++;
-        SFX.wrong();
+        SFX.wrong(); Haptics.error();
         box.className = 'react-box bad';
         box.innerHTML = '<div class="react-text">太早了！<br><span class="sub">点击重试本轮</span></div>';
         api.stat(`第 <b>${round}</b>/${ROUNDS} 轮`);
@@ -2044,7 +2146,7 @@ const GAME_LIST = [
       flash(i, 280); input.push(i);
       const k = input.length - 1;
       if(input[k] !== seq[k]){
-        over = true; SFX.lose(); c.classList.add('bad');
+        over = true; SFX.lose(); Haptics.fail(); c.classList.add('bad');
         const passed = seq.length - 1;
         const score = Scoring.score('seq', { level: passed });
         api.end(score, `成功记忆长度 ${passed} 个`);
@@ -2319,7 +2421,7 @@ const GAME_LIST = [
             life.setTimeout(nextRound, 850);
           }
         }else{
-          b.picked = 'bad'; misses++; SFX.wrong(); updateStat();
+          b.picked = 'bad'; misses++; SFX.wrong(); Haptics.error(); updateStat();
           phase = 'wait';
           balls.forEach(x => { if(x.target) x.reveal = true; });
           life.setTimeout(nextRound, 1250);
@@ -2385,7 +2487,7 @@ const GAME_LIST = [
         btn.textContent = v;
         btn.addEventListener('pointerdown', ()=>{
           if(over) return;
-          if(v === ans){ correct++; SFX.correct(); } else { wrong++; SFX.wrong(); }
+          if(v === ans){ correct++; SFX.correct(); } else { wrong++; SFX.wrong(); Haptics.error(); }
           updateStat(); newQ();
         });
         opts.appendChild(btn);
@@ -2443,7 +2545,7 @@ const GAME_LIST = [
             api.stat(`找到 <b>${found}</b> · 得分 <b>${score}</b>`);
             build();
           }else{
-            wrong++; SFX.wrong();
+            wrong++; SFX.wrong(); Haptics.error();
             d.classList.remove('shake'); void d.offsetWidth; d.classList.add('shake');
             const score = Scoring.score('search', { found, wrong });
             api.stat(`找到 <b>${found}</b> · 得分 <b>${score}</b>`);
@@ -2510,7 +2612,7 @@ const GAME_LIST = [
             life.setTimeout(()=>{ api.end(score, `用时 ${sec.toFixed(2)} 秒 · 失误 ${tries} 次`); }, 420);
           }
         }else{
-          lock = true; tries++; SFX.wrong();
+          lock = true; tries++; SFX.wrong(); Haptics.error();
           const a = first.tile, b = tile; first = null;
           api.stat(`配对 <b>${matched}</b>/${PAIRS} · 翻牌 ${tries} 次`);
           life.setTimeout(()=>{ a.classList.remove('flipped'); b.classList.remove('flipped'); lock = false; }, 720);
@@ -2559,7 +2661,8 @@ function renderMenu(){
         <span>已玩 ${rec.plays||0} 次</span>
         <span class="card-best">${rec.best||0} 分</span>
       </div>`;
-    card.addEventListener('pointerdown', ()=>{ SFX.click(); openGame(g.id); });
+    // 主界面卡片改用 click，防止上下滑动时误触
+    card.addEventListener('click', ()=>{ SFX.click(); openGame(g.id); });
     menuGrid.appendChild(card);
   });
 }
@@ -2648,7 +2751,7 @@ function finishGame(state, score, detail){
   const isNew = Store.record(game.id, score, detail);
   const rec = Store.get(game.id);
   if(isNew){ SFX.celebrate(); confetti(); }
-  else{ SFX.lose(); }
+  else{ SFX.lose(); Haptics.lose(); }
   const title = isNew ? '🎉 新纪录！' : '训练完成';
   panel.innerHTML = `
     <h2>${title}</h2>
@@ -2925,7 +3028,6 @@ btnCancelUserEdit.addEventListener('click', ()=>{ resetUserForm(); setUserStatus
 /* 主题按钮 */
 $$('.theme-option').forEach(btn=>{
   btn.addEventListener('click', ()=>{
-    // 注意这里改成了 dataset.mode
     const t = btn.dataset.mode;
     if(t === Theme.current()){ SFX.click(); return; }
     Theme.apply(t, { notify:true });
