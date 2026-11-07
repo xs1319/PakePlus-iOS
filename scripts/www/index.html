@@ -553,6 +553,22 @@
     border: 1.5px solid var(--blue-800);
   }
   .ghost-btn:active, .solid-btn:active { transform: scale(.95); opacity: .82; }
+
+  /* ---------------- 彩带特效 ---------------- */
+  .confetti {
+    position: fixed;
+    top: -24px;
+    width: 9px;
+    height: 15px;
+    border-radius: 2px;
+    z-index: 999;
+    pointer-events: none;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(108vh) rotate(760deg); opacity: .15; }
+  }
+
 </style>
 </head>
 <body>
@@ -564,7 +580,7 @@
       <div class="brand">
         <div class="logo"><i></i><i></i><i></i><i class="blank"></i></div>
         <h1>数字华容道</h1>
-        <p>将数字按顺序排列</p>
+        <p>Produced By MrXiao</p>
       </div>
       <div class="modes" id="modes"></div>
     </div>
@@ -635,7 +651,71 @@
   'use strict';
 
   /* =====================================================
-     1. 禁止缩放 / 双击放大 / 双指手势
+     1. 音效系统 (Web Audio API)
+     ===================================================== */
+  var SFX = (function () {
+    var ac = null;
+    function ctx() {
+      if (!ac) {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        ac = new AC();
+      }
+      if (ac.state === 'suspended') ac.resume();
+      return ac;
+    }
+
+    function tone(freq, dur, type, vol, slideTo) {
+      var c = ctx();
+      if (!c) return;
+      try {
+        var t = c.currentTime;
+        var o = c.createOscillator();
+        var g = c.createGain();
+        o.type = type || 'sine';
+        o.frequency.setValueAtTime(freq, t);
+        if (slideTo) {
+          o.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), t + dur);
+        }
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(vol, t + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(g);
+        g.connect(c.destination);
+        o.start(t);
+        o.stop(t + dur + 0.05);
+      } catch (e) {}
+    }
+
+    return {
+      unlock: function () { ctx(); },
+      // 滑动音效：清脆、低沉、短促
+      slide: function () {
+        tone(480, 0.08, 'triangle', 0.06, 220);
+      },
+      // 点击按钮音效
+      click: function () {
+        tone(680, 0.04, 'sine', 0.04);
+      },
+      // 胜利音效（首次通关或破纪录）
+      win: function () {
+        var notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach(function(freq, i) {
+          setTimeout(function() {
+            tone(freq, 0.2, 'sine', 0.1);
+          }, i * 100);
+        });
+      }
+    };
+  })();
+
+  // 全局绑定一次用户交互解锁音频
+  document.addEventListener('pointerdown', SFX.unlock, { once: true });
+  document.addEventListener('touchstart', SFX.unlock, { once: true });
+
+
+  /* =====================================================
+     2. 禁止缩放 / 双击放大 / 双指手势
      ===================================================== */
   ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (evt) {
     document.addEventListener(evt, function (e) { e.preventDefault(); }, { passive: false });
@@ -656,7 +736,7 @@
 
 
   /* =====================================================
-     2. 常量与工具
+     3. 常量与工具
      ===================================================== */
   var LEVEL_COUNT = 50;
   var STORAGE_KEY = 'hrd_progress_v2';
@@ -684,7 +764,6 @@
     return (m < 10 ? '0' + m : '' + m) + ':' + (s < 10 ? '0' + s : '' + s);
   }
 
-  /* 确定性伪随机（同一关卡每次生成相同盘面） */
   function mulberry32(a) {
     return function () {
       a |= 0;
@@ -753,7 +832,7 @@
 
 
   /* =====================================================
-     3. 进度 / 最佳记录存储
+     4. 进度 / 最佳记录存储
      ===================================================== */
   var progress = {};
   try {
@@ -817,7 +896,7 @@
 
 
   /* =====================================================
-     4. 屏幕切换
+     5. 屏幕切换
      ===================================================== */
   function showScreen(id) {
     var screens = document.querySelectorAll('.screen');
@@ -828,7 +907,7 @@
 
 
   /* =====================================================
-     5. 首页（6 个难度）
+     6. 首页
      ===================================================== */
   var MODES = [
     { size: 4, desc: '简单' },
@@ -841,10 +920,8 @@
 
   function renderHome() {
     modesEl.innerHTML = '';
-
     MODES.forEach(function (cfg) {
       var done = getProgress(cfg.size).length;
-
       var btn = document.createElement('button');
       btn.className = 'mode';
       btn.type = 'button';
@@ -856,22 +933,22 @@
         '</span>' +
         '<span class="mode-arrow">›</span>';
 
-      btn.addEventListener('click', function () { openLevels(cfg.size); });
+      btn.addEventListener('click', function () { 
+        SFX.click();
+        openLevels(cfg.size); 
+      });
       modesEl.appendChild(btn);
     });
   }
 
 
   /* =====================================================
-     6. 选关页
+     7. 选关页
      ===================================================== */
   function openLevels(size) {
     levelsSizeEl.textContent = size + ' × ' + size;
-
     var done = getProgress(size);
-    levelsSubEl.innerHTML =
-      '已完成 <b>' + done.length + '</b> / ' + LEVEL_COUNT;
-
+    levelsSubEl.innerHTML = '已完成 <b>' + done.length + '</b> / ' + LEVEL_COUNT;
     renderLevels(size);
     showScreen('screen-levels');
 
@@ -897,13 +974,11 @@
   function renderLevels(size) {
     var done = getProgress(size);
     var last = getLastLevel(size);
-
     levelsGridEl.innerHTML = '';
 
     for (var lv = 1; lv <= LEVEL_COUNT; lv++) {
       (function (level) {
         var isDone = done.indexOf(level) !== -1;
-
         var b = document.createElement('button');
         b.type = 'button';
         b.className = 'level-btn'
@@ -922,7 +997,10 @@
           b.appendChild(tp);
         }
 
-        b.addEventListener('click', function () { startLevel(size, level); });
+        b.addEventListener('click', function () { 
+          SFX.click();
+          startLevel(size, level); 
+        });
         levelsGridEl.appendChild(b);
       })(lv);
     }
@@ -930,20 +1008,11 @@
 
 
   /* =====================================================
-     7. 游戏状态
+     8. 游戏状态
      ===================================================== */
   var game = {
-    size: 4,
-    level: 1,
-    tiles: [],
-    blank: 0,
-    moves: 0,
-    els: {},
-    geom: null,
-    started: false,
-    solved: false,
-    startTs: 0,
-    timerId: null
+    size: 4, level: 1, tiles: [], blank: 0, moves: 0,
+    els: {}, geom: null, started: false, solved: false, startTs: 0, timerId: null
   };
 
   function stopTimer() {
@@ -981,7 +1050,6 @@
     else gap = 4;
 
     var tile = (s - gap * (n + 1)) / n;
-
     game.geom = { gap: gap, tile: tile, board: s };
   }
 
@@ -990,15 +1058,7 @@
     var tile = game.geom.tile;
     el.style.width = tile + 'px';
     el.style.height = tile + 'px';
-
-    var ratio;
-    if (n <= 4) ratio = 0.42;
-    else if (n === 5) ratio = 0.40;
-    else if (n === 6) ratio = 0.36;
-    else if (n === 7) ratio = 0.33;
-    else if (n === 8) ratio = 0.30;
-    else ratio = 0.27;
-
+    var ratio = n <= 4 ? 0.42 : n === 5 ? 0.40 : n === 6 ? 0.36 : n === 7 ? 0.33 : n === 8 ? 0.30 : 0.27;
     el.style.fontSize = Math.max(9, Math.round(tile * ratio)) + 'px';
     el.style.borderRadius = Math.max(5, Math.round(tile * 0.18)) + 'px';
   }
@@ -1006,20 +1066,16 @@
   function buildTiles() {
     boardEl.innerHTML = '';
     game.els = {};
-
-    var n = game.size;
-    var total = n * n;
+    var n = game.size, total = n * n;
 
     for (var i = 0; i < total; i++) {
       var v = game.tiles[i];
       if (v === 0) continue;
-
       var el = document.createElement('div');
       el.className = 'tile';
       el.dataset.value = String(v);
       el.textContent = String(v);
       styleTileSize(el);
-
       boardEl.appendChild(el);
       game.els[v] = el;
     }
@@ -1031,27 +1087,20 @@
   }
 
   function applyTransforms() {
-    var n = game.size;
-    var gap = game.geom.gap;
-    var tile = game.geom.tile;
-    var step = tile + gap;
-
+    var n = game.size, gap = game.geom.gap, tile = game.geom.tile, step = tile + gap;
     for (var key in game.els) {
       if (!Object.prototype.hasOwnProperty.call(game.els, key)) continue;
       var el = game.els[key];
       var v = Number(el.dataset.value);
       var i = game.tiles.indexOf(v);
       if (i < 0) continue;
-      var r = Math.floor(i / n);
-      var c = i % n;
-      el.style.transform =
-        'translate(' + (gap + c * step) + 'px,' + (gap + r * step) + 'px)';
+      var r = Math.floor(i / n), c = i % n;
+      el.style.transform = 'translate(' + (gap + c * step) + 'px,' + (gap + r * step) + 'px)';
     }
   }
 
   function startLevel(size, level) {
     stopTimer();
-
     game.size = size;
     game.level = level;
     game.moves = 0;
@@ -1063,7 +1112,6 @@
 
     game.tiles = generatePuzzle(size, level);
     game.blank = game.tiles.indexOf(0);
-
     setLastLevel(size, level);
 
     moveCountEl.textContent = '0';
@@ -1101,11 +1149,10 @@
 
 
   /* =====================================================
-     8. 核心：整行 / 整列滑动
+     9. 核心：整行 / 整列滑动
      ===================================================== */
   function trySlideTo(value) {
     if (game.solved || !game.geom) return 0;
-
     var n = game.size;
     var i = game.tiles.indexOf(value);
     var j = game.blank;
@@ -1142,6 +1189,9 @@
     moveCountEl.textContent = String(game.moves);
     applyTransforms();
     startTimer();
+    
+    // 播放清脆的滑动音效
+    SFX.slide();
 
     if (checkSolved()) handleWin();
     return moved;
@@ -1149,7 +1199,6 @@
 
   function slideByDirection(value, dir) {
     if (game.solved || !game.geom) return;
-
     var n = game.size;
     var i = game.tiles.indexOf(value);
     var j = game.blank;
@@ -1169,13 +1218,12 @@
     } else {
       return;
     }
-
     trySlideTo(value);
   }
 
 
   /* =====================================================
-     9. 触摸 / 鼠标交互
+     10. 触摸 / 鼠标交互
      ===================================================== */
   var dragState = null;
 
@@ -1258,35 +1306,60 @@
 
 
   /* =====================================================
-     10. 胜利
+     11. 彩带特效
+     ===================================================== */
+  function confetti() {
+    var colors = ['#4cc9f0', '#f72585', '#ffd93d', '#06d6a0', '#b5179e', '#7b61ff', '#ff8fab'];
+    for (var i = 0; i < 70; i++) {
+      var d = document.createElement('div');
+      d.className = 'confetti';
+      d.style.left = (Math.random() * 100) + 'vw';
+      d.style.background = colors[i % colors.length];
+      d.style.animationDelay = (Math.random() * 0.7) + 's';
+      d.style.animationDuration = (1.7 + Math.random() * 1.5) + 's';
+      d.style.width = (6 + Math.random() * 7) + 'px';
+      d.style.height = (10 + Math.random() * 10) + 'px';
+      document.body.appendChild(d);
+      setTimeout(function (el) { return function () { el.remove(); }; }(d), 3800);
+    }
+  }
+
+
+  /* =====================================================
+     12. 胜利逻辑
      ===================================================== */
   function handleWin() {
     game.solved = true;
     stopTimer();
 
-    var elapsed = game.started
-      ? Math.floor((Date.now() - game.startTs) / 1000)
-      : 0;
-
+    var elapsed = game.started ? Math.floor((Date.now() - game.startTs) / 1000) : 0;
     markDone(game.size, game.level);
 
     var prevBest = getBest(game.size, game.level);
     var isNewMoves = !prevBest || game.moves < prevBest.moves;
     var isNewTime = !prevBest || elapsed < prevBest.time;
+    var isFirst = !prevBest;
+    var isRecord = isNewMoves || isNewTime;
+
     updateBest(game.size, game.level, game.moves, elapsed);
 
     winMovesEl.textContent = String(game.moves);
     winTimeEl.textContent = fmtTime(elapsed);
 
-    if (!prevBest) {
+    // 播放特效与音乐
+    if (isFirst) {
       winRecordEl.textContent = '🏆 首次通关记录';
       winRecordEl.className = 'win-record new';
-    } else if (isNewMoves || isNewTime) {
+      confetti();
+      SFX.win();
+    } else if (isRecord) {
       var parts = [];
       if (isNewMoves) parts.push('步数');
       if (isNewTime) parts.push('时间');
       winRecordEl.textContent = '🏆 新纪录 · ' + parts.join(' / ');
       winRecordEl.className = 'win-record new';
+      confetti();
+      SFX.win();
     } else {
       winRecordEl.textContent = '最佳 ' + prevBest.moves + ' 步 · ' + fmtTime(prevBest.time);
       winRecordEl.className = 'win-record';
@@ -1306,29 +1379,33 @@
       };
     }
 
-    setTimeout(function () { winOverlayEl.classList.add('show'); }, 200);
+    setTimeout(function () { winOverlayEl.classList.add('show'); }, 300);
   }
 
 
   /* =====================================================
-     11. 其它事件
+     13. 其它事件
      ===================================================== */
   $('btnLevelsBack').addEventListener('click', function () {
+    SFX.click();
     renderHome();
     showScreen('screen-home');
   });
 
   $('btnGameBack').addEventListener('click', function () {
+    SFX.click();
     stopTimer();
     game.solved = true;
     openLevels(game.size);
   });
 
   $('btnRestart').addEventListener('click', function () {
+    SFX.click();
     startLevel(game.size, game.level);
   });
 
   $('winReplay').addEventListener('click', function () {
+    SFX.click();
     startLevel(game.size, game.level);
   });
 
@@ -1336,14 +1413,11 @@
     var gameScreen = $('screen-game');
     if (!gameScreen.classList.contains('active')) return;
     if (!game.geom || !game.tiles.length) return;
-
     computeGeom();
-
     for (var key in game.els) {
       if (!Object.prototype.hasOwnProperty.call(game.els, key)) continue;
       styleTileSize(game.els[key]);
     }
-
     boardEl.classList.add('no-anim');
     applyTransforms();
     void boardEl.offsetWidth;
@@ -1375,9 +1449,8 @@
     }
   });
 
-
   /* =====================================================
-     12. 启动
+     14. 启动
      ===================================================== */
   renderHome();
   showScreen('screen-home');
