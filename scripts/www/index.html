@@ -520,6 +520,13 @@ body.dark-mode .custom-select-options { box-shadow: 0 10px 30px rgba(0,0,0,0.6);
 .track-progress #raceInfo{
   color:var(--txt);
   letter-spacing:.3px;
+  background: var(--center-bg);
+  padding: 2px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  display: inline-flex;
+  align-items: center;
 }
 
 .btn{
@@ -1241,6 +1248,29 @@ body.dark-mode .wrong-item .wi-count { color:#fca5a5; background:rgba(239,68,68,
   z-index: 20;
 }
 
+/* 1. 状态栏中间绝对居中的倒计时 */
+.p-head { position: relative; }
+.p-head-timer {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  display: flex; align-items: center; gap: 4px; pointer-events: none; z-index: 10;
+}
+.p-head-timer .ph-hourglass {
+  width: clamp(16px, 2.2vh, 24px); height: clamp(16px, 2.2vh, 24px);
+  animation: spin180 1s linear infinite; /* 强制一直顺时针旋转 */
+  transform-origin: 50% 50%;
+}
+@keyframes spin180 {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(180deg); }
+}
+.p-head-timer .ph-num {
+  font-weight: 900; font-variant-numeric: tabular-nums;
+  font-size: clamp(.85rem, 2.1vh, 1.45rem); color: var(--txt);
+}
+.p-head-timer.urgent .ph-num {
+  color: #ef4444; animation: pulseT .6s ease-in-out infinite;
+}
+
 /* 第一行：标题栏 */
 .center-bar .mid-header {
   display: flex;
@@ -1273,8 +1303,6 @@ body.dark-mode .wrong-item .wi-count { color:#fca5a5; background:rgba(239,68,68,
   height: clamp(56px, 8.8vh, 76px);
   margin: 0;
 }
-
-/* 第1列(统计) & 第7列(选择) & 第三行左右按钮：四角完全等宽等高 */
 .center-bar .ctrl-col-edge,
 .center-bar .btn-start-square,
 .center-bar .btn-review-square {
@@ -1296,18 +1324,17 @@ body.dark-mode .wrong-item .wi-count { color:#fca5a5; background:rgba(239,68,68,
   transition: .18s;
 }
 
-/* 第1列：统计按钮 */
+/* 统计按钮 */
 .center-bar #btnStats {
   background: var(--btn-ghost-bg);
   border: 1px solid var(--line);
   color: var(--txt);
 }
 .center-bar #btnStats:hover { background: var(--btn-ghost-hover); }
-.center-bar #btnStats:active { transform: scale(.97); }
 .center-bar .ctrl-col-edge .c-icon { font-size: clamp(1rem, 2.2vh, 1.4rem); line-height: 1; }
 .center-bar .ctrl-col-edge .c-text { font-size: clamp(.62rem, 1.4vh, .84rem); }
 
-/* 第7列：模式选择下拉容器与触发器（必须 overflow: visible 否则下拉框被裁剪） */
+/* 模式选择 */
 .center-bar #modeSelectWrap {
   position: relative;
   padding: 0;
@@ -1330,206 +1357,114 @@ body.dark-mode .wrong-item .wi-count { color:#fca5a5; background:rgba(239,68,68,
   align-items: center;
   justify-content: center;
 }
-.center-bar #modeSelectWrap .custom-select-trigger::after {
-  right: 5px;
-}
+.center-bar #modeSelectWrap .custom-select-trigger::after { right: 5px; }
 .center-bar #modeSelectWrap .custom-select-options {
-  left: auto;
-  right: 0;
-  top: calc(100% + 6px);
-  min-width: 112px;
-  z-index: 300;
+  left: auto; right: 0; top: calc(100% + 6px); min-width: 112px; z-index: 300;
 }
 
-/* 第2列 & 第6列：上下双按钮堆叠 */
+/* 上下双按钮堆叠 */
 .center-bar .ctrl-stack {
-  flex: 1 1 0;
-  min-width: 0;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: clamp(4px, .6vh, 6px);
+  flex: 1 1 0; min-width: 0; height: 100%;
+  display: flex; flex-direction: column; gap: clamp(4px, .6vh, 6px);
 }
 .center-bar .ctrl-stack > button {
-  flex: 1 1 0;
-  min-height: 0;
-  height: auto;
-  width: 100%;
-  padding: 0 4px;
-  border-radius: 9px;
-  font-weight: 800;
-  font-size: clamp(.64rem, 1.4vh, .86rem);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
-  overflow: hidden;
-  line-height: 1;
+  flex: 1 1 0; min-height: 0; height: auto; width: 100%; padding: 0 4px;
+  border-radius: 9px; font-weight: 800; font-size: clamp(.64rem, 1.4vh, .86rem);
+  display: flex; align-items: center; justify-content: center;
+  white-space: nowrap; overflow: hidden; line-height: 1;
 }
 .center-bar .ctrl-stack .stack-btn {
-  background: var(--btn-ghost-bg);
-  border: 1px solid var(--line);
-  color: var(--txt);
+  background: var(--btn-ghost-bg); border: 1px solid var(--line); color: var(--txt);
 }
 .center-bar .ctrl-stack .stack-btn:hover { background: var(--btn-ghost-hover); }
 .center-bar .ctrl-stack .dir-toggle {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: #fff;
-  border: none;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, .3);
+  background: linear-gradient(135deg, #10b981, #059669); color: #fff;
+  border: none; box-shadow: 0 2px 8px rgba(16, 185, 129, .3);
 }
 
-/* 第3列(时间) & 第5列(题数)：自适应高度不溢出 */
+/* 时间/题数调节器 */
 .center-bar .mid-grid .ctrl-square {
-  flex: 0.95 1 0;
-  min-width: 0;
-  width: auto;
-  height: 100%;
-  border-radius: 13px;
+  flex: 0.95 1 0; min-width: 0; width: auto; height: 100%; border-radius: 13px;
 }
-.center-bar .mid-grid .ctrl-square .sq-val {
-  font-size: clamp(.84rem, 2.1vh, 1.25rem);
-}
+.center-bar .mid-grid .ctrl-square .sq-val { font-size: clamp(.84rem, 2.1vh, 1.25rem); }
 
-/* 第4列：正中沙漏 */
-.center-bar .mid-grid .timer-square {
-  flex: 0 0 auto;
-  width: clamp(56px, 9.2vh, 78px);
-  height: 100%;
-  border-radius: 13px;
-}
-.center-bar .mid-grid .hourglass-svg {
-  width: clamp(26px, 5vh, 46px);
-  height: clamp(26px, 5vh, 46px);
-}
-
-/* 第三行：开始 + 赛道 + 回顾上次 */
-.center-bar .race-row {
-  display: flex;
-  align-items: stretch;
-  width: 100%;
-  height: clamp(64px, 10.2vh, 88px);
-  margin: 0;
-  padding: 0;
-  gap: clamp(4px, .75vw, 10px);
-}
-
-/* 开始 / 暂停 / 继续 按钮完整样式 */
-.center-bar .btn-start-square {
+/* 正中开始按钮（替换了原本的沙漏） */
+.center-bar .mid-grid .btn-start-square {
+  flex: 0.95 1 0; width: auto; border-radius: 13px;
   background: linear-gradient(135deg, #22c55e, #16a34a);
-  color: #fff;
+  color: #fff; box-shadow: 0 4px 18px rgba(34, 197, 94, .4);
+}
+.center-bar .mid-grid .btn-start-square:hover {
+  transform: translateY(-1px); box-shadow: 0 6px 24px rgba(34, 197, 94, .55);
+}
+.center-bar .mid-grid .btn-start-square.paused {
+  background: linear-gradient(135deg, #f59e0b, #ef4444); box-shadow: 0 4px 18px rgba(245, 158, 11, .35);
+}
+
+/* 第三行：赛道 */
+.center-bar .race-row {
+  display: flex; align-items: stretch; width: 100%;
+  height: clamp(64px, 10.2vh, 88px); margin: 0; padding: 0; gap: clamp(4px, .75vw, 10px);
+}
+.center-bar .btn-start-square,
+.center-bar .btn-review-square {
+  background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff;
   box-shadow: 0 4px 18px rgba(34, 197, 94, .4);
 }
-.center-bar .btn-start-square:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 24px rgba(34, 197, 94, .55);
+.center-bar .btn-review-square { background: linear-gradient(135deg, #3b82f6, #6366f1); box-shadow: 0 4px 18px rgba(59, 130, 246, .4); }
+.center-bar .btn-pk-record { 
+  background: linear-gradient(135deg, #f43f5e, #e11d48); /* 玫红色 */
+  box-shadow: 0 4px 18px rgba(244, 63, 94, .4); 
 }
-.center-bar .btn-start-square:active {
-  transform: scale(.96);
+.center-bar .btn-start-square .s-icon, .center-bar .btn-review-square .s-icon, .center-bar .btn-pk-record .s-icon { font-size: clamp(1rem, 2.4vh, 1.6rem); }
+.center-bar .btn-start-square .s-text, .center-bar .btn-review-square .s-text, .center-bar .btn-pk-record .s-text { font-size: clamp(.58rem, 1.35vh, .84rem); }
+.center-bar .race-track { flex: 1 1 0; min-width: 0; height: 100%; }
+
+/* ================= 开局倒计时遮罩 ================= */
+.p-countdown {
+  position: absolute; inset: 0; z-index: 100;
+  /* 把背景透明度从 0.4 提高到 0.85，且模糊度从 2px 提高到 12px */
+  background: rgba(255, 255, 255, 0.85); 
+  backdrop-filter: blur(12px); 
+  -webkit-backdrop-filter: blur(12px);
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; opacity: 0; transition: opacity .3s;
 }
-.center-bar .btn-start-square.paused {
-  background: linear-gradient(135deg, #f59e0b, #ef4444);
-  color: #fff;
-  box-shadow: 0 4px 18px rgba(245, 158, 11, .35);
+body.dark-mode .p-countdown { 
+  /* 深色模式也同步加深底色和模糊 */
+  background: rgba(8, 12, 25, 0.85); 
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
-.center-bar .btn-start-square.paused:hover {
-  box-shadow: 0 6px 24px rgba(245, 158, 11, .5);
+.p-countdown.show { opacity: 1; }
+.p-countdown span { 
+  animation: popScale .8s ease-out; 
+  display: inline-block;
+  color: #f59e0b; /* 纯橙色 */
+  font-size: clamp(3rem, 10vh, 6rem); /* 去掉底框后，适当放大字号 */
+  font-weight: 900;
+  text-shadow: 0 4px 15px rgba(245,158,11,0.4); /* 加一点发光，提升质感 */
 }
-.center-bar .btn-start-square .s-icon,
-.center-bar .btn-review-square .s-icon {
-  font-size: clamp(1rem, 2.4vh, 1.6rem);
-  line-height: 1;
-}
-.center-bar .btn-start-square .s-text,
-.center-bar .btn-review-square .s-text {
-  font-size: clamp(.58rem, 1.35vh, .84rem);
-  letter-spacing: 0;
+@keyframes popScale {
+  0% { transform: scale(0.5); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
 }
 
-.center-bar .race-track {
-  flex: 1 1 0;
-  min-width: 0;
-  height: 100%;
-}
-
-/* 窄屏（手机竖屏）专门精调 */
+/* 手机窄屏适配 */
 @media (max-width: 850px) {
-  .center-bar {
-    padding: 5px 6px;
-    gap: 4px;
+  .center-bar { padding: 5px 6px; gap: 4px; }
+  .center-bar .mid-grid { height: clamp(50px, 7.6vh, 62px); gap: 4px; }
+  .center-bar .race-row { height: clamp(60px, 9.2vh, 74px); gap: 4px; }
+  .center-bar .ctrl-col-edge, .center-bar .btn-start-square, .center-bar .btn-review-square, .center-bar .btn-pk-record {
+    width: clamp(46px, 12.8vw, 60px); border-radius: 10px;
   }
-  .center-bar .mid-header { margin: 0; padding: 0 1px; }
-  .center-bar .mid-title { font-size: .82rem; }
-  .center-bar .mid-author { font-size: .56rem; }
-
-  .center-bar .mid-grid {
-    height: clamp(50px, 7.6vh, 62px);
-    gap: 4px;
-  }
-  .center-bar .race-row {
-    height: clamp(60px, 9.2vh, 74px);
-    gap: 4px;
-  }
-
-  .center-bar .ctrl-col-edge,
-  .center-bar .btn-start-square,
-  .center-bar .btn-review-square {
-    width: clamp(46px, 12.8vw, 60px);
-    border-radius: 10px;
-  }
-  .center-bar .ctrl-col-edge .c-icon,
-  .center-bar .btn-start-square .s-icon,
-  .center-bar .btn-review-square .s-icon {
-    font-size: .92rem;
-  }
-  .center-bar .ctrl-col-edge .c-text,
-  .center-bar .btn-start-square .s-text,
-  .center-bar .btn-review-square .s-text {
-    font-size: clamp(10px, 2.7vw, 12px);
-  }
-
-  .center-bar #modeSelectWrap .custom-select-trigger {
-    font-size: clamp(10px, 2.7vw, 12px);
-    padding: 2px 10px 2px 2px;
-  }
-  .center-bar #modeSelectWrap .custom-select-trigger::after {
-    right: 3px;
-  }
-
+  .center-bar .ctrl-col-edge .c-icon, .center-bar .btn-start-square .s-icon, .center-bar .btn-review-square .s-icon, .center-bar .btn-pk-record .s-icon { font-size: .92rem; }
+  .center-bar .ctrl-col-edge .c-text, .center-bar .btn-start-square .s-text, .center-bar .btn-review-square .s-text, .center-bar .btn-pk-record .s-text { font-size: clamp(10px, 2.7vw, 12px); }
   .center-bar .ctrl-stack { gap: 3px; }
-  .center-bar .ctrl-stack > button {
-    font-size: clamp(10px, 2.7vw, 12px);
-    padding: 0 2px;
-    border-radius: 7px;
-    letter-spacing: -0.3px;
-  }
-
-  .center-bar .mid-grid .ctrl-square {
-    flex: 0.9 1 0;
-    border-radius: 10px;
-  }
-  .center-bar .mid-grid .ctrl-square .sq-val {
-    font-size: clamp(12px, 3.4vw, 16px);
-  }
-
-  .center-bar .mid-grid .timer-square {
-    width: clamp(48px, 13.2vw, 62px);
-    border-radius: 10px;
-  }
-  .center-bar .mid-grid .timer-digit {
-    font-size: clamp(11px, 3vw, 14px);
-  }
-  .center-bar .mid-grid .hourglass-svg {
-    width: clamp(22px, 6vw, 32px);
-    height: clamp(22px, 6vw, 32px);
-  }
-
-  .center-bar .race-track {
-    --car-w: clamp(32px, 9vw, 42px);
-    --car-h: clamp(18px, 5vw, 24px);
-    padding: 3px 6px;
-    border-radius: 10px;
-  }
+  .center-bar .ctrl-stack > button { font-size: clamp(10px, 2.7vw, 12px); padding: 0 2px; border-radius: 7px; letter-spacing: -0.3px; }
+  .center-bar .mid-grid .ctrl-square, .center-bar .mid-grid .btn-start-square { border-radius: 10px; }
+  .center-bar .mid-grid .ctrl-square .sq-val { font-size: clamp(12px, 3.4vw, 16px); }
 }
 </style>
 </head>
@@ -1545,6 +1480,20 @@ body.dark-mode .wrong-item .wi-count { color:#fca5a5; background:rgba(239,68,68,
         <span class="p-stat">❌ <b class="st-wrong">0</b></span>
         <span class="p-stat">💯 <b class="st-score">0</b></span>
         <span class="p-count">0/12</span>
+        <!-- 新增居中倒计时 (红色沙漏) -->
+        <div class="p-head-timer" id="p1HeadTimer">
+          <svg class="ph-hourglass" viewBox="0 0 100 100" aria-hidden="true">
+            <rect x="15" y="4" width="70" height="8" rx="4" fill="#64748b" />
+            <rect x="15" y="88" width="70" height="8" rx="4" fill="#64748b" />
+            <path d="M 25 12 L 25 20 Q 25 40 45 47 L 45 53 Q 25 60 25 80 L 25 88 L 75 88 L 75 80 Q 75 60 55 53 L 55 47 Q 75 40 75 20 L 75 12" fill="none" stroke="#64748b" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M 29 20 Q 29 35 45 45 L 55 45 Q 71 35 71 20 Z" fill="#ef4444" />
+            <path d="M 45 65 Q 35 80 29 80 L 71 80 Q 65 80 55 65 Z" fill="#ef4444" />
+            <rect x="49" y="45" width="2" height="7" fill="#ef4444" />
+            <rect x="49" y="54" width="2" height="4" fill="#ef4444" />
+            <rect x="49" y="60" width="2" height="3" fill="#ef4444" />
+          </svg>
+          <span class="ph-num">90</span>
+        </div>
       </div>
       <div class="p-bar"><i></i></div>
       <div class="p-body"></div>
@@ -1563,61 +1512,37 @@ body.dark-mode .wrong-item .wi-count { color:#fca5a5; background:rgba(239,68,68,
       <div class="mid-author">Produced By MrXiao</div>
     </div>
 
-    <!-- 第二行：以沙漏为轴线的 7 列左右对称功能栏 -->
+    <!-- 第二行：以 开始按钮 为轴线的 7 列左右对称功能栏 -->
     <div class="mid-grid">
-      <!-- 第1列：统计 -->
       <button class="ctrl-col-edge" id="btnStats">
         <span class="c-icon">📊</span>
         <span class="c-text">统计</span>
       </button>
-
-      <!-- 第2列：上 英译汉 / 下 选范围 -->
       <div class="ctrl-stack">
         <button class="dir-toggle" id="dirToggle">🅰️英译汉</button>
         <button class="stack-btn" id="btnRange">🎯选范围</button>
       </div>
-
-      <!-- 第3列：时间调节器 -->
       <div class="square-box ctrl-square" id="timeSquare">
         <button class="sq-arrow" data-step="time" data-dir="1" aria-label="增加时间">▲</button>
         <div class="sq-val" id="timeVal">90<span class="sq-unit">s</span></div>
         <button class="sq-arrow" data-step="time" data-dir="-1" aria-label="减少时间">▼</button>
       </div>
-
-      <!-- 第4列：正中沙漏倒计时 -->
-      <div class="square-box timer-square" id="timerSquare">
-        <div class="timer-digits">
-          <div class="timer-digit top"><span class="timer-num">90</span></div>
-          <div class="timer-digit bottom"><span class="timer-num">90</span></div>
-        </div>
-        <div class="hourglass">
-          <svg class="hourglass-svg" viewBox="0 0 100 100" aria-hidden="true">
-            <rect x="15" y="4" width="70" height="8" rx="4" fill="#64748b" />
-            <rect x="15" y="88" width="70" height="8" rx="4" fill="#64748b" />
-            <path d="M 25 12 L 25 20 Q 25 40 45 47 L 45 53 Q 25 60 25 80 L 25 88 L 75 88 L 75 80 Q 75 60 55 53 L 55 47 Q 75 40 75 20 L 75 12" fill="none" stroke="#64748b" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" />
-            <path d="M 29 20 Q 29 35 45 45 L 55 45 Q 71 35 71 20 Z" fill="#3b82f6" />
-            <path d="M 45 65 Q 35 80 29 80 L 71 80 Q 65 80 55 65 Z" fill="#3b82f6" />
-            <rect x="49" y="45" width="2" height="7" fill="#3b82f6" />
-            <rect x="49" y="54" width="2" height="4" fill="#3b82f6" />
-            <rect x="49" y="60" width="2" height="3" fill="#3b82f6" />
-          </svg>
-        </div>
-      </div>
-
-      <!-- 第5列：题数调节器 -->
+      
+      <!-- 第4列：正中 开始/暂停 按钮 -->
+      <button class="btn-start-square" id="btnStart">
+        <span class="s-icon">▶</span>
+        <span class="s-text">开始</span>
+      </button>
+      
       <div class="square-box ctrl-square" id="countSquare">
         <button class="sq-arrow" data-step="count" data-dir="1" aria-label="增加题数">▲</button>
         <div class="sq-val" id="countVal">12<span class="sq-unit">题</span></div>
         <button class="sq-arrow" data-step="count" data-dir="-1" aria-label="减少题数">▼</button>
       </div>
-
-      <!-- 第6列：上 音效 / 下 深浅主题 -->
       <div class="ctrl-stack">
         <button class="stack-btn" id="btnSound">🔊</button>
         <button class="stack-btn" id="btnTheme">🌙</button>
       </div>
-
-      <!-- 第7列：游戏模式选择下拉 -->
       <div class="custom-select-wrapper ctrl-col-edge" id="modeSelectWrap">
         <div class="custom-select-trigger" id="modeSelectTrigger">📝 选择</div>
         <div class="custom-select-options" id="modeSelectOptions">
@@ -1630,9 +1555,10 @@ body.dark-mode .wrong-item .wi-count { color:#fca5a5; background:rgba(239,68,68,
 
     <!-- 第三行：开始 + 双车赛道 + 回顾上次 -->
     <div class="race-row">
-      <button class="btn-start-square" id="btnStart">
-        <span class="s-icon">▶</span>
-        <span class="s-text">开始</span>
+      <!-- 左侧改为 PK记录 -->
+      <button class="btn-start-square btn-pk-record" id="btnPKRecord">
+        <span class="s-icon">🤜🤛</span>
+        <span class="s-text">PK记录</span>
       </button>
       <div class="race-track" id="raceTrack">
         <div class="track-lane p1">
@@ -1780,6 +1706,20 @@ body.dark-mode .wrong-item .wi-count { color:#fca5a5; background:rgba(239,68,68,
         <span class="p-stat">❌ <b class="st-wrong">0</b></span>
         <span class="p-stat">💯 <b class="st-score">0</b></span>
         <span class="p-count">0/12</span>
+        <!-- 新增居中倒计时 (蓝色沙漏) -->
+        <div class="p-head-timer" id="p2HeadTimer">
+          <svg class="ph-hourglass" viewBox="0 0 100 100" aria-hidden="true">
+            <rect x="15" y="4" width="70" height="8" rx="4" fill="#64748b" />
+            <rect x="15" y="88" width="70" height="8" rx="4" fill="#64748b" />
+            <path d="M 25 12 L 25 20 Q 25 40 45 47 L 45 53 Q 25 60 25 80 L 25 88 L 75 88 L 75 80 Q 75 60 55 53 L 55 47 Q 75 40 75 20 L 75 12" fill="none" stroke="#64748b" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M 29 20 Q 29 35 45 45 L 55 45 Q 71 35 71 20 Z" fill="#3b82f6" />
+            <path d="M 45 65 Q 35 80 29 80 L 71 80 Q 65 80 55 65 Z" fill="#3b82f6" />
+            <rect x="49" y="45" width="2" height="7" fill="#3b82f6" />
+            <rect x="49" y="54" width="2" height="4" fill="#3b82f6" />
+            <rect x="49" y="60" width="2" height="3" fill="#3b82f6" />
+          </svg>
+          <span class="ph-num">90</span>
+        </div>
       </div>
       <div class="p-bar"><i></i></div>
       <div class="p-body"></div>
@@ -1918,7 +1858,8 @@ const GRADES = [
   { key:'g5', name:'五年级', color:'#f59e0b', terms:[
     { key:'up', name:'上册', units:[
       { name:'全册词汇', words:[
-        {w:'class',p:'/klɑːs/',m:'n.班级;课;等级;阶级;类别'},{w:'clock',p:'/klɒk/',m:'n.时钟;钟'},{w:'horse',p:'/hɔːs/',m:'n.马v.骑马'},{w:'helpful',p:'/\'helpfl/',m:'adj.有帮助的,有好处的,有用的,有益的'},{w:'hundred',p:'/\'hʌndrəd/',m:'num.许多,大量;百,一百'},{w:'trousers',p:'/\'traʊzəz/',m:'n.(用复数)长裤'},{w:'clothes',p:'/kləʊðz/',m:'n.(pl.)衣服;服装'},{w:'any',p:'/\'eni/',m:'det.任何的;任一的pron.任一,任何一些'},{w:'one',p:'/wʌn/',m:'num. pron.(个,只...);指代已知的事物'},{w:'eighteen',p:'/eɪ\'tiːn/',m:'num.十八;十八个(的)'},{w:'over',p:'/\'əʊvə(r)/',m:'adv.结束了;完了;......过来;越过;大于;在另一边prep.在......上方;超过;从一边到另一边,在期间;越过;遍于......之上;除(分数线)'},{w:'just',p:'/dʒʌst/',m:'adv.刚才;方才;只是;只不过;正好;恰好;就;仅仅;刚刚adj.公正的;正当的;合理的'},{w:'bee',p:'/biː/',m:'n.蜜蜂'},{w:'salad',p:'/\'sæləd/',m:'n.沙拉;色拉;蔬菜沙拉;混合沙拉'},{w:'fan',p:'/fæn/',m:'n.迷;狂热爱好者;粉丝;扇子;电风扇v.煽动;吹拂'},{w:'herself',p:'/hɜː\'self/',m:'pron.(she的反身代词)她自己'},{w:'expensive',p:'/ɪk\'spensɪv/',m:'adj.昂贵的;花钱多的'},{w:'beautiful',p:'/\'bjuːtɪfl/',m:'adj.漂亮的;美丽的;美好的'},{w:'pig',p:'/pɪg/',m:'n.猪,贪婪的人'},{w:'dear',p:'/dɪə(r)/',m:'adj.亲爱的;宝贵的;昂贵的n.亲爱的人;可爱的人 excl.哎呀'},{w:'ninety',p:'/\'naɪnti/',m:'num.九十'},{w:'watch',p:'/wɒtʃ/',m:'n.表;手表;监视;注意v.看;观看;观察;小心'},{w:'clear the table',p:'/klɪə(r) ðə \'teɪbl/',m:'phrase.清理桌子'},{w:'kid',p:'/kɪd/',m:'n.小孩;年轻人v.哄骗;开玩笑'},{w:'art',p:'/ɑːt/',m:'n.美术;艺术;美术课'},{w:'spoon',p:'/spuːn/',m:'n.匙,调羹,勺;一勺的量'},{w:'minute',p:'/\'mɪnɪt/',m:'n.分钟;一会儿 adj.微小的'},{w:'carrot',p:'/\'kærət/',m:'n.胡萝卜'},{w:'five',p:'/faɪv/',m:'num.五;五个(的)'},{w:'green bean',p:'/griːn biːn/',m:'绿豆'},{w:'hat',p:'/hæt/',m:'n.(通常指有檐的)帽子'},{w:'ready',p:'/\'redi/',m:'adj.有准备的,准备好(做某事)的;情愿的,现成的,迅速的'},{w:'loud',p:'/laʊd/',m:'adj.响亮的;大声的,高声的,不断的,喧吵的adv.高声地,响亮地;大声地'},{w:'music',p:'/\'mjuːzɪk/',m:'n.音乐;乐曲'},{w:'hand out',p:'/hænd aʊt/',m:'phrase.分发;提出;给予'},{w:'seventy',p:'/\'sev(ə)nti/',m:'num.七十'},{w:'delicious',p:'/dɪ\'lɪʃəs/',m:'adj.美味的,可口的;令人愉快的'},{w:'turn off',p:'/tɜːn ɒf/',m:'关上(开关);关掉(水电煤气电灯等);关闭;使厌烦'},{w:'word',p:'/wɜːd/',m:'n.词;字;单词;话语v.用词语表达'},{w:'window',p:'/\'wɪndəʊ/',m:'n.窗口;窗户'},{w:'cow',p:'/kaʊ/',m:'n.母牛;奶牛;大型母兽v.威胁;吓唬'},{w:'thirteen',p:'/θɜː\'tiːn/',m:'num.十三;十三个(的)'},{w:'pick',p:'/pɪk/',m:'v.采,摘;拾;捡;掘,凿,挑选 n.精选,掘'},{w:'sixty',p:'/\'sɪksti/',m:'num.六十'},{w:'free',p:'/friː/',m:'adj.自由的;免费的;空闲的adv.自由地;免费地v.释放'},{w:'study',p:'/\'stʌdi/',m:'n.学习;研究;书房v.学习;研究'},{w:'late',p:'/leɪt/',m:'adj.迟的;晚的;近日暮的;近深夜的;时间不早的;已故的adv.晚;迟'},{w:'twelve',p:'/twelv/',m:'num.十二;十二个(的)'},{w:'take',p:'/teɪk/',m:'v.搭乘;乘坐(车/船/飞机等);带走;拿走;学习;上(课);把带往;选择要;选择购买;拿;带领;接受;花费;做(某个动作)'},{w:'classroom',p:'/\'klɑːsruːm/',m:'n.教室,课堂'},{w:'try on',p:'/traɪ ɒn/',m:'phrase.试穿(衣服)'},{w:'size',p:'/saɪz/',m:'n.大小,号;尺寸,(衣服等)尺码vt.依大小排列'},{w:'those',p:'/ðəʊz/',m:'adj.那些的 pron.那些;that的复数'},{w:'feed',p:'/fiːd/',m:'v.养活;提供食物;喂养;饲养;给食物n.饲养;喂养'},{w:'week',p:'/wiːk/',m:'n.周;星期n.一周时间'},{w:'chicken',p:'/\'tʃɪkɪn/',m:'n.鸡;鸡肉'},{w:'tidy',p:'/\'taɪdi/',m:'v.收拾;使整洁;整理adj.整洁的;整齐的'},{w:'go to school',p:'/gəʊ tuː skuːl/',m:'phra.去上学'},{w:'ten',p:'/ten/',m:'num.十;十个(的)'},{w:'rule',p:'/ruːl/',m:'n.规则;条例;规章;统治v.统治;支配;裁决'},{w:'milk',p:'/mɪlk/',m:'n.(牛或羊等的)奶,牛奶v.挤奶'},{w:'kitchen',p:'/\'kɪtʃɪn/',m:'n.厨房'},{w:'eighty',p:'/\'eɪti/',m:'num.八十'},{w:'four',p:'/fɔː(r)/',m:'num.四;四个(的)'},{w:'when',p:'/wen/',m:'adv.什么时候,何时conj.当...的时候'},{w:'fifteen',p:'/fɪf\'tiːn/',m:'num.十五;十五个(的)'},{w:'desk',p:'/desk/',m:'n.书桌;课桌;写字台'},{w:'maths',p:'/mæθs/',m:'n.(mathematics) 数学(美math)'},{w:'seventeen',p:'/sev(ə)n\'tiːn/',m:'num.十七;十七个(的)'},{w:'thirty',p:'/\'θɜːti/',m:'num.三十;三十个(的)'},{w:'dinner',p:'/\'dɪnə(r)/',m:'n.正餐;晚餐'},{w:'fifty',p:'/\'fɪfti/',m:'num.五十'},{w:'sorry',p:'/\'sɒri/',m:'adj.对不起的;遗憾的;抱歉的int.对不起;抱歉'},{w:'follow',p:'/\'fɒləʊ/',m:'v.遵循;跟着;听从;跟随;遵守规则;仿效;跟得上'},{w:'door',p:'/dɔː(r)/',m:'n.门;出入口'},{w:'light',p:'/laɪt/',m:'adj.轻的;浅的;明亮的;少量的n.光;灯;电灯;光线;光亮v.点燃;照亮'},{w:'pass',p:'/pɑːs/',m:'v.及格;通过(考试或检查);结束;传递;给;递;路过;通过;(时间)流逝;超过n.(考试)及格;通行证'},{w:'skirt',p:'/skɜːt/',m:'n.女裙;裙子;半身裙;下摆;边缘v.位于......的边缘;绕着......走;避开'},{w:'forty',p:'/\'fɔːti/',m:'num.四十'},{w:'hard',p:'/hɑːd/',m:'adj.辛苦的,艰难的;坚硬的;困难的;费劲的adv.努力地'},{w:'blackboard',p:'/\'blækbɔːd/',m:'n.黑板'},{w:'bedroom',p:'/\'bedruːm/',m:'n.卧室,睡房'},{w:'fourteen',p:'/fɔː\'tiːn/',m:'num.十四;十四个(的)'},{w:'two',p:'/tuː/',m:'num.二;两个(的)'},{w:'can',p:'/kæn/',m:'v.能;能够;会;可以n.(美)罐子;罐头;金属罐'},{w:'nine',p:'/naɪn/',m:'num.九;九个(的)'},{w:'set the table',p:'/set ðə \'teɪbəl/',m:'phrase.摆饭桌;摆餐具'},{w:'potato',p:'/pə\'teɪtəʊ/',m:'n.土豆;马铃薯(复数potatoes)'},{w:'mouse',p:'/maʊs/',m:'n.老鼠,耗子;鼠标(复数mice)'},{w:'think',p:'/θɪŋk/',m:'v.认为;想;思考n.思考'},{w:'wash',p:'/wɒʃ/',m:'v.洗;洗涤'},{w:'wall',p:'/wɔːl/',m:'n.墙,墙壁;城墙'},{w:'bowl',p:'/bəʊl/',m:'n.碗;钵;盆;一碗......;碗状物v.投掷;滚动'},{w:'wet',p:'/wet/',m:'adj.湿的;潮湿的;下雨的,多雨的v.使潮湿;把......弄湿'},{w:'fork',p:'/fɔːk/',m:'n.餐叉;叉子;分岔;分支v.分岔;用叉子叉'},{w:'shoe',p:'/ʃuː/',m:'n.鞋子'},{w:'feel',p:'/fiːl/',m:'v.感觉,感到,意识到;触摸;认为;摸,摸起来 n.感受;触觉'},{w:'sleep',p:'/sliːp/',m:'n睡觉,睡眠v.睡觉;入睡'},{w:'go home',p:'/gəʊ həʊm/',m:'phrase.回家'},{w:'pair',p:'/peə(r)/',m:'n.一双;一对 v.(使)成对;(使)配对'},{w:'run',p:'/rʌn/',m:'v.跑,奔跑;跑步;流动;经营 n.跑;运转'},{w:'workbook',p:'/\'wɜːkbʊk/',m:'n.练习册;作业本;工作簿'},{w:'bathroom',p:'/\'bɑːθruːm/',m:'n.浴室,盥洗室;洗手间,卫生间'},{w:'shorts',p:'/ʃɔːts/',m:'n.(用复数)短裤'},{w:'chopstick',p:'/\'tʃɒpstɪk/',m:'n.筷子'},{w:'food',p:'/fuːd/',m:'n.食物,食品'},{w:'a box of',p:'/ə bɒks əv/',m:'phr.一盒'},{w:'safe',p:'/seɪf/',m:'adj.处境(或情况)安全;安全的;平安的;无危险的'},{w:'chair',p:'/tʃeə(r)/',m:'n.椅子;主席;教授的职位v.使就任要职;主持'},{w:'seven',p:'/\'sevn/',m:'num.七;七个(的)'},{w:'waste',p:'/weɪst/',m:'n.废料,废品;(金钱技能等的)浪费;垃圾;废物v.浪费;滥用;白费;糟蹋 adj.荒芜的;废弃的;丢弃的;浪费的废石'},{w:'hurry up',p:'/\'hʌri ʌp/',m:'赶快;急忙(做某事)'},{w:'jacket',p:'/\'dʒækɪt/',m:'n.夹克衫;夹克;短上衣'},{w:'TV',p:'/tiː \'viː/',m:'abbr.电视;电视机;television的缩写'},{w:'sixteen',p:'/sɪks\'tiːn/',m:'num.十六;十六个(的)'},{w:'lunch',p:'/lʌntʃ/',m:'n.午餐;午饭'},{w:'homework',p:'/\'həʊmwɜːk/',m:'n.作业;家庭作业;功课'},{w:'sheep',p:'/ʃiːp/',m:'n.(pl.sheep)(绵)羊;驯服者'},{w:'first',p:'/fɜːst/',m:'n.首先 第一 adj.第一的adv.最初;第一;首先'},{w:'six',p:'/sɪks/',m:'num.六;六个(的)'},{w:'large',p:'/lɑːdʒ/',m:'adj.巨大的,大的,大量的;大号的;广泛的,众多的;大型号的'},{w:'list',p:'/lɪst/',m:'n.名单,清单;目录,列表,序列v.列表,列清单;列出,列于表上'},{w:'knife',p:'/naɪf/',m:'n.(pl.knives)餐刀;刀具'},{w:'cheap',p:'/tʃiːp/',m:'adj.花钱少的;廉价的;便宜的'},{w:'supermarket',p:'/\'suːpəmɑːkɪt/',m:'n.超市;超级市场'},{w:'get up',p:'/get ʌp/',m:'起床,站起,起来'},{w:'tomato',p:'/tə\'mɑːtəʊ/',m:'n.西红柿,番茄(复数tomatoes)'},{w:'work',p:'/wɜːk/',m:'n.工作;著作,(音乐艺术)作品 v.(使)工作;(使)运转;操作;经营;起作用'},{w:'sunglasses',p:'/\'sʌnglɑːsɪz/',m:'n.太阳镜;墨镜'},{w:'eleven',p:'/ɪ\'levn/',m:'num.十一;十一个(的)'},{w:'want',p:'/wɒnt/',m:'v.要,想要;希望'},{w:'newspaper',p:'/\'njuːzpeɪpə(r)/',m:'n.报纸'},{w:'three',p:'/θriː/',m:'num.三;三个(的)'},{w:'understand',p:'/ʌndə\'stænd/',m:'v.明白,理解;领会;了解,认识到'},{w:'eight',p:'/eɪt/',m:'num.八;八个(的)'},{w:'twenty',p:'/\'twenti/',m:'num.二十;二十个(的)'},{w:'living room',p:'/\'lɪvɪŋ ruːm/',m:'phrase.客厅;起居室'},{w:'go to bed',p:'/gəʊ tuː bed/',m:'phra.上床睡觉'},{w:'nineteen',p:'/naɪn\'tiːn/',m:'num.十九;十九个(的)'}
+{w:'exercise',p:'/\'eksəsaɪz/',m:'n.练习;锻炼;活动;运动;行使v.运用;使用;锻炼;使担忧'},{w:'wrong',p:'/rɒŋ/',m:'adj.有毛病的;错误的;有问题的n.错误adv.错误地'},{w:'enough',p:'/ɪ\'nʌf/',m:'adj.足够的;充足的;充分的adv.足够地;充分地;相当pron.足够;充分n.充足;足够int.够了'},{w:'both',p:'/bəʊθ/',m:'pron.两者,两者都det./adj.两者的,两个;两个都conj.不仅......而且'},{w:'worried',p:'/\'wʌrid/',m:'adj.担忧的;焦虑的;发愁的v.担心;担忧;worry的过去式和过去分词'},{w:'flu',p:'/fluː/',m:'n.流感;流行性感冒'},{w:'before',p:'/bɪ\'fɔː(r)/',m:'adv.以前;之前,过去prep.在......以前;先于conj.在......以前'},{w:'check',p:'/tʃek/',m:'n.检查;核查;支票;方格图案v.检查;查看;核查;核实;克制'},
+{w:'Australia',p:'/ɒ\'streɪliə/',m:'n.澳大利亚;澳洲'},{w:'lesson',p:'/\'lesn/',m:'n.课;功课;课程;教训'},{w:'beef',p:'/biːf/',m:'n.牛肉'},{w:'science',p:'/\'saɪəns/',m:'n.科学'},{w:'rest',p:'/rest/',m:'n.放松;休息(时间);其他;剩余部分;其余v.(使)倚靠;停留在;中止'},{w:'close',p:'/kləʊz/',m:'v.关(门窗等);关闭;使接近;(在空间时间上)接近adj.接近的;亲密的;密切的;严密的adv.接近地;紧挨地'},{w:'Sunday',p:'/\'sʌndeɪ/',m:'n.星期日'},{w:'matter',p:'/\'mætə(r)/',m:'n.事情;问题;物质;麻烦v.(尤指对某人自己或对发生之事)重要,要紧,有关系,有重大影响'},{w:'hour',p:'/\'aʊə(r)/',m:'n.小时'},{w:'tea',p:'/tiː/',m:'n.茶;茶叶;茶水'},{w:'laugh',p:'/lɑːf/',m:'v.发出笑声;(大)笑;发笑n.笑;笑声'},{w:'him',p:'/hɪm/',m:'pron.他(用作宾语或表语)'},{w:'Mrs',p:'/\'mɪsɪz/',m:'abbr.太太;夫人;Mistress的缩写'},{w:'robot',p:'/\'rəʊbɒt/',m:'n.机器人'},{w:'should',p:'/ʃʊd/',m:'auxv.应该;应当;可以;shall的过去式'},{w:'lovely',p:'/\'lʌvli/',m:'adj.可爱的,美丽的,美好的;优美的;迷人的;令人愉快的'},{w:'brush',p:'/brʌʃ/',m:'n.刷子;画笔;刷;灌木丛v.(用刷子)刷净,刷亮'},{w:'sad',p:'/sæd/',m:'adj.悲哀的;伤心的;难过的;令人悲哀的,让人难过的'},{w:'waterfall',p:'/\'wɔːtəfɔːl/',m:'n.瀑布'},{w:'raincoat',p:'/\'reɪnkəʊt/',m:'n.雨衣'},{w:'stay',p:'/steɪ/',m:'v.停留;待;保持n.停留;逗留'},{w:'hungry',p:'/\'hʌŋgri/',m:'adj.饥饿的,感到饿的;渴望的'},{w:'visit',p:'/\'vɪzɪt/',m:'n.参观,游览;拜访,访问,看望'},{w:'Wednesday',p:'/\'wenzdeɪ/',m:'n.星期三'},{w:'lotus',p:'/\'ləʊtəs/',m:'n.莲花,荷花'},{w:'star',p:'/stɑː(r)/',m:'n.明星;星;星状物'},{w:'angry',p:'/\'æŋgri/',m:'adj.发怒的,愤怒的,生气的'},{w:'agree',p:'/ə\'griː/',m:'v.同意;赞成;应允'},{w:'dumpling',p:'/\'dʌmplɪŋ/',m:'n.饺子;水饺;汤团;团子'},{w:'nature',p:'/\'neɪtʃə(r)/',m:'n.自然界;大自然;天性'},{w:'clever',p:'/\'klevə(r)/',m:'adj.聪明的;聪颖的;灵巧的'},{w:'free',p:'/friː/',m:'adj.自由的;免费的;空闲的adv.自由地;免费地v.释放'},{w:'sometimes',p:'/\'sʌmtaɪmz/',m:'adv.在某个时候;有时'},{w:'fire',p:'/\'faɪə(r)/',m:'n.火;火灾;炉火;炮火;热情;激情v.射击;开火;解雇;激发'},{w:'evening',p:'/\'iːvnɪŋ/',m:'n.晚上;傍晚'},{w:'hard-working',p:'/hɑːd \'wɜːkɪŋ/',m:'adj.工作努力的;辛勤的'},{w:'project',p:'/\'prɒdʒekt/',m:'n.研究项目;(学校的)课题;计划;方案;项目;专题研究;工程v.预计;计划;投射;突出'},{w:'rope',p:'/rəʊp/',m:'n.绳子;粗绳;绳索v.(用绳索)捆绑'},{w:'go hiking',p:'/gəʊ \'haɪkɪŋ/',m:'phrase.去远足'},{w:'jump',p:'/dʒʌmp/',m:'n.跳;跳跃v.跳;跳跃'},{w:'player',p:'/\'pleɪə/',m:'n.玩家;运动员;演奏者;游戏者;参赛选手;唱机'},{w:'easy',p:'/\'iːzi/',m:'adj.容易的;不费力的'},{w:'then',p:'/ðen/',m:'adv.然后;接下来;那时adj.当时的;那时的'},{w:'trip',p:'/trɪp/',m:'n.旅行;旅程v.绊倒;出差错;轻快地走'},{w:'ping-pong',p:'/\'pɪŋ pɒŋ/',m:'n.乒乓球运动;乒乓球'},{w:'subject',p:'/\'sʌbdʒɪkt/',m:'n.主题;话题;课程;科目;学科;对象'},{w:'start',p:'/stɑːt/',m:'v.开始(做某事);着手n.开头,开端'},{w:'dangerous',p:'/\'deɪndʒərəs/',m:'adj.有危险的;不安全的;有危害的'},{w:'wind',p:'/wɪnd/',m:'n.风;气流v.蜿蜒,迂回,上发条;缠绕'},{w:'front',p:'/frʌnt/',m:'n.前面;前部;adj.前面的;前部的'},{w:'yours',p:'/jɔːz/',m:'pron.你的,您的,你们的,您真挚的(用于信函的结尾)'},{w:'Friday',p:'/\'fraɪdeɪ/',m:'n.星期五'},{w:'young',p:'/jʌŋ/',m:'adj.年幼的;年轻的;岁数不大的'},{w:'if',p:'/ɪf/',m:'conj.如果;是否;当......时候'},{w:'centre',p:'/\'sentə(r)/',m:'n.(美式center)中心;中央;中心区v.放在......中央'},{w:'piano',p:'/pi\'ænəʊ/',m:'n.钢琴'},{w:'less',p:'/les/',m:'adv.较小,少;较少地;更少地;little的比较级adj.较少的,更少的;little的比较级pron.较少;更少'},{w:'move',p:'/muːv/',m:'v.移动;搬动;(使)改变位置;搬家n.行动;移动'},{w:'fog',p:'/fɒg/',m:'n.雾'},{w:'team',p:'/tiːm/',m:'n.组;班;(游戏或体育运动的)队,小组'},{w:'Monday',p:'/\'mʌndeɪ/',m:'n.星期一'},{w:'stem',p:'/stem/',m:'n.(植物的)茎,梗,柄v.阻止;起源于(from)'},{w:'take care of',p:'/teɪk keə(r) əv/',m:'phrase.照顾;护理;照料;处理;应付'},{w:'fine',p:'/faɪn/',m:'adj.很好的;晴朗的;健康的;美好的adv.很好n.罚款'},{w:'ask',p:'/ɑːsk/',m:'v.问;提问,询问;请求;邀请'},{w:'little',p:'/\'lɪtl/',m:'adj.小的,年幼的;可爱的,可怜的,讨厌的'},{w:'lake',p:'/leɪk/',m:'n.湖;湖泊'},{w:'else',p:'/els/',m:'adj.其他的;别的adv.另外,其他;别的,另外的(用于表示不同的人事物地方等)'},{w:'usually',p:'/\'juːʒuəli/',m:'adv.通常地;一般地;惯常地'},{w:'twice',p:'/twaɪs/',m:'adv.两次;两倍'},{w:'famous',p:'/\'feɪməs/',m:'adj.著名的;出名的'},{w:'bring',p:'/brɪŋ/',m:'v.带到某处;带来(过去式为brought)'},{w:'root',p:'/ruːt/',m:'n.根;根茎;根部;根源'},{w:'mountain',p:'/\'maʊntən/',m:'n.山;高山,山岳;山脉;一大堆;大量'},{w:'hotel',p:'/həʊ\'tel/',m:'n.旅馆;酒店;饭店;宾馆'},{w:'seed',p:'/siːd/',m:'n.种子;籽v.播种;结籽'},{w:'excited',p:'/ɪk\'saɪtɪd/',m:'adj.激动的;兴奋的v.使兴奋;使激动;excite的过去式和过去分词'},{w:'weekend',p:'/wiːk\'end/',m:'n.周末'},{w:'Tuesday',p:'/\'tjuːzdeɪ/',m:'n.星期二'},{w:'because',p:'/bɪ\'kɒz/',m:'conj.因为'},{w:'Saturday',p:'/\'sætədeɪ/',m:'n.星期六'},{w:'finish',p:'/\'fɪnɪʃ/',m:'v.结束;完成,做完;做好n.最后部分,结尾,结局'},{w:'world',p:'/wɜːld/',m:'n.世界;地球'},{w:'worry',p:'/\'wʌri/',m:'v.担心;担忧;发愁;使担忧,使发愁n.令人担忧的事;担心;忧虑'},{w:'ice cream',p:'/\'aɪs kriːm/',m:'phra.冰激凌'},{w:'pull',p:'/pʊl/',m:'v.拉;扯;拖;牵;拔n.拉;拖;牵;拔'},{w:'parent',p:'/\'peərənt/',m:'n.父,母;母亲;父亲;家长'},{w:'flood',p:'/flʌd/',m:'vi.洪水,水灾;(河水等)泛滥,淹没;大量涌入vt.使灌满水;淹没n.洪水;大量'},{w:'way',p:'/weɪ/',m:'n.方法;方式;路;道路;方向;路线'},{w:'chess',p:'/tʃes/',m:'n.(国际)象棋'},{w:'phone',p:'/fəʊn/',m:'n.(telephone)电话'},{w:'tooth',p:'/tuːθ/',m:'n.牙齿(复数teeth)'},{w:'umbrella',p:'/ʌm\'brelə/',m:'n.伞;雨伞'},{w:'night',p:'/naɪt/',m:'n.夜晚;晚上'},{w:'habit',p:'/\'hæbɪt/',m:'n.习惯'},{w:'coconut',p:'/\'kəʊkənʌt/',m:'n.椰子'},{w:'grandparent',p:'/\'grænpeərənt/',m:'n.祖父;祖母;外祖父;外祖母'},{w:'wonderful',p:'/\'wʌndəfl/',m:'adj.极好的;令人高兴的;奇妙的;精彩的;绝妙的'},{w:'Thursday',p:'/\'θɜːzdeɪ/',m:'n.星期四'},{w:'afraid',p:'/ə\'freɪd/',m:'adj.害怕的;担心的,恐惧的,忧虑的'},{w:'hamburger',p:'/\'hæmbɜːgə/',m:'n.(burger)汉堡包'},{w:'heavy',p:'/\'hevi/',m:'adj.大量的;重的,沉的;厚的'},{w:'forest',p:'/\'fɒrɪst/',m:'n.森林;林区'},{w:'interesting',p:'/\'ɪntrəstɪŋ/',m:'adj.令人感兴趣的;有趣的'},{w:'round',p:'/raʊnd/',m:'adj.圆形的;环形的;球形的;十足的adv.环绕;附近prep.环绕;在......周围n.圆;圆形物;巡回;回合v.绕过;拐过;使成圆形'},{w:'river',p:'/\'rɪvə(r)/',m:'n.河;河流'},{w:'know',p:'/nəʊ/',m:'v.知道;了解;明白,懂得'},{w:'answer',p:'/\'ɑːnsə(r)/',m:'n.答案;答复,回答v.答复,回答'},{w:'different',p:'/\'dɪfrənt/',m:'adj.不同的,不一样的,有区别的'},{w:'show',p:'/ʃəʊ/',m:'v.给(某人)看;展示;表明;给......看n.演出;表演;展览会;表现;节目;音乐会'},
       ]}
     ]},
     { key:'down', name:'下册', units:[
@@ -2534,32 +2475,18 @@ function triggerCarSprint(pid){
 
 function updateCars(){
   const total = state.carSteps || state.count || 12;
-  const p1c = state.p1.correct;
-  const p2c = state.p2.correct;
-  if(p1c > lastCarCorrect.p1) triggerCarSprint('p1');
-  if(p2c > lastCarCorrect.p2) triggerCarSprint('p2');
-  lastCarCorrect.p1 = p1c;
-  lastCarCorrect.p2 = p2c;
-
-  const p1p = Math.min(p1c, total)/total;
-  const p2p = Math.min(p2c, total)/total;
-  cars.p1.style.left = `calc(4px + (100% - var(--car-w) - 14px) * ${p1p})`;
-  cars.p2.style.left = `calc(4px + (100% - var(--car-w) - 14px) * ${p2p})`;
-  document.getElementById('raceInfo').textContent = '🔴 ' + p1c + ' 🆚 🔵 ' + p2c + ' / ' + total;
+  const p1p = Math.min(state.p1.correct, total)/total;
+  const p2p = Math.min(state.p2.correct, total)/total;
+  const leftMin = 2, leftMax = 89;
+  cars.p1.style.left = (leftMin + (leftMax-leftMin)*p1p) + '%';
+  cars.p2.style.left = (leftMin + (leftMax-leftMin)*p2p) + '%';
+  document.getElementById('raceInfo').innerHTML = `🔴 ${state.p1.correct} <span style="background:#f59e0b;color:#fff;padding:1px 5px;border-radius:4px;font-size:0.8em;margin:0 4px;font-weight:900;line-height:1.2;">VS</span> 🔵 ${state.p2.correct}`;
 }
 function resetCars(){
-  lastCarCorrect.p1 = 0;
-  lastCarCorrect.p2 = 0;
-  ['p1','p2'].forEach(pid => {
-    if(carSprintTimers[pid]) clearTimeout(carSprintTimers[pid]);
-    if(cars[pid]){
-      cars[pid].classList.remove('sprinting');
-      cars[pid].style.left = '4px';
-    }
-  });
-  const total = state.count;
+  cars.p1.style.left='2%'; cars.p2.style.left='2%';
+  const total=state.count;
   state.carSteps = total;
-  document.getElementById('raceInfo').textContent = '🔴 0 🆚 🔵 0 / ' + total;
+  document.getElementById('raceInfo').innerHTML = `🔴 0 <span style="background:#f59e0b;color:#fff;padding:1px 5px;border-radius:4px;font-size:0.8em;margin:0 4px;font-weight:900;line-height:1.2;">VS</span> 🔵 0`;
 }
 
 function updatePanelStats(p){
@@ -2877,8 +2804,20 @@ function endGame(reason){
 function updateTimerDisplay(){
   const t = Math.max(0, state.timeLeft);
   document.querySelectorAll('.timer-num').forEach(el => { el.textContent = t; });
+  // 同步更新上下状态栏的倒计时数字
+  document.querySelectorAll('.ph-num').forEach(el => { el.textContent = t; });
+  
   const box = document.getElementById('timerSquare');
   if (box) box.classList.toggle('low', t<=10 && state.running && !state.paused);
+
+  // 最后5秒状态栏数字变红跳动
+  const p1Timer = document.getElementById('p1HeadTimer');
+  const p2Timer = document.getElementById('p2HeadTimer');
+  if (p1Timer && p2Timer) {
+    const urgent = (t <= 5 && t > 0 && state.running && !state.paused);
+    p1Timer.classList.toggle('urgent', urgent);
+    p2Timer.classList.toggle('urgent', urgent);
+  }
 }
 function startTimer(){
   if(state.timerId) clearInterval(state.timerId);
@@ -2939,6 +2878,7 @@ function restartFromPause(){
 
 function startGame(){
   if(state.pool.length<4){alert('单词数量不足，至少需要 4 个单词');return;}
+  lockControls(); // <--- 加上这一句，开局锁住按钮
   if(state.listenNextTimer){ clearTimeout(state.listenNextTimer); state.listenNextTimer = null; }
   state.historySnapshot = JSON.parse(JSON.stringify(history));
   state.prevLastGameWords = (state.lastGameWords || []).slice();
@@ -3350,19 +3290,80 @@ document.querySelectorAll('[data-step]').forEach(btn => {
   });
 });
 
+// 锁定非必要控制项防误触
+function lockControls() {
+  const ids = ['btnStats','btnPKRecord','btnReviewLast','btnRange','modeSelectWrap','dirToggle','timeSquare','countSquare'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.pointerEvents = 'none'; el.style.opacity = '0.5'; }
+  });
+}
+function unlockControls() {
+  const ids = ['btnStats','btnPKRecord','btnReviewLast','btnRange','modeSelectWrap','dirToggle','timeSquare','countSquare'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.pointerEvents = ''; el.style.opacity = ''; }
+  });
+}
+
+// 3, 2, 1, GO 动画（带语音）
+function runStartCountdown(cb) {
+  const p1 = panels.p1, p2 = panels.p2;
+  const div1 = document.createElement('div'); div1.className = 'p-countdown';
+  const div2 = document.createElement('div'); div2.className = 'p-countdown';
+  p1.appendChild(div1); p2.appendChild(div2);
+
+  let count = 3;
+  const update = () => {
+    if (count > 0) {
+      div1.innerHTML = `<span>${count}</span>`;
+      div2.innerHTML = `<span>${count}</span>`;
+      div1.classList.add('show'); div2.classList.add('show');
+      speak(count.toString(), 'en');
+      playBeep(300, 0.12, 'triangle', 0.2);
+      
+      count--;
+      setTimeout(update, 1000);
+    } else if (count === 0) {
+      div1.innerHTML = `<span>GO!!!</span>`;
+      div2.innerHTML = `<span>GO!!!</span>`;
+      speak('GO', 'en'); 
+      sfxStart();
+      
+      count--; 
+      setTimeout(update, 1000); 
+    } else {
+      div1.remove(); div2.remove();
+      cb();
+    }
+  };
+  update();
+}
+
 $('btnStart').addEventListener('click',()=>{
   ac(); unlockSpeech();
-  if(!state.running){ startGame(); return; }
+  if(!state.running){ 
+    if (state.starting) return;
+    state.starting = true;
+    lockControls();
+    runStartCountdown(() => {
+      state.starting = false;
+      startGame(); 
+    });
+    return; 
+  }
   if(state.paused) resumeGame();
   else pauseGame();
 });
-document.querySelectorAll('.btn-pause-restart').forEach(btn=>{
-  btn.addEventListener('click',(e)=>{
-    e.stopPropagation();
-    ac(); unlockSpeech();
-    restartFromPause();
+
+// ---- 插入开始 ----
+document.querySelectorAll('.btn-pause-restart').forEach(btn => {
+  btn.addEventListener('click', () => {
+    sfxClick();
+    resetIdle(); // 直接调用重置，完美回到未开始的状态
   });
 });
+// ---- 插入结束 ----
 $('btnSound').addEventListener('click',()=>{soundOn=!soundOn;$('btnSound').textContent=soundOn?'🔊':'🔇';if(soundOn)sfxClick();});
 
 $('btnTheme').addEventListener('click', () => {
@@ -3370,6 +3371,23 @@ $('btnTheme').addEventListener('click', () => {
   isDarkMode = !isDarkMode;
   localStorage.setItem(THEME_KEY, isDarkMode ? 'dark' : 'light');
   applyTheme();
+});
+
+$('btnPKRecord').addEventListener('click', () => {
+  sfxClick();
+  const historyPK = JSON.parse(localStorage.getItem('word_pk_matches') || '[]');
+  if (historyPK.length === 0) {
+    alert("暂无 PK 历史记录，快去打一局吧！");
+    return;
+  }
+  let txt = "【最近 PK 对局记录】\n\n";
+  historyPK.slice(0, 5).forEach((r, i) => {
+    txt += `${i+1}. 时间: ${r.time}\n`;
+    txt += `   红: ${r.p1.correct}对/${r.p1.wrong}错 用时${(r.p1.time/1000).toFixed(1)}s\n`;
+    txt += `   蓝: ${r.p2.correct}对/${r.p2.wrong}错 用时${(r.p2.time/1000).toFixed(1)}s\n`;
+    txt += `   胜者: ${r.winner === 'p1' ? '🔴 红队' : r.winner === 'p2' ? '🔵 蓝队' : '平局'}\n\n`;
+  });
+  alert(txt);
 });
 
 $('btnStats').addEventListener('click', () => {
@@ -3508,7 +3526,26 @@ function resetIdle(){
   resetCars();
   renderPanel(state.p1); renderPanel(state.p2);
   updateStartBtn();
+  unlockControls(); // <--- 加上这一句，回到主界面解锁按钮
 }
+
+  updateStartBtn();
+  unlockControls(); // 游戏结束解锁
+
+  // 保存本次 PK 记录
+  const winnerObj = determineWinner();
+  try {
+    const matchRecord = {
+      time: new Date().toLocaleString(),
+      p1: { correct: state.p1.correct, wrong: state.p1.wrong, time: state.p1.finishTime || (state.timeLimit * 1000) },
+      p2: { correct: state.p2.correct, wrong: state.p2.wrong, time: state.p2.finishTime || (state.timeLimit * 1000) },
+      winner: winnerObj
+    };
+    let historyPK = JSON.parse(localStorage.getItem('word_pk_matches') || '[]');
+    historyPK.unshift(matchRecord);
+    if (historyPK.length > 20) historyPK.pop();
+    localStorage.setItem('word_pk_matches', JSON.stringify(historyPK));
+  } catch(e){}
 
 /* 初始化 */
 loadHistory();
