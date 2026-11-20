@@ -1,0 +1,4074 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>水墨五子棋</title>
+    <style>
+        :root {
+            --paper-color: #faf9f5;
+            --app-bg: #e6e9e4;
+            --text-color: #333333;
+            --sub-text: #666666;
+            --panel-bg: rgba(255, 255, 255, 0.75);
+            --panel-border: rgba(0, 0, 0, 0.1);
+            --board-frame-bg: rgba(255, 255, 255, 0.52);
+            --board-canvas-bg: rgba(255, 255, 255, 0.60);
+            --board-line: rgba(74, 74, 74, 0.8);
+            --board-border: rgba(80, 80, 80, 0.3);
+            --star-color: #333333;
+            --sun-red: #eb8c84;
+            --ink-mtn-1-top: #777777;
+            --ink-mtn-1-mid: #999999;
+            --ink-mtn-2-top: #5f5f5f;
+            --ink-mtn-2-mid: #888888;
+            --ink-mtn-light: #b8b8b8;
+            --ink-bamboo: #555555;
+            --ink-bird: #666666;
+            --ink-river-fill: rgba(130, 150, 165, 0.28);
+            --ink-river-stroke: rgba(95, 115, 130, 0.42);
+            --btn-leave: rgba(217, 101, 86, 0.9);
+            --btn-restart: rgba(142, 97, 189, 0.9);
+            --btn-setting: rgba(77, 158, 117, 0.9);
+            --btn-theme: rgba(71, 85, 105, 0.9);
+            --modal-bg: #fdfcf9;
+            --modal-item-hover: #f0ede6;
+            --modal-item-active: #e6e0d4;
+            --ink-opacity: 0.65;
+        }
+
+        body.dark-mode {
+            --paper-color: #141b2d;
+            --app-bg: #0d121f;
+            --text-color: #f1f5f9;
+            --sub-text: #cbd5e1;
+            --panel-bg: rgba(30, 41, 59, 0.88);
+            --panel-border: rgba(226, 232, 240, 0.18);
+            --board-frame-bg: rgba(148, 163, 184, 0.46);
+            --board-canvas-bg: rgba(51, 65, 85, 0.66);
+            --board-line: rgba(241, 245, 249, 0.82);
+            --board-border: rgba(241, 245, 249, 0.48);
+            --star-color: #f8fafc;
+            --sun-red: #f87171;
+            --ink-mtn-1-top: #94a3b8;
+            --ink-mtn-1-mid: #64748b;
+            --ink-mtn-2-top: #cbd5e1;
+            --ink-mtn-2-mid: #94a3b8;
+            --ink-mtn-light: #94a3b8;
+            --ink-bamboo: #cbd5e1;
+            --ink-bird: #e2e8f0;
+            --ink-river-fill: rgba(148, 185, 225, 0.26);
+            --ink-river-stroke: rgba(186, 215, 245, 0.48);
+            --modal-bg: #1a2338;
+            --modal-item-hover: rgba(255, 255, 255, 0.08);
+            --modal-item-active: rgba(148, 163, 184, 0.24);
+            --ink-opacity: 0.62;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+            overscroll-behavior: none;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            overflow: hidden;
+            background-color: #1e293b;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .app-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background: var(--app-bg);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s;
+        }
+        /* 横屏模式（宽 > 高）自动保持竖屏比例并旋转90度适配，避免被上下压缩成窄条 */
+        @media (orientation: landscape) and (min-width: 600px) {
+            body.force-portrait-landscape .app-container {
+                width: 100vh;
+                height: 100vw;
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%) rotate(-90deg);
+                transform-origin: center center;
+                box-shadow: 0 0 30px rgba(0,0,0,0.45);
+            }
+        }
+
+        /* 撒花特效 */
+        .confetti {
+            position: fixed; top: -24px; width: 9px; height: 15px; border-radius: 2px;
+            z-index: 2000; pointer-events: none; animation: fall linear forwards;
+        }
+        @keyframes fall { to { transform: translateY(108vh) rotate(760deg); opacity: .15; } }
+
+        /* --- 1. 主界面 --- */
+        #mainMenu {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            background-color: #f4f1ea;
+            transition: opacity 0.5s ease, background-color 0.3s;
+            background-image:
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 1000" preserveAspectRatio="xMidYMid slice"><rect width="600" height="1000" fill="%23f4f1ea"/><path d="M0 700 Q150 600 300 750 T600 700 L600 1000 L0 1000 Z" fill="%23dcd5c6" opacity="0.65"/><path d="M-50 800 Q180 680 380 820 T700 760 L700 1000 L-50 1000 Z" fill="%23c6beac" opacity="0.45"/><circle cx="430" cy="230" r="46" fill="%23d97566" opacity="0.82"/><path d="M260 390 Q310 345 360 390 T460 390" fill="none" stroke="%23333" stroke-width="2" opacity="0.2"/></svg>');
+            background-size: cover;
+            background-position: center;
+        }
+
+        body.dark-mode #mainMenu {
+            background-color: #10141c;
+            background-image:
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 1000" preserveAspectRatio="xMidYMid slice"><rect width="600" height="1000" fill="%2310141c"/><circle cx="430" cy="230" r="46" fill="%23e06c60" opacity="0.78"/><circle cx="430" cy="230" r="64" fill="%23e06c60" opacity="0.14"/><path d="M260 390 Q310 345 360 390 T460 390" fill="none" stroke="%23cbd5e1" stroke-width="2" opacity="0.22"/><path d="M0 700 Q150 600 300 750 T600 700 L600 1000 L0 1000 Z" fill="%231e293b" opacity="0.85"/><path d="M-50 800 Q180 680 380 820 T700 760 L700 1000 L-50 1000 Z" fill="%23293548" opacity="0.72"/></svg>');
+            background-size: cover;
+            background-position: center;
+        }
+
+        #mainMenu.hidden { opacity: 0; pointer-events: none; }
+
+        /* 主界面左上角与右上角功能图标 */
+        .top-left-tools {
+            position: absolute;
+            top: calc(16px + env(safe-area-inset-top));
+            left: 16px;
+            display: flex;
+            gap: 8px;
+            z-index: 20;
+        }
+        .top-right-tools {
+            position: absolute;
+            top: calc(16px + env(safe-area-inset-top));
+            right: 16px;
+            display: flex;
+            gap: 8px;
+            z-index: 20;
+        }
+        .icon-btn {
+            touch-action: manipulation;
+            width: 44px; height: 44px;
+            background: transparent;
+            border: none;
+            outline: none;
+            font-size: 28px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .icon-btn:active { transform: scale(0.9); }
+
+        .main-title {
+            font-family: "STXingkai", "华文行楷", "STKaiti", cursive;
+            font-size: 90px; color: #2b2b2b; margin-bottom: 60px;
+            text-shadow: 2px 4px 15px rgba(0,0,0,0.1);
+            letter-spacing: 15px; writing-mode: vertical-rl; text-orientation: upright;
+            z-index: 10;
+            transition: color 0.3s;
+        }
+        body.dark-mode .main-title {
+            color: #f1f5f9;
+            text-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .menu-btn {
+            touch-action: manipulation;
+            width: 220px; height: 60px; margin: 15px 0;
+            background: rgba(255, 255, 255, 0.75);
+            border: 2px solid #3e3e3e; border-radius: 30px;
+            font-size: 22px; font-family: "STKaiti", serif;
+            color: #3e3e3e; font-weight: bold; cursor: pointer;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+            transition: all 0.2s; backdrop-filter: blur(5px); z-index: 10;
+        }
+        .menu-btn:active { background: #3e3e3e; color: #fff; transform: scale(0.95); }
+        body.dark-mode .menu-btn {
+            background: rgba(30, 41, 82, 0.75);
+            border-color: rgba(148, 163, 184, 0.4);
+            color: #e8ecf7;
+        }
+        body.dark-mode .menu-btn:active {
+            background: #3b82f6;
+            color: #fff;
+        }
+
+        .copyright {
+            position: absolute; bottom: calc(30px + env(safe-area-inset-bottom)); font-size: 14px; color: #888;
+            letter-spacing: 2px; font-family: Arial, sans-serif; z-index: 10;
+        }
+
+        /* --- 2. 游戏界面 --- */
+        #gameUI {
+            display: none; flex-direction: column; width: 100%; height: 100%;
+            padding: calc(8px + env(safe-area-inset-top)) 10px calc(8px + env(safe-area-inset-bottom));
+            position: relative;
+            background-color: var(--paper-color);
+            transition: background-color 0.3s;
+            justify-content: space-between;
+        }
+        #gameUI.active { display: flex; }
+
+        /* 水墨背景 */
+        .artwork-bg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: var(--ink-opacity);
+            transition: opacity 0.3s;
+            background-image:
+                radial-gradient(circle at 50% 50%, rgba(255,255,255,0.4) 0%, transparent 100%),
+                linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        .artwork-bg svg {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+        }
+
+        /* ================= 上下完全镜像玩家控制台 ================= */
+        .side-control-group {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        /* 双人模式下黑方整组旋转180度，实现与白方完全面对面镜像（含离开、重玩、难度、玩家栏） */
+        .side-control-group.top-group {
+            transform: rotate(180deg);
+        }
+        /* 人机模式下：上方固定为“人机”区域，文字保持正常正向不旋转，且隐藏所有功能按钮和悔棋 */
+        #gameUI.pve-mode .side-control-group.top-group {
+            transform: none;
+        }
+        #gameUI.pve-mode .side-control-group.top-group .footer,
+        #gameUI.pve-mode #btnUndoTop {
+            display: none !important;
+        }
+        #gameUI.pve-mode .board-timer-zone.top-timer-zone {
+            transform: none;
+        }
+        /* 人机状态栏正中间难度等级徽标（字号放大50%+至20px，颜色与状态栏反色形成高对比） */
+        .ai-diff-center {
+            display: none;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            padding: 5px 15px;
+            border-radius: 14px;
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            white-space: nowrap;
+            pointer-events: none;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.22);
+        }
+        #gameUI.pve-mode .ai-diff-center {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 状态栏正中间“对弈记录”按钮（人机模式我方、双人模式双方均显示） */
+        .player-record-center {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            height: 36px;
+            padding: 0 14px;
+            border-radius: 18px;
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: transform 0.12s, box-shadow 0.2s;
+            touch-action: manipulation;
+        }
+        .player-record-center:active {
+            transform: translate(-50%, -50%) scale(0.94);
+        }
+        #gameUI.pve-mode #topZone .player-record-center {
+            display: none !important;
+        }
+
+        /* 可点击切换用户的头像样式 */
+        .avatar.clickable-avatar {
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.15s, box-shadow 0.2s;
+        }
+        .avatar.clickable-avatar:active {
+            transform: scale(0.9);
+        }
+        #gameUI.pve-mode #topZone .avatar {
+            cursor: default;
+        }
+
+        /* 主界面添加用户按钮（与人机对战/双人对战同风格略紧凑） */
+        .menu-btn.btn-add-user {
+            width: 220px;
+            height: 52px;
+            margin: 12px 0;
+            font-size: 19px;
+            border-style: dashed;
+        }
+
+        /* 用户管理与切换弹窗样式 */
+        .user-modal-box {
+            background: var(--modal-bg);
+            width: 88%;
+            max-width: 340px;
+            max-height: 75vh;
+            border-radius: 16px;
+            box-shadow: 0 15px 38px rgba(0,0,0,0.32);
+            border: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: popIn 0.2s ease-out;
+        }
+        .user-input-row {
+            padding: 12px 14px;
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--panel-border);
+            background: var(--modal-item-hover);
+        }
+        .user-input-row input {
+            flex: 1;
+            height: 38px;
+            padding: 0 12px;
+            border-radius: 19px;
+            border: 1px solid var(--panel-border);
+            background: var(--modal-bg);
+            color: var(--text-color);
+            font-size: 14px;
+            outline: none;
+            -webkit-user-select: text;
+            user-select: text;
+        }
+        .user-input-row button {
+            height: 38px;
+            padding: 0 16px;
+            border-radius: 19px;
+            border: none;
+            background: #4d9e75;
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .user-list {
+            padding: 10px 14px;
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .user-item {
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: var(--modal-item-hover);
+            border: 1px solid var(--panel-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .user-item.selected {
+            background: var(--modal-item-active);
+            border-color: #d96556;
+        }
+        .user-item.occupied {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .user-item-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+        .user-badge-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            font-weight: 900;
+            color: #fff;
+            flex-shrink: 0;
+        }
+        .user-item-name {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--text-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .user-item-tag {
+            font-size: 12px;
+            font-weight: 700;
+            color: #d96556;
+            white-space: nowrap;
+        }
+        .user-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .user-edit-btn {
+            padding: 4px 10px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .user-del-btn {
+            padding: 4px 10px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        /* 确保确认弹窗永远高于用户管理弹窗 */
+        #confirmModal {
+            z-index: 1300;
+        }
+        /* 骰子提示浮标（棋盘正上方或两侧提示） */
+        .dice-hint-banner {
+            position: absolute;
+            left: 50%;
+            bottom: 10px;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.78);
+            color: #fff;
+            padding: 5px 14px;
+            border-radius: 14px;
+            font-size: 12px;
+            font-weight: 700;
+            pointer-events: none;
+            white-space: nowrap;
+            backdrop-filter: blur(4px);
+            z-index: 15;
+            display: none;
+        }
+        .dice-hint-banner.show {
+            display: block;
+        }
+
+        /* 执黑状态栏统一主题（黑底白字） - 高优先级覆盖默认 top-zone / bottom-zone */
+        .player-zone.top-zone.side-black-theme,
+        .player-zone.bottom-zone.side-black-theme,
+        body.dark-mode .player-zone.top-zone.side-black-theme,
+        body.dark-mode .player-zone.bottom-zone.side-black-theme {
+            background: linear-gradient(135deg, rgba(42, 42, 46, 0.94), rgba(18, 18, 22, 0.94)) !important;
+            color: #ffffff !important;
+            border-color: rgba(255, 255, 255, 0.18) !important;
+        }
+        .player-zone.side-black-theme .avatar {
+            border-color: rgba(255, 255, 255, 0.65);
+            background: #e6d5c3 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="40" r="25" fill="%235c4b40"/><path d="M15 90 Q50 50 85 90" fill="%235c4b40"/></svg>') center/cover;
+        }
+        /* 黑底状态栏内反色标签：白底黑字 */
+        .player-zone.side-black-theme .ai-diff-center {
+            background: #ffffff;
+            color: #111111;
+            border: 1.5px solid #cbd5e1;
+        }
+        .player-zone.side-black-theme .player-record-center {
+            background: #ffffff;
+            color: #111111;
+            border: 1.5px solid #cbd5e1;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+        }
+
+        /* 执白状态栏统一主题（白底黑字） - 高优先级覆盖默认 top-zone / bottom-zone */
+        .player-zone.top-zone.side-white-theme,
+        .player-zone.bottom-zone.side-white-theme,
+        body.dark-mode .player-zone.top-zone.side-white-theme,
+        body.dark-mode .player-zone.bottom-zone.side-white-theme {
+            background: linear-gradient(135deg, rgba(252, 252, 252, 0.94), rgba(226, 232, 240, 0.94)) !important;
+            color: #0f172a !important;
+            border-color: rgba(15, 23, 42, 0.14) !important;
+        }
+        .player-zone.side-white-theme .avatar {
+            border-color: rgba(15, 23, 42, 0.2);
+            background: #e6d5c3 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="40" r="25" fill="%238b7355"/><path d="M15 90 Q50 50 85 90" fill="%238b7355"/></svg>') center/cover;
+        }
+        /* 白底状态栏内反色标签：难度黑底白字；对弈记录采用柔和高级灰底白字 */
+        .player-zone.side-white-theme .ai-diff-center {
+            background: #111111;
+            color: #ffffff;
+            border: 1.5px solid #334155;
+        }
+        .player-zone.side-white-theme .player-record-center {
+            background: #64748b;
+            color: #ffffff;
+            border: 1.5px solid #475569;
+            box-shadow: 0 3px 10px rgba(71, 85, 105, 0.25);
+        }
+
+        /* 对弈记录弹窗样式 */
+        .record-modal-box {
+            background: var(--modal-bg);
+            width: 90%;
+            max-width: 360px;
+            max-height: 75vh;
+            border-radius: 16px;
+            box-shadow: 0 15px 38px rgba(0,0,0,0.32);
+            border: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: popIn 0.2s ease-out;
+        }
+        .record-header {
+            padding: 14px 16px;
+            font-size: 17px;
+            font-weight: 800;
+            color: var(--text-color);
+            border-bottom: 1px solid var(--panel-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--modal-item-hover);
+        }
+        .record-summary {
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--sub-text);
+            border-bottom: 1px solid var(--panel-border);
+            display: flex;
+            justify-content: space-between;
+        }
+        .record-list {
+            padding: 10px 14px;
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .record-empty {
+            text-align: center;
+            padding: 32px 12px;
+            color: var(--sub-text);
+            font-size: 14px;
+        }
+        .record-card {
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: var(--modal-item-hover);
+            border: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            font-size: 13px;
+            color: var(--text-color);
+        }
+        .record-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 800;
+        }
+        .record-badge {
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .record-badge.win { background: rgba(16, 185, 129, 0.18); color: #10b981; }
+        .record-badge.lose { background: rgba(239, 68, 68, 0.18); color: #ef4444; }
+        .record-badge.draw { background: rgba(148, 163, 184, 0.22); color: var(--sub-text); }
+        .record-card-meta {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 4px 10px;
+            font-size: 12px;
+            color: var(--sub-text);
+        }
+        .record-footer {
+            padding: 10px 14px;
+            border-top: 1px solid var(--panel-border);
+            display: flex;
+            gap: 10px;
+        }
+        .record-footer button {
+            flex: 1;
+            height: 36px;
+            border-radius: 18px;
+            border: none;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .player-zone {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 58px;
+            padding: 6px 12px;
+            border-radius: 14px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+            border: 1px solid var(--panel-border);
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        /* 黑方区域样式 */
+        .player-zone.top-zone {
+            background: linear-gradient(135deg, rgba(45, 45, 48, 0.92), rgba(22, 22, 25, 0.92));
+            color: #ffffff;
+        }
+
+        /* 白方区域样式 */
+        .player-zone.bottom-zone {
+            background: linear-gradient(135deg, rgba(250, 250, 250, 0.92), rgba(226, 232, 240, 0.92));
+            color: #1e293b;
+        }
+        body.dark-mode .player-zone.bottom-zone {
+            background: linear-gradient(135deg, rgba(241, 245, 249, 0.92), rgba(203, 213, 225, 0.92));
+            color: #0f172a;
+        }
+
+        .pz-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .avatar {
+            width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+            border: 2px solid rgba(255,255,255,0.6);
+            background: #e6d5c3 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="40" r="25" fill="%235c4b40"/><path d="M15 90 Q50 50 85 90" fill="%235c4b40"/></svg>') center/cover;
+        }
+        .bottom-zone .avatar {
+            border-color: rgba(0,0,0,0.15);
+            background: #e6d5c3 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="40" r="25" fill="%238b7355"/><path d="M15 90 Q50 50 85 90" fill="%238b7355"/></svg>') center/cover;
+        }
+
+        .player-meta {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 3px;
+        }
+        .player-name {
+            font-size: 15px;
+            font-weight: 800;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .turn-status {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            font-weight: 700;
+            opacity: 0.45;
+            transition: opacity 0.25s;
+        }
+        .turn-status.active {
+            opacity: 1;
+        }
+        .piece-dot {
+            width: 12px; height: 12px; border-radius: 50%; display: inline-block;
+        }
+        .piece-dot.black {
+            background: radial-gradient(circle at 30% 30%, #666, #000);
+            border: 1px solid rgba(255,255,255,0.4);
+        }
+        .piece-dot.white {
+            background: radial-gradient(circle at 30% 30%, #fff, #cbd5e1);
+            border: 1px solid #64748b;
+        }
+
+        /* 区域右侧：沙漏占位槽 + 悔棋按钮 */
+        .pz-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        /* 棋盘上下两侧空白正中间区域的沙漏容器（严格处于功能按钮与棋盘边缘的正中间） */
+        .board-timer-zone {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            flex: 1;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .board-timer-zone.top-timer-zone {
+            transform: rotate(180deg);
+        }
+
+        .hourglass-box {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 4px 14px;
+            border-radius: 20px;
+            background: var(--panel-bg);
+            color: var(--text-color);
+            border: 1px solid var(--panel-border);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            transition: all 0.25s;
+        }
+        .hourglass-box.low {
+            border-color: rgba(239, 68, 68, 0.8);
+            background: rgba(239, 68, 68, 0.18);
+            animation: pulseT 0.6s ease-in-out infinite;
+        }
+        @keyframes pulseT {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* 提取自附件的沙漏样式 */
+        .hourglass-svg {
+            width: 32px;
+            height: 32px;
+            animation: hgSpin 2s linear infinite;
+            transform-origin: 50% 50%;
+            filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.45));
+            display: block;
+            flex-shrink: 0;
+        }
+        @keyframes hgSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .hourglass-box.low .hourglass-svg {
+            filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.75));
+        }
+
+        .timer-num {
+            font-weight: 900;
+            font-variant-numeric: tabular-nums;
+            font-size: 16px;
+            min-width: 24px;
+            text-align: center;
+            line-height: 1;
+        }
+        .hourglass-box.low .timer-num {
+            color: #ef4444;
+        }
+
+        /* 悔棋按钮样式：悔棋（3） | 黑方白底黑字，白方黑底白字 */
+        .btn-undo-mirror {
+            height: 38px;
+            padding: 0 13px;
+            border-radius: 19px;
+            font-size: 14px;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.12s, opacity 0.2s, box-shadow 0.2s;
+            white-space: nowrap;
+        }
+        .btn-undo-mirror:active:not(.disabled) {
+            transform: scale(0.94);
+        }
+        .btn-undo-mirror.disabled {
+            opacity: 0.38;
+            cursor: not-allowed;
+        }
+
+        /* 黑方白底黑字 */
+        .btn-undo-black {
+            background: #ffffff;
+            color: #111111;
+            border: 1.5px solid #cbd5e1;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+        }
+
+        /* 白方黑底白字 */
+        .btn-undo-white {
+            background: #111111;
+            color: #ffffff;
+            border: 1.5px solid #334155;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.22);
+        }
+
+        /* 棋盘区域（紧贴棋盘大小，上下剩余空间平均分给两侧沙漏居中区） */
+        .board-wrapper {
+            position: relative; z-index: 10;
+            flex: 0 0 auto; display: flex; justify-content: center; align-items: center;
+            width: 100%; overflow: hidden;
+        }
+
+        .board-frame {
+            background: var(--board-frame-bg);
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.18), 0 0 0 1px var(--panel-border);
+            position: relative;
+            backdrop-filter: blur(1.5px);
+            -webkit-backdrop-filter: blur(1.5px);
+            display: flex; justify-content: center; align-items: center;
+            padding: 4px;
+            transition: background-color 0.3s;
+        }
+
+        canvas {
+            background-color: var(--board-canvas-bg);
+            display: block; cursor: pointer; border-radius: 5px;
+            touch-action: none;
+            transition: background-color 0.3s, backdrop-filter 0.25s;
+        }
+        canvas.dice-stage-blur {
+            background: rgba(8, 11, 18, 0.56) !important;
+            backdrop-filter: blur(1.5px) saturate(110%);
+            -webkit-backdrop-filter: blur(1.5px) saturate(110%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26), inset 0 -1px 0 rgba(0, 0, 0, 0.45);
+        }
+        .board-frame.dice-stage-frame {
+            background: rgba(10, 14, 22, 0.34) !important;
+            border-color: rgba(255, 255, 255, 0.24) !important;
+            backdrop-filter: blur(1.5px);
+            -webkit-backdrop-filter: blur(1.5px);
+        }
+
+        /* 通用功能栏（上下镜像共用） */
+        .footer {
+            position: relative; z-index: 10;
+            display: flex; justify-content: space-between; gap: 8px;
+            flex-shrink: 0;
+        }
+        .btn {
+            flex: 1; height: 38px; border-radius: 19px; border: none; color: white;
+            font-size: 14px; font-weight: bold; display: flex; justify-content: center; align-items: center;
+            cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.15), inset 0 2px 4px rgba(255,255,255,0.25);
+            transition: transform 0.1s; backdrop-filter: blur(5px);
+            touch-action: manipulation;
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn svg { width: 17px; height: 17px; margin-right: 4px; fill: white; }
+        .btn-leave { background: var(--btn-leave); }
+        .btn-pause { background: rgba(217, 119, 6, 0.92); display: none; }
+        .btn-pause.paused { background: rgba(16, 185, 129, 0.92); }
+        .btn-restart { background: var(--btn-restart); }
+        .btn-setting { background: var(--btn-setting); }
+        .btn-theme { background: var(--btn-theme); flex: 0 0 46px; padding: 0; font-size: 18px; }
+
+        /* 暂停状态棋盘遮罩提示（防止暂停时偷看思考） */
+        .pause-overlay {
+            position: absolute;
+            top: 4px; left: 4px; right: 4px; bottom: 4px;
+            border-radius: 5px;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: #ffffff;
+            z-index: 25;
+            cursor: pointer;
+        }
+        .pause-overlay.active {
+            display: flex;
+        }
+        .pause-overlay-title {
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: 4px;
+        }
+        .pause-overlay-sub {
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* 轻提示 Toast（单屏 / 用户专属区域） */
+        .toast {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(15, 23, 42, 0.85); color: white; padding: 10px 20px;
+            border-radius: 20px; font-size: 14px; font-weight: bold; z-index: 1400;
+            opacity: 0; transition: opacity 0.25s; pointer-events: none;
+            white-space: nowrap; box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+        .toast.top-oriented {
+            top: 24%;
+            transform: translate(-50%, -50%) rotate(180deg);
+        }
+        .toast.bottom-oriented {
+            top: 76%;
+            transform: translate(-50%, -50%);
+        }
+        .toast.show { opacity: 1; }
+
+        /* 双屏对称镜像 Toast（仅用于非用户触发的系统/对局提示） */
+        .toast-mirror {
+            position: absolute; left: 50%;
+            background: rgba(15, 23, 42, 0.85); color: white; padding: 9px 18px;
+            border-radius: 20px; font-size: 13px; font-weight: bold; z-index: 1400;
+            opacity: 0; transition: opacity 0.25s; pointer-events: none;
+            white-space: nowrap; box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            display: none;
+        }
+        .toast-mirror.top-mirror {
+            top: 26%;
+            transform: translate(-50%, -50%) rotate(180deg);
+        }
+        .toast-mirror.bottom-mirror {
+            top: 74%;
+            transform: translate(-50%, -50%);
+        }
+        .toast-mirror.show {
+            display: block;
+            opacity: 1;
+        }
+
+        /* 弹窗样式 */
+        .modal-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.45); display: none; justify-content: center; align-items: center;
+            z-index: 1000; backdrop-filter: blur(5px);
+        }
+        .modal-overlay.active { display: flex; }
+
+        .confirm-box {
+            background: var(--modal-bg); width: 280px; border-radius: 14px; padding: 25px;
+            text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border: 1px solid var(--panel-border);
+            animation: popIn 0.2s ease-out;
+        }
+        @keyframes popIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .confirm-msg { font-size: 18px; color: var(--text-color); margin-bottom: 25px; font-weight: bold; }
+        .confirm-btns { display: flex; gap: 15px; }
+        .confirm-btns button {
+            flex: 1; padding: 10px 0; border-radius: 20px; border: none; font-size: 16px; cursor: pointer; font-weight: bold;
+        }
+        .btn-cancel { background: rgba(148, 163, 184, 0.25); color: var(--text-color); }
+        .btn-ok { background: #4d9e75; color: #fff; }
+
+        .menu-box {
+            background: var(--modal-bg); border-radius: 12px; width: 260px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.25); overflow: hidden; border: 1px solid var(--panel-border);
+            animation: slideDown 0.2s ease-out;
+        }
+        @keyframes slideDown {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .menu-item {
+            padding: 15px 20px; font-size: 18px; color: var(--text-color); border-bottom: 1px solid var(--panel-border);
+            text-align: center; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+            transition: background 0.2s;
+        }
+        .menu-item:hover { background: var(--modal-item-hover); }
+    </style>
+</head>
+<body class="force-portrait-landscape">
+
+<!-- 强制防缩放拦截 -->
+<script>
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (event) {
+        const now = (new Date()).getTime();
+        if (now - lastTouchEnd <= 300) { event.preventDefault(); }
+        lastTouchEnd = now;
+    }, false);
+    document.addEventListener('touchmove', function (e) {
+        if (e.touches.length > 1) { e.preventDefault(); }
+    }, { passive: false });
+    document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+</script>
+
+<div class="app-container">
+    <div id="mainMenu">
+        <!-- 左上角用户管理图标 -->
+        <div class="top-left-tools">
+            <button id="btnUserMenu" class="icon-btn" title="用户管理" onclick="SFX.click(); openUserManager('manage')">👤</button>
+        </div>
+        <!-- 右上角主题切换与音效按钮 -->
+        <div class="top-right-tools">
+            <button id="btnThemeMenu" class="icon-btn" title="切换深浅主题">🌙</button>
+            <button id="btnSound" class="icon-btn" title="音效开关">🔊</button>
+        </div>
+
+        <div class="main-title">五子棋</div>
+        <button class="menu-btn" onclick="SFX.click(); openPVESetup()">人机对战</button>
+        <button class="menu-btn" onclick="SFX.click(); startGame('pvp')">双人对战</button>
+        <div class="copyright">Produced By MrXiao</div>
+    </div>
+
+    <div id="gameUI">
+
+        <!-- 水墨半透明背景 -->
+        <div class="artwork-bg">
+            <svg viewBox="0 0 600 850" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                    <filter id="inkSoft" x="-10%" y="-10%" width="120%" height="120%">
+                        <feGaussianBlur stdDeviation="1" />
+                    </filter>
+                    <linearGradient id="mountainGrad1" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" style="stop-color: var(--ink-mtn-1-top)" stop-opacity="0.68"/>
+                        <stop offset="60%" style="stop-color: var(--ink-mtn-1-mid)" stop-opacity="0.38"/>
+                        <stop offset="100%" style="stop-color: var(--ink-mtn-1-mid)" stop-opacity="0"/>
+                    </linearGradient>
+                    <linearGradient id="mountainGrad2" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" style="stop-color: var(--ink-mtn-2-top)" stop-opacity="0.78"/>
+                        <stop offset="50%" style="stop-color: var(--ink-mtn-2-mid)" stop-opacity="0.45"/>
+                        <stop offset="100%" style="stop-color: var(--ink-mtn-2-mid)" stop-opacity="0"/>
+                    </linearGradient>
+                    <linearGradient id="mountainGradLight" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" style="stop-color: var(--ink-mtn-light)" stop-opacity="0.42"/>
+                        <stop offset="100%" style="stop-color: var(--ink-mtn-light)" stop-opacity="0"/>
+                    </linearGradient>
+                    <linearGradient id="riverGrad" x1="0" y1="0" x2="1" y2="0.4">
+                        <stop offset="0%" style="stop-color: var(--ink-river-fill)" stop-opacity="0.25"/>
+                        <stop offset="50%" style="stop-color: var(--ink-river-fill)" stop-opacity="0.95"/>
+                        <stop offset="100%" style="stop-color: var(--ink-river-fill)" stop-opacity="0.35"/>
+                    </linearGradient>
+                </defs>
+                <!-- 红日与归雁 -->
+                <circle cx="430" cy="145" r="24" fill="var(--sun-red)" opacity="0.78" filter="url(#inkSoft)"/>
+                <g style="stroke: var(--ink-bird)" stroke-width="1.6" fill="none" stroke-linecap="round">
+                    <path d="M 245 125 Q 250 117 255 125 Q 260 117 265 123" />
+                    <path d="M 272 122 Q 277 114 282 122 Q 287 114 292 119" />
+                    <path d="M 258 136 Q 263 128 268 136 Q 273 128 278 134" />
+                </g>
+                <!-- 上部远山近峦（自然透入棋盘上半部分） -->
+                <g filter="url(#inkSoft)">
+                    <path d="M 110 315 C 150 295, 185 245, 225 245 C 265 245, 295 285, 335 315 Z" fill="url(#mountainGradLight)"/>
+                    <path d="M 170 355 C 210 335, 250 235, 290 235 C 315 235, 340 265, 365 305 C 395 275, 415 220, 450 220 C 485 220, 510 265, 535 305 C 555 290, 575 265, 595 265 L 595 365 L 170 365 Z" fill="url(#mountainGrad1)"/>
+                    <path d="M 195 370 C 235 350, 275 265, 325 265 C 360 265, 385 305, 410 330 C 435 315, 460 265, 485 265 C 520 265, 545 320, 570 370 Z" fill="url(#mountainGrad2)"/>
+                </g>
+                <!-- 左侧竹枝竹叶 -->
+                <g style="fill: var(--ink-bamboo)" filter="url(#inkSoft)" opacity="0.72">
+                    <path d="M 10 30 C 30 80, 40 120, 70 160" style="stroke: var(--ink-bamboo)" stroke-width="2.5" fill="none"/>
+                    <path d="M 40 60 C 50 90, 70 130, 100 170" style="stroke: var(--ink-bamboo)" stroke-width="1.5" fill="none"/>
+                    <path d="M 0 50 C 30 55, 50 50, 70 40 C 50 65, 20 65, 0 50 Z" />
+                    <path d="M 15 75 C 40 80, 60 70, 85 60 C 60 90, 30 95, 15 75 Z" opacity="0.85"/>
+                    <path d="M 40 110 C 70 120, 90 100, 110 90 C 80 125, 60 130, 40 110 Z" />
+                    <path d="M 20 140 C 40 150, 60 145, 80 150 C 60 165, 30 160, 20 140 Z" opacity="0.75"/>
+                    <path d="M 60 170 C 80 175, 95 170, 105 160 C 90 185, 70 185, 60 170 Z" opacity="0.65"/>
+                </g>
+                <!-- 棋盘中部左侧小山丘 -->
+                <g filter="url(#inkSoft)" opacity="0.6">
+                    <path d="M 40 495 C 65 440, 110 450, 145 462 C 190 475, 235 485, 270 495 L 40 495 Z" fill="url(#mountainGrad1)"/>
+                    <path d="M 65 495 C 100 452, 135 458, 168 470 C 200 480, 225 486, 248 495 Z" fill="url(#mountainGrad2)"/>
+                </g>
+                <!-- 棋盘下方蜿蜒水墨长河与波纹（贯穿棋盘下沿至底部留白区） -->
+                <g filter="url(#inkSoft)">
+                    <!-- 河流主水带 -->
+                    <path d="M -20 585 C 110 565, 210 615, 340 600 C 455 586, 530 565, 620 580 L 620 695 C 510 672, 420 715, 290 702 C 165 690, 80 650, -20 668 Z" fill="url(#riverGrad)"/>
+                    <!-- 河岸与水波流线 -->
+                    <path d="M -10 592 C 115 572, 215 620, 345 605 C 455 592, 530 572, 610 586" fill="none" style="stroke: var(--ink-river-stroke)" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M 35 622 C 130 610, 200 638, 295 628" fill="none" style="stroke: var(--ink-river-stroke)" stroke-width="1.6" stroke-linecap="round"/>
+                    <path d="M 320 636 C 415 626, 485 612, 565 622" fill="none" style="stroke: var(--ink-river-stroke)" stroke-width="1.5" stroke-linecap="round"/>
+                    <path d="M 90 652 C 190 644, 270 672, 385 660 C 465 652, 525 640, 595 648" fill="none" style="stroke: var(--ink-river-stroke)" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="M 180 682 C 265 676, 335 696, 435 686" fill="none" style="stroke: var(--ink-river-stroke)" stroke-width="1.4" stroke-linecap="round"/>
+                    <!-- 河面水墨小船（乌篷渔舟 + 船桨 + 水波涟漪） -->
+                    <g opacity="0.88">
+                        <!-- 船身 -->
+                        <path d="M 412 630 Q 445 642 482 628 Q 474 636 446 638 Q 422 637 412 630 Z" style="fill: var(--ink-bamboo)"/>
+                        <!-- 乌篷船舱 -->
+                        <path d="M 432 631 Q 446 616 462 630 Z" style="fill: var(--ink-bamboo)" opacity="0.85"/>
+                        <!-- 船头小灯笼/挑竿点缀 -->
+                        <path d="M 476 629 L 484 618" style="stroke: var(--ink-bamboo)" stroke-width="1.3" stroke-linecap="round"/>
+                        <circle cx="484" cy="619" r="2.2" fill="var(--sun-red)" opacity="0.9"/>
+                        <!-- 斜入水中的船桨 -->
+                        <path d="M 428 632 L 414 646" style="stroke: var(--ink-bamboo)" stroke-width="1.6" stroke-linecap="round"/>
+                        <!-- 船底水波涟漪 -->
+                        <path d="M 404 641 Q 446 647 488 639" fill="none" style="stroke: var(--ink-river-stroke)" stroke-width="1.3" stroke-linecap="round"/>
+                        <path d="M 418 646 Q 447 650 476 645" fill="none" style="stroke: var(--ink-river-stroke)" stroke-width="1" stroke-linecap="round"/>
+                    </g>
+                </g>
+                <!-- 底部近岸沙洲与远坡 -->
+                <g filter="url(#inkSoft)">
+                    <path d="M 0 765 C 70 738, 140 752, 220 772 L 0 772 Z" fill="url(#mountainGrad1)"/>
+                    <path d="M 320 785 C 385 745, 425 758, 460 770 C 495 748, 540 770, 600 758 L 600 790 L 320 790 Z" fill="url(#mountainGrad1)"/>
+                    <path d="M 380 790 C 430 762, 465 768, 500 780 C 535 768, 565 785, 600 774 L 600 790 Z" fill="url(#mountainGrad2)"/>
+                </g>
+            </svg>
+        </div>
+
+        <div class="toast" id="toast"></div>
+        <div class="toast-mirror top-mirror" id="toastTopMirror"></div>
+        <div class="toast-mirror bottom-mirror" id="toastBottomMirror"></div>
+
+        <!-- 上侧控制组（黑方区域 - 整体180度倒置镜像，含离开/重玩按钮） -->
+        <div class="side-control-group top-group">
+            <div class="footer">
+                <button class="btn btn-leave" onclick="SFX.click(); leaveGame()">
+                    <svg viewBox="0 0 24 24"><path d="M10 17l5-5-5-5v3H3v4h7v3zm9-14H5c-1.1 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>离开
+                </button>
+                <button class="btn btn-pause btn-pause-sync" id="btnPauseTop" onclick="SFX.click(); togglePauseGame()">
+                    <svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg><span>暂停</span>
+                </button>
+                <button class="btn btn-restart" onclick="SFX.click(); restartGame()">
+                    <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>重玩
+                </button>
+                <button class="btn btn-setting btn-difficulty-sync" onclick="SFX.click(); openDifficulty()">
+                    <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>难度
+                </button>
+            </div>
+            <div class="player-zone top-zone side-black-theme" id="topZone">
+                <div class="pz-left">
+                    <div class="avatar clickable-avatar" id="topAvatar" title="点击切换用户" onclick="SFX.click(); handleAvatarClick('top')"></div>
+                    <div class="player-meta">
+                        <span class="player-name" id="p1Name">黑方</span>
+                        <div class="turn-status active" id="p1Status">
+                            <span class="piece-dot black" id="p1PieceDot"></span>
+                            <span id="p1StatusText">思考中...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="ai-diff-center" id="aiDiffCenter">初出茅庐</div>
+                <button class="player-record-center" id="btnRecordTop" onclick="SFX.click(); openBattleRecords('top')">对弈记录</button>
+                <div class="pz-right">
+                    <button class="btn-undo-mirror btn-undo-black" id="btnUndoTop" onclick="undo(1)">悔棋（3）</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 棋盘上侧空白正中间区域（黑方回合沙漏位置） -->
+        <div class="board-timer-zone top-timer-zone" id="topTimerSlot">
+            <div class="hourglass-box" id="hourglassWidget">
+                <svg class="hourglass-svg" viewBox="0 0 100 100" aria-hidden="true">
+                    <rect x="15" y="4" width="70" height="8" rx="4" fill="#64748b" />
+                    <rect x="15" y="88" width="70" height="8" rx="4" fill="#64748b" />
+                    <path d="M 25 12 L 25 20 Q 25 40 45 47 L 45 53 Q 25 60 25 80 L 25 88 L 75 88 L 75 80 Q 75 60 55 53 L 55 47 Q 75 40 75 20 L 75 12" fill="none" stroke="#64748b" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M 29 20 Q 29 35 45 45 L 55 45 Q 71 35 71 20 Z" fill="#3b82f6" />
+                    <path d="M 45 65 Q 35 80 29 80 L 71 80 Q 65 80 55 65 Z" fill="#3b82f6" />
+                    <rect x="49" y="45" width="2" height="7" fill="#3b82f6" />
+                    <rect x="49" y="54" width="2" height="4" fill="#3b82f6" />
+                    <rect x="49" y="60" width="2" height="3" fill="#3b82f6" />
+                </svg>
+                <span class="timer-num" id="timerDisplay">30</span>
+            </div>
+        </div>
+
+        <!-- 棋盘 -->
+        <div class="board-wrapper">
+            <div class="board-frame">
+                <canvas id="boardCanvas"></canvas>
+                <div class="dice-hint-banner" id="diceHintBanner">点击骰子决定先后手</div>
+                <div class="pause-overlay" id="pauseOverlay" onclick="SFX.click(); togglePauseGame()">
+                    <div class="pause-overlay-title">对局已暂停</div>
+                    <div class="pause-overlay-sub">点击任意“继续”按钮或此处恢复对局</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 棋盘下侧空白正中间区域（白方回合沙漏位置） -->
+        <div class="board-timer-zone bottom-timer-zone" id="bottomTimerSlot"></div>
+
+        <!-- 下侧控制组（白方区域 - 与上侧完全镜像） -->
+        <div class="side-control-group bottom-group">
+            <div class="player-zone bottom-zone side-white-theme" id="bottomZone">
+                <div class="pz-left">
+                    <div class="avatar clickable-avatar" id="bottomAvatar" title="点击切换用户" onclick="SFX.click(); handleAvatarClick('bottom')"></div>
+                    <div class="player-meta">
+                        <span class="player-name" id="p2Name">白方</span>
+                        <div class="turn-status" id="p2Status">
+                            <span class="piece-dot white" id="p2PieceDot"></span>
+                            <span id="p2StatusText">等待中</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="player-record-center" id="btnRecordBottom" onclick="SFX.click(); openBattleRecords('bottom')">对弈记录</button>
+                <div class="pz-right">
+                    <button class="btn-undo-mirror btn-undo-white" id="btnUndoBottom" onclick="undo(2)">悔棋（3）</button>
+                </div>
+            </div>
+            <div class="footer">
+                <button class="btn btn-leave" onclick="SFX.click(); leaveGame()">
+                    <svg viewBox="0 0 24 24"><path d="M10 17l5-5-5-5v3H3v4h7v3zm9-14H5c-1.1 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>离开
+                </button>
+                <button class="btn btn-pause btn-pause-sync" id="btnPauseBottom" onclick="SFX.click(); togglePauseGame()">
+                    <svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg><span>暂停</span>
+                </button>
+                <button class="btn btn-restart" onclick="SFX.click(); restartGame()">
+                    <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>重玩
+                </button>
+                <button class="btn btn-setting btn-difficulty-sync" onclick="SFX.click(); openDifficulty()">
+                    <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>难度
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="pveSetupModal">
+    <div class="menu-box">
+        <div class="menu-item" style="background:var(--modal-item-hover); pointer-events:none; font-weight:bold; color:#d96556;">请选择先后手</div>
+        <div class="menu-item" onclick="SFX.click(); startPVE(1)">我执黑（先手）</div>
+        <div class="menu-item" onclick="SFX.click(); startPVE(2)">我执白（后手）</div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="confirmModal">
+    <div class="confirm-box">
+        <div class="confirm-msg" id="confirmMsg">确定要操作吗？</div>
+        <input type="text" id="confirmPromptInput" maxlength="10" style="display:none; width:100%; height:38px; margin-bottom:18px; padding:0 12px; border-radius:19px; border:1px solid var(--panel-border); background:var(--modal-item-hover); color:var(--text-color); font-size:15px; text-align:center; outline:none; -webkit-user-select:text; user-select:text;" />
+        <div class="confirm-btns">
+            <button class="btn-cancel" onclick="SFX.click(); closeConfirm(false)">取消</button>
+            <button class="btn-ok" onclick="SFX.click(); closeConfirm(true)">确定</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="difficultyModal">
+    <div class="menu-box" id="difficultyList"></div>
+</div>
+
+<div class="modal-overlay" id="recordModal">
+    <div class="record-modal-box" id="recordModalBox">
+        <div class="record-header">
+            <span id="recordModalTitle">对弈记录</span>
+            <span style="font-size:13px; color:var(--sub-text); font-weight:normal;" id="recordDiffBadge"></span>
+        </div>
+        <div class="record-summary" id="recordSummary"></div>
+        <div class="record-list" id="recordList"></div>
+        <div class="record-footer">
+            <button class="btn-cancel" onclick="SFX.click(); clearCurrentRecords()">清空记录</button>
+            <button class="btn-ok" onclick="SFX.click(); closeRecordModal()">关闭</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="userModal">
+    <div class="user-modal-box" id="userModalBox">
+        <div class="record-header">
+            <span id="userModalTitle">用户管理</span>
+            <span style="font-size:12px; color:var(--sub-text); font-weight:normal;" id="userModalHint"></span>
+        </div>
+        <div class="user-input-row">
+            <input type="text" id="newUserNameInput" maxlength="10" placeholder="输入新用户名称（最多10字）" onkeydown="if(event.key==='Enter') addNewUser()" />
+            <button onclick="SFX.click(); addNewUser()">添加</button>
+        </div>
+        <div class="user-list" id="userListContainer"></div>
+        <div class="record-footer">
+            <button class="btn-ok" onclick="SFX.click(); closeUserModal()">完成</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* ================= 跨关机重启三重持久化存储引擎 (IndexedDB + LocalStorage + Storage.persist) ================= */
+    const PermanentStore = (() => {
+        const DB_NAME = 'GomokuPermanentDB_v1';
+        const STORE_NAME = 'kv_store';
+        const SYNC_KEYS = [
+            'gomoku_users_list_v2',
+            'gomoku_pve_user_records_v1',
+            'gomoku_pvp_battle_records_v1',
+            'gomoku_active_profile_v1',
+            'gomoku_theme_dark',
+            'gomoku_muted'
+        ];
+        let dbInstance = null;
+
+        // 向系统申请持久化存储权限（防止 iOS Safari / 手机浏览器在关机重启或空间紧张时自动清理数据）
+        function requestSystemPersistence() {
+            try {
+                if (navigator.storage && typeof navigator.storage.persist === 'function') {
+                    navigator.storage.persist().catch(() => {});
+                }
+            } catch (e) {}
+        }
+
+        function openDB() {
+            return new Promise((resolve) => {
+                if (dbInstance) return resolve(dbInstance);
+                if (typeof indexedDB === 'undefined') return resolve(null);
+                try {
+                    const req = indexedDB.open(DB_NAME, 1);
+                    req.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains(STORE_NAME)) {
+                            db.createObjectStore(STORE_NAME);
+                        }
+                    };
+                    req.onsuccess = (e) => {
+                        dbInstance = e.target.result;
+                        resolve(dbInstance);
+                    };
+                    req.onerror = () => resolve(null);
+                } catch (e) {
+                    resolve(null);
+                }
+            });
+        }
+
+        async function idbGet(key) {
+            const db = await openDB();
+            if (!db) return null;
+            return new Promise((resolve) => {
+                try {
+                    const tx = db.transaction(STORE_NAME, 'readonly');
+                    const store = tx.objectStore(STORE_NAME);
+                    const req = store.get(key);
+                    req.onsuccess = () => resolve(req.result !== undefined ? req.result : null);
+                    req.onerror = () => resolve(null);
+                } catch (e) {
+                    resolve(null);
+                }
+            });
+        }
+
+        async function idbSet(key, val) {
+            const db = await openDB();
+            if (!db) return;
+            return new Promise((resolve) => {
+                try {
+                    const tx = db.transaction(STORE_NAME, 'readwrite');
+                    const store = tx.objectStore(STORE_NAME);
+                    store.put(val, key);
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => resolve();
+                } catch (e) {
+                    resolve();
+                }
+            });
+        }
+
+        function setItem(key, val) {
+            const strVal = typeof val === 'string' ? val : JSON.stringify(val);
+            try { localStorage.setItem(key, strVal); } catch (e) {}
+            idbSet(key, strVal);
+        }
+
+        function getItem(key) {
+            try {
+                const v = localStorage.getItem(key);
+                if (v !== null) return v;
+            } catch (e) {}
+            return null;
+        }
+
+        // 启动时双向校验恢复：若 localStorage 被系统清理则从 IndexedDB 无损恢复；若 IndexedDB 缺失则从 localStorage 补全
+        async function hydrateAll(onHydrated) {
+            requestSystemPersistence();
+            let restoredAny = false;
+            for (const key of SYNC_KEYS) {
+                let lsVal = null;
+                try { lsVal = localStorage.getItem(key); } catch (e) {}
+                const dbVal = await idbGet(key);
+
+                if ((lsVal === null || lsVal === '') && dbVal !== null && dbVal !== '') {
+                    try { localStorage.setItem(key, dbVal); } catch (e) {}
+                    restoredAny = true;
+                } else if (lsVal !== null && lsVal !== '' && (dbVal === null || dbVal !== lsVal)) {
+                    await idbSet(key, lsVal);
+                }
+            }
+            if (typeof onHydrated === 'function') {
+                onHydrated(restoredAny);
+            }
+        }
+
+        return { setItem, getItem, hydrateAll, requestSystemPersistence };
+    })();
+
+    /* ================= 主题切换系统（提取自附件主题功能） ================= */
+    const THEME_KEY = 'gomoku_theme_dark';
+    let canvas = null, ctx = null;
+
+    function applyTheme(isDark) {
+        document.body.classList.toggle('dark-mode', isDark);
+        const icon = isDark ? '☀️' : '🌙';
+        const menuBtn = document.getElementById('btnThemeMenu');
+        if (menuBtn) menuBtn.textContent = icon;
+        PermanentStore.setItem(THEME_KEY, isDark ? '1' : '0');
+        if (canvas && ctx && typeof draw === 'function') draw();
+    }
+
+    function toggleTheme() {
+        const isDark = !document.body.classList.contains('dark-mode');
+        applyTheme(isDark);
+    }
+
+    (function initTheme() {
+        let saved = '0';
+        try { saved = localStorage.getItem(THEME_KEY) || '0'; } catch (e) {}
+        applyTheme(saved === '1');
+    })();
+
+    /* ================= 音效引擎 ================= */
+    const SFX = (() => {
+        let ac = null;
+        let muted = false;
+        try {
+            muted = localStorage.getItem('gomoku_muted') === 'true';
+        } catch(e){}
+
+        function ctx(){
+            if(!ac){
+                const AC = window.AudioContext || window.webkitAudioContext;
+                if(!AC) return null;
+                ac = new AC();
+            }
+            if(ac.state === 'suspended') ac.resume();
+            return ac;
+        }
+        function tone(freq, dur=0.14, type='sine', vol=0.16, when=0, slideTo=null){
+            if (muted) return;
+            const c = ctx(); if(!c) return;
+            try{
+                const t = c.currentTime + when;
+                const o = c.createOscillator();
+                const g = c.createGain();
+                o.type = type;
+                o.frequency.setValueAtTime(freq, t);
+                if(slideTo) o.frequency.exponentialRampToValueAtTime(Math.max(20,slideTo), t + dur);
+                g.gain.setValueAtTime(0.0001, t);
+                g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
+                g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+                o.connect(g); g.connect(c.destination);
+                o.start(t); o.stop(t + dur + 0.03);
+            }catch(e){}
+        }
+        function noise(dur=0.18, vol=0.11, freq=1200){
+            if (muted) return;
+            const c = ctx(); if(!c) return;
+            try{
+                const len = Math.floor(c.sampleRate * dur);
+                const buf = c.createBuffer(1, len, c.sampleRate);
+                const d = buf.getChannelData(0);
+                for(let i=0;i<len;i++) d[i] = (Math.random()*2-1) * (1 - i/len);
+                const src = c.createBufferSource(); src.buffer = buf;
+                const f = c.createBiquadFilter(); f.type='lowpass'; f.frequency.value = freq;
+                const g = c.createGain(); g.gain.value = vol;
+                src.connect(f); f.connect(g); g.connect(c.destination);
+                src.start();
+            }catch(e){}
+        }
+        return {
+            setMuted(v){
+                muted = v;
+                PermanentStore.setItem('gomoku_muted', v ? 'true' : 'false');
+            },
+            isMuted(){ return muted; },
+            click(){ tone(640, 0.05, 'triangle', 0.045); },
+            correct(){ tone(880,0.09,'sine',0.15); tone(1320,0.15,'sine',0.13,0.07); },
+            wrong(){ tone(300, 0.18, 'triangle', 0.07, 0, 180); noise(0.10, 0.025, 400); },
+            pop(){ tone(620,0.075,'triangle',0.12,0,1250); },
+            win(){ [523,659,784,1046,1318].forEach((f,i)=>tone(f,0.26,'sine',0.15,i*0.095)); },
+            lose(){ [420,330,260,175].forEach((f,i)=>tone(f,0.26,'triangle',0.12,i*0.11)); }
+        };
+    })();
+
+    // 初始化顶部按钮事件
+    window.addEventListener('DOMContentLoaded', () => {
+        const soundBtn = document.getElementById('btnSound');
+        soundBtn.innerText = SFX.isMuted() ? '🔇' : '🔊';
+
+        soundBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const willMute = !SFX.isMuted();
+            SFX.setMuted(willMute);
+            soundBtn.innerText = willMute ? '🔇' : '🔊';
+            if (!willMute) SFX.click();
+        });
+
+        const themeMenuBtn = document.getElementById('btnThemeMenu');
+        themeMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            SFX.click();
+            toggleTheme();
+        });
+    });
+
+    /* ================= 撒花特效 ================= */
+    function confetti(){
+        const colors = ['#4cc9f0','#f72585','#ffd93d','#06d6a0','#b5179e','#7b61ff','#ff8fab'];
+        for(let i=0;i<70;i++){
+            const d = document.createElement('div');
+            d.className = 'confetti';
+            d.style.left = (Math.random()*100) + 'vw';
+            d.style.background = colors[i % colors.length];
+            d.style.animationDelay = (Math.random()*0.7) + 's';
+            d.style.animationDuration = (1.7 + Math.random()*1.5) + 's';
+            d.style.width = (6 + Math.random()*7) + 'px';
+            d.style.height = (10 + Math.random()*10) + 'px';
+            document.body.appendChild(d);
+            setTimeout(()=>d.remove(), 3800);
+        }
+    }
+
+    /* ================= 五子棋核心逻辑 ================= */
+    const BOARD_SIZE = 15;
+    const MAX_UNDO = 3; // 最多悔棋3次
+    let CELL_SIZE = 32;
+    let PADDING = 16;
+    let CANVAS_SIZE = 0;
+
+    const DIFFICULTIES = [
+        { id: 'master', name: '天人合一', depth: 4, random: 0, candLimit: 18, defWeight: 1.55 },
+        { id: 'grandmaster', name: '登峰造极', depth: 4, random: 4, candLimit: 16, defWeight: 1.45 },
+        { id: 'expert', name: '傲视群雄', depth: 3, random: 12, candLimit: 14, defWeight: 1.35 },
+        { id: 'hard', name: '出神入化', depth: 3, random: 40, candLimit: 12, defWeight: 1.25 },
+        { id: 'medium', name: '炉火纯青', depth: 2, random: 120, candLimit: 10, defWeight: 1.15 },
+        { id: 'normal', name: '登堂入室', depth: 1, random: 350, candLimit: 8, defWeight: 1.05 },
+        { id: 'easy', name: '初出茅庐', depth: 0, random: 8000 }
+    ];
+
+    let board = [];
+    let currentPlayer = 1; // 1: 黑方(上侧区域), 2: 白方(下侧区域)
+    let gameOver = false;
+    let history = [];
+    let lastMove = null;
+    let undoCount = { 1: 0, 2: 0 }; // 1: 黑方已悔棋次数, 2: 白方已悔棋次数
+
+    let aiConfig = DIFFICULTIES[6];
+    let gameMode = 'pve';
+    let playerColor = 1;
+    let aiColor = 2;
+
+    let previewPos = null;
+
+    let turnTimer = null;
+    let timeLeft = 30;
+    let gameStartTime = 0;
+    const BATTLE_RECORDS_KEY = 'gomoku_pve_battle_records_v1';
+
+    // 胜利动画相关变量
+    let winningCells = [];
+    let winAnimStartTime = 0;
+    let isWinAnimating = false;
+
+    let confirmCallback = null;
+    let isPromptMode = false;
+    function showConfirm(msg, callback) {
+        isPromptMode = false;
+        const inp = document.getElementById('confirmPromptInput');
+        inp.style.display = 'none';
+        document.getElementById('confirmMsg').innerText = msg;
+        document.getElementById('confirmModal').classList.add('active');
+        confirmCallback = callback;
+    }
+    function showPrompt(msg, defaultVal, callback) {
+        isPromptMode = true;
+        const inp = document.getElementById('confirmPromptInput');
+        inp.style.display = 'block';
+        inp.value = defaultVal || '';
+        document.getElementById('confirmMsg').innerText = msg;
+        document.getElementById('confirmModal').classList.add('active');
+        confirmCallback = callback;
+        setTimeout(() => { inp.focus(); inp.select(); }, 60);
+    }
+    function closeConfirm(isOk) {
+        const inp = document.getElementById('confirmPromptInput');
+        const val = inp.value;
+        document.getElementById('confirmModal').classList.remove('active');
+        inp.style.display = 'none';
+        if (isOk && confirmCallback) {
+            if (isPromptMode) confirmCallback(val);
+            else confirmCallback();
+        }
+        confirmCallback = null;
+        isPromptMode = false;
+    }
+
+    let toastTimeout = null;
+    function clearAllToasts() {
+        const toast = document.getElementById('toast');
+        const topM = document.getElementById('toastTopMirror');
+        const botM = document.getElementById('toastBottomMirror');
+        if (toast) toast.classList.remove('show', 'top-oriented', 'bottom-oriented');
+        if (topM) topM.classList.remove('show');
+        if (botM) botM.classList.remove('show');
+    }
+
+    function showToast(msg, orient = 'center', options = {}) {
+        const toast = document.getElementById('toast');
+        const topM = document.getElementById('toastTopMirror');
+        const botM = document.getElementById('toastBottomMirror');
+        const isUserTriggered = options.isUserTriggered !== false;
+        const useMirror = (orient === 'mirror') || (!isUserTriggered && gameMode === 'pvp');
+
+        clearAllToasts();
+
+        if (useMirror && topM && botM) {
+            topM.innerText = msg;
+            botM.innerText = msg;
+            topM.classList.add('show');
+            botM.classList.add('show');
+        } else if (toast) {
+            if (orient === 'top') {
+                toast.classList.add('top-oriented');
+            } else if (orient === 'bottom') {
+                toast.classList.add('bottom-oriented');
+            }
+            toast.innerText = msg;
+            toast.classList.add('show');
+        }
+
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+            clearAllToasts();
+        }, 2000);
+    }
+
+    window.onload = () => {
+        canvas = document.getElementById('boardCanvas');
+        ctx = canvas.getContext('2d');
+
+        canvas.addEventListener('pointerdown', handleCanvasPointerDown);
+        canvas.addEventListener('pointermove', handleMouseMove);
+        canvas.addEventListener('pointerup', handleCanvasPointerUp);
+        canvas.addEventListener('pointercancel', handleCanvasPointerUp);
+        canvas.addEventListener('pointerleave', () => { previewPos = null; if (gameMode !== 'pvp' || pvpPhase === 'playing') draw(); });
+
+        window.addEventListener('resize', resizeBoard);
+        window.addEventListener('orientationchange', () => setTimeout(resizeBoard, 120));
+
+        document.getElementById('difficultyModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('active');
+                SFX.click();
+            }
+        });
+        document.getElementById('pveSetupModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('active');
+                SFX.click();
+            }
+        });
+        document.getElementById('userModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeUserModal();
+                SFX.click();
+            }
+        });
+        document.getElementById('recordModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeRecordModal();
+                SFX.click();
+            }
+        });
+        document.getElementById('confirmModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeConfirm(false);
+                SFX.click();
+            }
+        });
+
+        renderDifficultyMenu();
+    };
+
+    function isLandscapeForcedPortrait() {
+        return document.body.classList.contains('force-portrait-landscape') &&
+               window.innerWidth > window.innerHeight &&
+               window.innerWidth >= 600;
+    }
+
+    function resizeBoard() {
+        if (!document.getElementById('gameUI').classList.contains('active')) return;
+
+        const gameUI = document.getElementById('gameUI');
+        const topGroup = document.querySelector('.top-group');
+        const bottomGroup = document.querySelector('.bottom-group');
+
+        const forcedPortrait = isLandscapeForcedPortrait();
+        const containerW = forcedPortrait ? window.innerHeight : gameUI.clientWidth;
+        const containerH = forcedPortrait ? window.innerWidth : gameUI.clientHeight;
+
+        const uiWidth = containerW - 12; // 占满屏幕宽度，仅保留极窄外框边距
+        const topH = topGroup.offsetHeight || 102;
+        const bottomH = bottomGroup.offsetHeight || 102;
+        // 预留上下控制组 + 两侧沙漏区最小空间（各46px）
+        const uiHeight = containerH - topH - bottomH - 16 - 92;
+
+        if (uiWidth <= 0 || uiHeight <= 0) {
+            requestAnimationFrame(resizeBoard);
+            return;
+        }
+
+        const availableSize = Math.min(uiWidth, uiHeight) - 8;
+        if (availableSize < 100) {
+            setTimeout(resizeBoard, 50);
+            return;
+        }
+
+        CELL_SIZE = Math.floor(availableSize / 15.1);
+        if (CELL_SIZE < 10) CELL_SIZE = 10;
+
+        PADDING = Math.floor(CELL_SIZE * 0.55);
+        CANVAS_SIZE = CELL_SIZE * (BOARD_SIZE - 1) + PADDING * 2;
+
+        const dpr = Math.min(window.devicePixelRatio || 1, 3);
+        canvas.width = Math.round(CANVAS_SIZE * dpr);
+        canvas.height = Math.round(CANVAS_SIZE * dpr);
+        canvas.style.width = CANVAS_SIZE + 'px';
+        canvas.style.height = CANVAS_SIZE + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        draw();
+    }
+
+    let isPaused = false;
+
+    function startTurnTimer(resetTime = true) {
+        clearInterval(turnTimer);
+        if (gameOver || isPaused) return;
+
+        if (resetTime) {
+            timeLeft = 30;
+        }
+        updateTimerUI();
+
+        turnTimer = setInterval(() => {
+            if (isPaused || gameOver) return;
+            timeLeft--;
+            updateTimerUI();
+            if (timeLeft <= 0) {
+                clearInterval(turnTimer);
+                handleTimeout();
+            }
+        }, 1000);
+    }
+
+    function updatePauseButtonsUI() {
+        const btns = document.querySelectorAll('.btn-pause-sync');
+        const overlay = document.getElementById('pauseOverlay');
+        btns.forEach(btn => {
+            if (gameMode === 'pvp') {
+                btn.style.display = 'flex';
+            } else {
+                btn.style.display = 'none';
+            }
+            btn.classList.toggle('paused', isPaused);
+            const span = btn.querySelector('span');
+            const svg = btn.querySelector('svg');
+            if (isPaused) {
+                if (span) span.innerText = '继续';
+                if (svg) svg.innerHTML = '<path d="M8 5v14l11-7z"/>';
+            } else {
+                if (span) span.innerText = '暂停';
+                if (svg) svg.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+            }
+        });
+        if (overlay) {
+            overlay.classList.toggle('active', isPaused && gameMode === 'pvp');
+        }
+    }
+
+    function togglePauseGame() {
+        if (gameMode !== 'pvp') return;
+        if (pvpPhase !== 'playing') {
+            showToast('掷骰定先手阶段无需暂停', 'bottom');
+            return;
+        }
+        if (gameOver) {
+            showToast('本局已结束', 'bottom');
+            return;
+        }
+        isPaused = !isPaused;
+        updatePauseButtonsUI();
+        if (isPaused) {
+            clearInterval(turnTimer);
+            showToast('对局已暂停', 'bottom');
+        } else {
+            startTurnTimer(false);
+            showToast('对局继续', 'bottom');
+        }
+    }
+
+    function updateTimerUI() {
+        const timerEl = document.getElementById('timerDisplay');
+        const hgBox = document.getElementById('hourglassWidget');
+
+        if (!timerEl || !hgBox) return;
+
+        timerEl.innerText = timeLeft;
+
+        if (timeLeft <= 5) {
+            hgBox.classList.add('low');
+        } else {
+            hgBox.classList.remove('low');
+        }
+    }
+
+    function handleTimeout() {
+        if (gameOver) return;
+
+        let emptyCells = [];
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                if (board[r][c] === 0) emptyCells.push({r, c});
+            }
+        }
+
+        if (emptyCells.length > 0) {
+            let randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            showToast(`${currentPlayer === 1 ? '黑方' : '白方'} 超时，系统随机落子！`, 'mirror', { isUserTriggered: false });
+            makeMove(randomCell.r, randomCell.c, currentPlayer);
+        }
+    }
+
+    function openPVESetup() {
+        document.getElementById('pveSetupModal').classList.add('active');
+    }
+
+    function startPVE(color) {
+        document.getElementById('pveSetupModal').classList.remove('active');
+        playerColor = color;
+        aiColor = color === 1 ? 2 : 1;
+        startGame('pve');
+    }
+
+    function applyZonePieceTheme(zoneEl, pieceColor) {
+        zoneEl.classList.remove('side-black-theme', 'side-white-theme');
+        zoneEl.classList.add(pieceColor === 1 ? 'side-black-theme' : 'side-white-theme');
+    }
+
+    /* ================= 双人对战分屏双骰子系统（上下各自投掷区 + 手势方向滚动） ================= */
+    let pvpPhase = 'playing'; // 'dice' | 'dice_result' | 'playing'
+    let pvpTopColor = 1;      // 上方用户本局执子颜色：1黑 2白
+    let pvpBottomColor = 2;   // 下方用户本局执子颜色：1黑 2白
+
+    function createSingleDice(defaultX, defaultY) {
+        return {
+            x: defaultX, y: defaultY,
+            homeX: defaultX, homeY: defaultY,
+            vx: 0, vy: 0,
+            z: 0,
+            rotX: 0.52, rotY: -0.58, rotZ: 0.0,
+            startRotX: 0.52, startRotY: -0.58, startRotZ: 0.0,
+            targetRotX: 0, targetRotY: 0, targetRotZ: 0,
+            faceValue: 1,
+            status: 'idle', // 'idle' | 'rolling' | 'done'
+            rollStartTime: 0,
+            rollDuration: 1350,
+            lastTickTime: 0,
+            lastSoundBounce: 0
+        };
+    }
+
+    let pvpDice = {
+        top: createSingleDice(0.5, 0.25),
+        bottom: createSingleDice(0.5, 0.75)
+    };
+    let diceLoopId = null;
+    let diceResultTimer = null;
+    let diceWinnerSide = 'top';
+
+    // 触屏/鼠标滑动手势追踪
+    let dicePointer = {
+        active: false,
+        pointerId: null,
+        side: null,
+        startX: 0,
+        startY: 0,
+        startTime: 0
+    };
+
+    // 骰子六面几何：同一个环面四个侧面依次为 1、2、3、4 点连续排列，上下两面分别为 5、6 点
+    const DICE_FACES = [
+        { val: 1, n: [0, 0, 1],  u: [1, 0, 0],  v: [0, 1, 0],  pips: [[0, 0]] },
+        { val: 2, n: [1, 0, 0],  u: [0, 0, -1], v: [0, 1, 0],  pips: [[-0.46, -0.46], [0.46, 0.46]] },
+        { val: 3, n: [0, 0, -1], u: [-1, 0, 0], v: [0, 1, 0],  pips: [[-0.47,-0.47],[0,0],[0.47,0.47]] },
+        { val: 4, n: [-1, 0, 0], u: [0, 0, 1],  v: [0, 1, 0],  pips: [[-0.47,-0.47],[0.47,-0.47],[-0.47,0.47],[0.47,0.47]] },
+        { val: 5, n: [0, 1, 0],  u: [1, 0, 0],  v: [0, 0, -1], pips: [[-0.47,-0.47],[0.47,-0.47],[0,0],[-0.47,0.47],[0.47,0.47]] },
+        { val: 6, n: [0, -1, 0], u: [1, 0, 0],  v: [0, 0, 1],  pips: [[-0.46,-0.50],[0.46,-0.50],[-0.46,0],[0.46,0],[-0.46,0.50],[0.46,0.50]] }
+    ];
+
+    function getTargetEulerForFace(val) {
+        const quarterTurn = Math.floor(Math.random() * 4) * (Math.PI / 2);
+        const yaw = quarterTurn + (Math.random() - 0.5) * 0.08;
+        switch (val) {
+            case 1: return { rx: 0,            ry: 0,            rz: yaw };
+            case 2: return { rx: 0,            ry: -Math.PI / 2, rz: yaw };
+            case 3: return { rx: Math.PI,      ry: 0,            rz: yaw };
+            case 4: return { rx: 0,            ry: Math.PI / 2,  rz: yaw };
+            case 5: return { rx: Math.PI / 2,  ry: 0,            rz: yaw };
+            case 6: return { rx: -Math.PI / 2, ry: 0,            rz: yaw };
+        }
+        return { rx: 0, ry: 0, rz: 0 };
+    }
+
+    function rotateVec3(vec, rx, ry, rz) {
+        let [x, y, z] = vec;
+        let y1 = y * Math.cos(rx) - z * Math.sin(rx);
+        let z1 = y * Math.sin(rx) + z * Math.cos(rx);
+        y = y1; z = z1;
+
+        let x2 = x * Math.cos(ry) + z * Math.sin(ry);
+        let z2 = -x * Math.sin(ry) + z * Math.cos(ry);
+        x = x2; z = z2;
+
+        let x3 = x * Math.cos(rz) - y * Math.sin(rz);
+        let y3 = x * Math.sin(rz) + y * Math.cos(rz);
+        return [x3, y3, z];
+    }
+
+    function applySidePiecePresentation(zoneEl, dotEl, undoBtnEl, pieceColor) {
+        const isBlack = pieceColor === 1;
+        applyZonePieceTheme(zoneEl, pieceColor);
+        if (dotEl) dotEl.className = isBlack ? 'piece-dot black' : 'piece-dot white';
+        if (undoBtnEl) {
+            undoBtnEl.className = isBlack ? 'btn-undo-mirror btn-undo-black' : 'btn-undo-mirror btn-undo-white';
+            undoBtnEl.onclick = () => undo(pieceColor);
+        }
+    }
+
+    function syncPlayerZonesLayout() {
+        const gameUI = document.getElementById('gameUI');
+        const topZone = document.getElementById('topZone');
+        const bottomZone = document.getElementById('bottomZone');
+        const p1Dot = document.getElementById('p1PieceDot');
+        const p2Dot = document.getElementById('p2PieceDot');
+        const btnUndoTop = document.getElementById('btnUndoTop');
+        const btnUndoBottom = document.getElementById('btnUndoBottom');
+        const topAvatar = document.getElementById('topAvatar');
+        const bottomAvatar = document.getElementById('bottomAvatar');
+
+        updatePauseButtonsUI();
+
+        if (gameMode === 'pvp') {
+            gameUI.classList.remove('pve-mode');
+            document.querySelectorAll('.btn-difficulty-sync').forEach(b => b.style.display = 'none');
+            const topUser = getUserById(pvpTopUserId);
+            const bottomUser = getUserById(pvpBottomUserId);
+            renderAvatarBadge(topAvatar, topUser);
+            renderAvatarBadge(bottomAvatar, bottomUser);
+
+            if (pvpPhase !== 'playing') {
+                document.getElementById('p1Name').innerText = topUser.name;
+                document.getElementById('p2Name').innerText = bottomUser.name;
+                applySidePiecePresentation(topZone, p1Dot, btnUndoTop, 1);
+                applySidePiecePresentation(bottomZone, p2Dot, btnUndoBottom, 2);
+            } else {
+                const topSideLabel = pvpTopColor === 1 ? '黑' : '白';
+                const bottomSideLabel = pvpBottomColor === 1 ? '黑' : '白';
+                document.getElementById('p1Name').innerText = `${topUser.name}（${topSideLabel}）`;
+                document.getElementById('p2Name').innerText = `${bottomUser.name}（${bottomSideLabel}）`;
+                applySidePiecePresentation(topZone, p1Dot, btnUndoTop, pvpTopColor);
+                applySidePiecePresentation(bottomZone, p2Dot, btnUndoBottom, pvpBottomColor);
+            }
+        } else {
+            gameUI.classList.add('pve-mode');
+            document.querySelectorAll('.btn-difficulty-sync').forEach(b => b.style.display = 'flex');
+            const meUser = getUserById(pveUserId);
+            document.getElementById('p1Name').innerText = '系统';
+            document.getElementById('aiDiffCenter').innerText = aiConfig.name;
+            resetDefaultAvatar(topAvatar);
+            renderAvatarBadge(bottomAvatar, meUser);
+            // 人机模式状态栏颜色严格根据执子颜色确定（执黑=黑底白字，执白=白底黑字）
+            applySidePiecePresentation(topZone, p1Dot, null, aiColor);
+            applySidePiecePresentation(bottomZone, p2Dot, btnUndoBottom, playerColor);
+            document.getElementById('p2Name').innerText = `${meUser.name}（${playerColor === 1 ? '黑' : '白'}）`;
+        }
+    }
+
+    function startGame(mode) {
+        gameMode = mode;
+        if (mode === 'pvp') {
+            ensureDistinctPvpUsers();
+        }
+        document.getElementById('mainMenu').classList.add('hidden');
+        document.getElementById('gameUI').classList.add('active');
+
+        initGame();
+
+        requestAnimationFrame(() => {
+            resizeBoard();
+        });
+    }
+
+    function leaveGame() {
+        showConfirm('确定要离开对局返回主界面吗？', () => {
+            clearInterval(turnTimer);
+            clearTimeout(diceResultTimer);
+            cancelAnimationFrame(diceLoopId);
+            isWinAnimating = false;
+            isPaused = false;
+            updatePauseButtonsUI();
+            document.getElementById('diceHintBanner').classList.remove('show');
+            document.getElementById('gameUI').classList.remove('active');
+            document.getElementById('mainMenu').classList.remove('hidden');
+        });
+    }
+
+    function restartGame() {
+        showConfirm('确定要重新开始对局吗？', () => {
+            clearInterval(turnTimer);
+            clearTimeout(diceResultTimer);
+            cancelAnimationFrame(diceLoopId);
+            initGame();
+            requestAnimationFrame(() => resizeBoard());
+        });
+    }
+
+    function resetBothDiceForRoll(bannerMsg = '') {
+        pvpPhase = 'dice';
+        pvpDice.top = createSingleDice(0.5, 0.25);
+        pvpDice.bottom = createSingleDice(0.5, 0.75);
+        const banner = document.getElementById('diceHintBanner');
+        if (banner) {
+            if (bannerMsg) {
+                banner.innerText = bannerMsg;
+                banner.classList.add('show');
+            } else {
+                banner.classList.remove('show');
+            }
+        }
+        draw();
+    }
+
+    function initGame() {
+        board = Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(0));
+        currentPlayer = 1;
+        gameOver = false;
+        isPaused = false;
+        updatePauseButtonsUI();
+        history = [];
+        lastMove = null;
+        previewPos = null;
+        undoCount = { 1: 0, 2: 0 };
+
+        isWinAnimating = false;
+        winningCells = [];
+        clearInterval(turnTimer);
+        clearTimeout(diceResultTimer);
+        cancelAnimationFrame(diceLoopId);
+
+        const banner = document.getElementById('diceHintBanner');
+
+        if (gameMode === 'pvp') {
+            ensureDistinctPvpUsers();
+            pvpTopColor = 1;
+            pvpBottomColor = 2;
+            resetBothDiceForRoll('');
+            syncPlayerZonesLayout();
+        } else {
+            pvpPhase = 'playing';
+            if (banner) banner.classList.remove('show');
+            gameStartTime = Date.now();
+            syncPlayerZonesLayout();
+            updateUI();
+            draw();
+            startTurnTimer(true);
+
+            if (aiColor === 1) {
+                setTimeout(makeAIMove, 500);
+            }
+        }
+    }
+
+    // 启动单侧骰子滚动（dirX, dirY 为手势方向单位向量，若无滑动则为随机方向）
+    function rollSideDice(side, dirX = null, dirY = null) {
+        if (gameMode !== 'pvp' || pvpPhase !== 'dice') return;
+        const d = pvpDice[side];
+        if (!d || d.status !== 'idle') return;
+
+        const otherSide = side === 'top' ? 'bottom' : 'top';
+        const myUserId = side === 'top' ? pvpTopUserId : pvpBottomUserId;
+        const otherUserId = side === 'top' ? pvpBottomUserId : pvpTopUserId;
+        const otherRolled = pvpDice[otherSide] && pvpDice[otherSide].status !== 'idle';
+
+        if (otherRolled && myUserId === otherUserId) {
+            SFX.wrong();
+            showToast('该用户对方已选择', side);
+            return;
+        }
+
+        d.status = 'rolling';
+        d.rollDuration = 1650;
+        SFX.pop();
+
+        const rolledVal = Math.floor(Math.random() * 6) + 1;
+        d.faceValue = rolledVal;
+
+        let angle;
+        let speed;
+        if (dirX !== null && dirY !== null && (Math.abs(dirX) > 0.01 || Math.abs(dirY) > 0.01)) {
+            angle = Math.atan2(dirY, dirX);
+            speed = 1.05;
+        } else {
+            angle = Math.random() * Math.PI * 2;
+            speed = 0.78 + Math.random() * 0.25;
+        }
+
+        d.vx = Math.cos(angle) * speed;
+        d.vy = Math.sin(angle) * speed;
+        d.z = 0;
+
+        d.startRotX = d.rotX;
+        d.startRotY = d.rotY;
+        d.startRotZ = d.rotZ;
+
+        const targetEuler = getTargetEulerForFace(rolledVal);
+        const signX = d.vy >= 0 ? 1 : -1;
+        const signY = d.vx >= 0 ? -1 : 1;
+        const spinsX = signX * (3 + Math.floor(Math.random() * 2)) * Math.PI * 2;
+        const spinsY = signY * (3 + Math.floor(Math.random() * 2)) * Math.PI * 2;
+        const spinsZ = (Math.random() < 0.5 ? 1 : -1) * Math.PI * 2;
+
+        d.targetRotX = targetEuler.rx + spinsX;
+        d.targetRotY = targetEuler.ry + spinsY;
+        d.targetRotZ = targetEuler.rz + spinsZ;
+
+        d.rollStartTime = performance.now();
+        d.lastTickTime = d.rollStartTime;
+        d.lastSoundBounce = 0;
+
+        updateUI();
+        if (!diceLoopId) {
+            diceLoopId = requestAnimationFrame(stepBothDiceAnimation);
+        }
+    }
+
+    function stepBothDiceAnimation(now) {
+        diceLoopId = null;
+        if (pvpPhase !== 'dice') return;
+
+        let anyRolling = false;
+
+        ['top', 'bottom'].forEach(side => {
+            const d = pvpDice[side];
+            if (d.status !== 'rolling') return;
+            anyRolling = true;
+
+            const elapsed = now - d.rollStartTime;
+            const dt = Math.min(0.05, (now - d.lastTickTime) / 1000);
+            d.lastTickTime = now;
+
+            const progress = Math.min(1, elapsed / d.rollDuration);
+            // 落地前明显减速的缓出曲线
+            const easeOut = 1 - Math.pow(1 - progress, 4);
+            // 速度因子：临近落地迅速减速
+            const slowFactor = Math.pow(1 - progress, 2.8);
+
+            const minX = 0.16, maxX = 0.84;
+            const minY = side === 'top' ? 0.15 : 0.62;
+            const maxY = side === 'top' ? 0.38 : 0.85;
+
+            if (progress < 0.94) {
+                d.x += d.vx * slowFactor * dt * 1.4;
+                d.y += d.vy * slowFactor * dt * 1.4;
+
+                if (d.x < minX) {
+                    d.x = minX;
+                    d.vx = Math.abs(d.vx) * 0.65;
+                    SFX.click();
+                } else if (d.x > maxX) {
+                    d.x = maxX;
+                    d.vx = -Math.abs(d.vx) * 0.65;
+                    SFX.click();
+                }
+                if (d.y < minY) {
+                    d.y = minY;
+                    d.vy = Math.abs(d.vy) * 0.65;
+                    SFX.click();
+                } else if (d.y > maxY) {
+                    d.y = maxY;
+                    d.vy = -Math.abs(d.vy) * 0.65;
+                    SFX.click();
+                }
+            }
+
+            // 垂直微抬高度衰减归零（不放大骰子，保持尺寸恒定）
+            if (progress < 0.85) {
+                const bouncePhase = progress / 0.85;
+                const amp = Math.pow(1 - bouncePhase, 2.2) * 0.35;
+                d.z = Math.abs(Math.sin(bouncePhase * Math.PI * 2.5)) * amp;
+                const bounceIdx = Math.floor(bouncePhase * 2.5);
+                if (bounceIdx > d.lastSoundBounce && bounceIdx <= 1) {
+                    d.lastSoundBounce = bounceIdx;
+                    SFX.click();
+                }
+            } else {
+                d.z = 0;
+            }
+
+            d.rotX = d.startRotX + (d.targetRotX - d.startRotX) * easeOut;
+            d.rotY = d.startRotY + (d.targetRotY - d.startRotY) * easeOut;
+            d.rotZ = d.startRotZ + (d.targetRotZ - d.startRotZ) * easeOut;
+
+            if (progress >= 1) {
+                d.rotX = d.targetRotX;
+                d.rotY = d.targetRotY;
+                d.rotZ = d.targetRotZ;
+                d.z = 0;
+                d.status = 'done';
+                SFX.correct();
+            }
+        });
+
+        updateUI();
+        draw();
+
+        if (anyRolling) {
+            diceLoopId = requestAnimationFrame(stepBothDiceAnimation);
+        } else if (pvpDice.top.status === 'done' && pvpDice.bottom.status === 'done') {
+            evaluateBothDiceResult();
+        }
+    }
+
+    function evaluateBothDiceResult() {
+        const topVal = pvpDice.top.faceValue;
+        const bottomVal = pvpDice.bottom.faceValue;
+        const topUser = getUserById(pvpTopUserId);
+        const bottomUser = getUserById(pvpBottomUserId);
+
+        if (topVal === bottomVal) {
+            SFX.wrong();
+            pvpPhase = 'dice_result';
+            diceWinnerSide = 'tie';
+            draw();
+            showToast(`双方均掷出 ${topVal} 点平局！请再掷一次`, 'mirror', { isUserTriggered: false });
+            diceResultTimer = setTimeout(() => {
+                if (gameMode !== 'pvp') return;
+                resetBothDiceForRoll(`平局（同为 ${topVal} 点），请双方再掷一次！`);
+            }, 1400);
+            return;
+        }
+
+        pvpPhase = 'dice_result';
+        diceWinnerSide = topVal > bottomVal ? 'top' : 'bottom';
+        const winnerUser = diceWinnerSide === 'top' ? topUser : bottomUser;
+        SFX.win();
+
+        updateUI();
+        draw();
+
+        diceResultTimer = setTimeout(() => {
+            if (gameMode !== 'pvp' || pvpPhase !== 'dice_result') return;
+            if (diceWinnerSide === 'top') {
+                pvpTopColor = 1;
+                pvpBottomColor = 2;
+            } else {
+                pvpTopColor = 2;
+                pvpBottomColor = 1;
+            }
+            pvpPhase = 'playing';
+            currentPlayer = 1;
+            gameStartTime = Date.now();
+            const banner = document.getElementById('diceHintBanner');
+            if (banner) banner.classList.remove('show');
+            syncPlayerZonesLayout();
+            updateUI();
+            draw();
+            startTurnTimer(true);
+            showToast(`${winnerUser.name} 执黑先手，请落子！`, 'mirror', { isUserTriggered: false });
+        }, 2000);
+    }
+
+    function draw() {
+        if (!canvas || canvas.width === 0) return;
+
+        const isDiceStage = (gameMode === 'pvp' && pvpPhase !== 'playing');
+        canvas.classList.toggle('dice-stage-blur', isDiceStage);
+        if (canvas.parentElement) {
+            canvas.parentElement.classList.toggle('dice-stage-frame', isDiceStage);
+        }
+        if (isDiceStage) {
+            drawSplitDiceStage();
+            return;
+        }
+
+        drawBoard();
+
+        const now = performance.now();
+
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                if (board[r][c] !== 0) {
+                    const isLatest = lastMove && lastMove.r === r && lastMove.c === c;
+                    let scale = 1;
+
+                    if (isWinAnimating && winningCells.some(wc => wc.r === r && wc.c === c)) {
+                        const t = (now - winAnimStartTime) / 1000;
+                        const pulse = Math.sin(t * Math.PI / 0.4);
+                        scale = 1 + pulse * 0.05;
+                    }
+
+                    drawPiece(c, r, board[r][c], isLatest, scale);
+                }
+            }
+        }
+
+        const canHumanPreview = !gameOver && !isPaused && (gameMode === 'pvp' || currentPlayer === playerColor);
+        if (canHumanPreview && previewPos && board[previewPos.r][previewPos.c] === 0) {
+            ctx.globalAlpha = 0.5;
+            drawPiece(previewPos.c, previewPos.r, currentPlayer, false);
+            ctx.globalAlpha = 1.0;
+        }
+    }
+
+    function drawSmoothJadeDice(d, diceSize) {
+        const half = diceSize * 0.5;
+        const innerW = CANVAS_SIZE - PADDING * 2;
+        const cx = PADDING + d.x * innerW;
+        const cy = PADDING + d.y * innerW - d.z * CELL_SIZE * 0.9;
+        const scale = 1 + d.z * 0.12;
+        const h = half * scale;
+
+        ctx.save();
+
+        // 过滤极短边拐角，防止旋转到特定角度时相邻投影点间距过小导致局部圆角塌陷成尖角
+        const rawCorners3D = [];
+        for (const sx of [-1, 1]) {
+            for (const sy of [-1, 1]) {
+                for (const sz of [-1, 1]) {
+                    const rv = rotateVec3([sx * h * 0.96, sy * h * 0.96, sz * h * 0.96], d.rotX, d.rotY, d.rotZ);
+                    const px = cx + rv[0];
+                    const py = cy - rv[1];
+                    if (!rawCorners3D.some(p => Math.hypot(p.x - px, p.y - py) < 2.0)) {
+                        rawCorners3D.push({ x: px, y: py });
+                    }
+                }
+            }
+        }
+        // Andrew 单调链求二维凸包
+        rawCorners3D.sort((a, b) => a.x === b.x ? a.y - b.y : a.x - b.x);
+        const cross2D = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+        const lowerHull = [];
+        for (const p of rawCorners3D) {
+            while (lowerHull.length >= 2 && cross2D(lowerHull[lowerHull.length - 2], lowerHull[lowerHull.length - 1], p) <= 1e-2) lowerHull.pop();
+            lowerHull.push(p);
+        }
+        const upperHull = [];
+        for (let i = rawCorners3D.length - 1; i >= 0; i--) {
+            const p = rawCorners3D[i];
+            while (upperHull.length >= 2 && cross2D(upperHull[upperHull.length - 2], upperHull[upperHull.length - 1], p) <= 1e-2) upperHull.pop();
+            upperHull.push(p);
+        }
+        lowerHull.pop();
+        upperHull.pop();
+        const rawHull = lowerHull.concat(upperHull);
+
+        // 剔除凸包中彼此距离过近（< h * 0.35）的凸包顶点，保证每条凸包边都有充足空间生成平滑大圆角
+        const minEdgeSpan = Math.max(4, h * 0.35);
+        const hull = [];
+        for (const pt of rawHull) {
+            if (hull.length === 0 || Math.hypot(pt.x - hull[hull.length - 1].x, pt.y - hull[hull.length - 1].y) >= minEdgeSpan) {
+                hull.push(pt);
+            }
+        }
+        if (hull.length >= 3 && Math.hypot(hull[0].x - hull[hull.length - 1].x, hull[0].y - hull[hull.length - 1].y) < minEdgeSpan) {
+            hull.pop();
+        }
+
+        const outerR = h * 1.32;
+        const baseGrad = ctx.createRadialGradient(
+            cx - outerR * 0.30, cy - outerR * 0.32, outerR * 0.06,
+            cx, cy, outerR * 1.12
+        );
+        baseGrad.addColorStop(0, '#ffffff');
+        baseGrad.addColorStop(0.58, '#efefef');
+        baseGrad.addColorStop(0.88, '#d4d4d4');
+        baseGrad.addColorStop(1, '#b8b8b8');
+
+        if (hull.length >= 3) {
+            ctx.beginPath();
+            const hullCornerR = h * 0.44;
+            for (let i = 0; i < hull.length; i++) {
+                const curr = hull[i];
+                const next = hull[(i + 1) % hull.length];
+                const prev = hull[(i + hull.length - 1) % hull.length];
+                const dx1 = prev.x - curr.x, dy1 = prev.y - curr.y;
+                const dx2 = next.x - curr.x, dy2 = next.y - curr.y;
+                const len1 = Math.hypot(dx1, dy1) || 1;
+                const len2 = Math.hypot(dx2, dy2) || 1;
+                // 当某条边较短时，两侧圆角按比例均分，防止圆角控制点越过中点形成尖锐夹角
+                const maxRatio1 = Math.min(0.42, (len1 * 0.48) / Math.max(len1, 1e-5));
+                const maxRatio2 = Math.min(0.42, (len2 * 0.48) / Math.max(len2, 1e-5));
+                const r1 = Math.min(hullCornerR, len1 * maxRatio1);
+                const r2 = Math.min(hullCornerR, len2 * maxRatio2);
+                const p1x = curr.x + (dx1 / len1) * r1;
+                const p1y = curr.y + (dy1 / len1) * r1;
+                const p2x = curr.x + (dx2 / len2) * r2;
+                const p2y = curr.y + (dy2 / len2) * r2;
+                if (i === 0) ctx.moveTo(p1x, p1y);
+                else ctx.lineTo(p1x, p1y);
+                ctx.quadraticCurveTo(curr.x, curr.y, p2x, p2y);
+            }
+            ctx.closePath();
+            ctx.fillStyle = baseGrad;
+            ctx.fill();
+        }
+
+        // 筛选朝向观察者 (+Z) 的可见面并按深度排序（加入平滑透明度过渡，消除临界角跳变撕裂）
+        const visibleFaces = [];
+        for (const face of DICE_FACES) {
+            const rn = rotateVec3(face.n, d.rotX, d.rotY, d.rotZ);
+            if (rn[2] > 0.02) {
+                const ru = rotateVec3(face.u, d.rotX, d.rotY, d.rotZ);
+                const rv = rotateVec3(face.v, d.rotX, d.rotY, d.rotZ);
+                visibleFaces.push({ face, rn, ru, rv });
+            }
+        }
+        visibleFaces.sort((a, b) => a.rn[2] - b.rn[2]);
+
+        for (const item of visibleFaces) {
+            const { face, rn, ru, rv } = item;
+            const fcx = cx + rn[0] * h * 0.90;
+            const fcy = cy - rn[1] * h * 0.90;
+            const faceScale = 0.92;
+
+            const corners = [
+                [-1, -1], [1, -1], [1, 1], [-1, 1]
+            ].map(([su, sv]) => ({
+                x: fcx + (su * ru[0] + sv * rv[0]) * h * faceScale,
+                y: fcy - (su * ru[1] + sv * rv[1]) * h * faceScale
+            }));
+
+            // 大圆角多边形面，并在极小倾斜角时平滑淡入淡出，杜绝最后几帧侧面闪切撕裂
+            ctx.save();
+            ctx.globalAlpha = Math.min(1, Math.max(0, (rn[2] - 0.02) / 0.14));
+            ctx.beginPath();
+            const cornerRadius = h * 0.42;
+            for (let i = 0; i < 4; i++) {
+                const curr = corners[i];
+                const next = corners[(i + 1) % 4];
+                const prev = corners[(i + 3) % 4];
+                const dx1 = prev.x - curr.x, dy1 = prev.y - curr.y;
+                const dx2 = next.x - curr.x, dy2 = next.y - curr.y;
+                const len1 = Math.hypot(dx1, dy1) || 1;
+                const len2 = Math.hypot(dx2, dy2) || 1;
+                const r1 = Math.min(cornerRadius, len1 * 0.36);
+                const r2 = Math.min(cornerRadius, len2 * 0.36);
+                const p1x = curr.x + (dx1 / len1) * r1;
+                const p1y = curr.y + (dy1 / len1) * r1;
+                const p2x = curr.x + (dx2 / len2) * r2;
+                const p2y = curr.y + (dy2 / len2) * r2;
+                if (i === 0) ctx.moveTo(p1x, p1y);
+                else ctx.lineTo(p1x, p1y);
+                ctx.quadraticCurveTo(curr.x, curr.y, p2x, p2y);
+            }
+            ctx.closePath();
+
+            // 白子同款温润光泽径向渐变（无生硬黑边）
+            const grad = ctx.createRadialGradient(
+                fcx - h * 0.28, fcy - h * 0.30, h * 0.05,
+                fcx, fcy, h * 1.25
+            );
+            if (rn[2] > 0.78) {
+                grad.addColorStop(0, '#ffffff');
+                grad.addColorStop(0.58, '#ebebeb');
+                grad.addColorStop(1, '#bdbdbd');
+            } else {
+                grad.addColorStop(0, '#f0f0f0');
+                grad.addColorStop(0.6, '#d6d6d6');
+                grad.addColorStop(1, '#a6a6a6');
+            }
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            // 与白子完全一致的顶部柔光椭圆纹理
+            if (rn[2] > 0.65) {
+                ctx.beginPath();
+                ctx.ellipse(fcx - h * 0.20, fcy - h * 0.30, h * 0.32, h * 0.15, Math.PI / 4, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                ctx.fill();
+            }
+
+            // 绘制立体凹陷感红色点数（直径放大10%，且透视压扁严格沿法线屏幕方向，确保4/5/6点矩形排列与骰子边完全平行）
+            const pipBaseR = (face.val === 1 ? h * 0.275 : h * 0.160) * faceScale;
+            const nProjLen = Math.hypot(rn[0], -rn[1]);
+            const tiltAngle = nProjLen > 1e-4 ? Math.atan2(-rn[1], rn[0]) : 0;
+            for (const [pu, pv] of face.pips) {
+                const px = fcx + (pu * ru[0] + pv * rv[0]) * h * faceScale;
+                const py = fcy - (pu * ru[1] + pv * rv[1]) * h * faceScale;
+
+                ctx.save();
+                ctx.translate(px, py);
+                if (nProjLen > 1e-4) {
+                    ctx.rotate(tiltAngle);
+                    ctx.scale(Math.max(0.34, rn[2]), 1);
+                }
+
+                const pipGrad = ctx.createRadialGradient(-pipBaseR * 0.22, -pipBaseR * 0.22, pipBaseR * 0.08, 0, 0, pipBaseR);
+                pipGrad.addColorStop(0, '#ff4d4f');
+                pipGrad.addColorStop(0.58, '#dc2626');
+                pipGrad.addColorStop(1, '#991b1b');
+
+                ctx.beginPath();
+                ctx.arc(0, 0, pipBaseR, 0, Math.PI * 2);
+                ctx.fillStyle = pipGrad;
+                ctx.fill();
+                ctx.restore();
+            }
+
+            ctx.restore();
+        }
+
+        ctx.restore();
+    }
+
+    function drawSplitDiceStage() {
+        ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+        const styles = getComputedStyle(document.body);
+        const borderColor = styles.getPropertyValue('--board-border').trim() || 'rgba(80,80,80,0.3)';
+        const textColor = styles.getPropertyValue('--text-color').trim() || '#333333';
+
+        // 清透熏黑玻璃质感：低遮挡透出底下的水墨山水，边缘保留细腻玻璃微光
+        ctx.save();
+        const rx0 = PADDING / 2, ry0 = PADDING / 2;
+        const rw = CANVAS_SIZE - PADDING, rh = CANVAS_SIZE - PADDING;
+        ctx.beginPath();
+        ctx.roundRect(rx0, ry0, rw, rh, 6);
+        ctx.clip();
+
+        // 极轻薄的斜向玻璃反光，不遮挡底下背景细节
+        const sheenGrad = ctx.createLinearGradient(rx0, ry0, rx0 + rw * 0.9, ry0 + rh * 0.9);
+        sheenGrad.addColorStop(0, 'rgba(255, 255, 255, 0.12)');
+        sheenGrad.addColorStop(0.35, 'rgba(255, 255, 255, 0.02)');
+        sheenGrad.addColorStop(0.7, 'rgba(10, 15, 25, 0.06)');
+        sheenGrad.addColorStop(1, 'rgba(255, 255, 255, 0.08)');
+        ctx.fillStyle = sheenGrad;
+        ctx.fillRect(rx0, ry0, rw, rh);
+        ctx.restore();
+
+        // 细腻玻璃外边框
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.26)';
+        ctx.lineWidth = Math.max(1, CELL_SIZE * 0.06);
+        ctx.strokeRect(PADDING / 2, PADDING / 2, CANVAS_SIZE - PADDING, CANVAS_SIZE - PADDING);
+
+        // 中央水平分隔线
+        const midY = CANVAS_SIZE / 2;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+        ctx.lineWidth = Math.max(1, CELL_SIZE * 0.06);
+        ctx.beginPath();
+        ctx.moveTo(PADDING / 2, midY);
+        ctx.lineTo(CANVAS_SIZE - PADDING / 2, midY);
+        ctx.stroke();
+        ctx.restore();
+
+        const topUser = getUserById(pvpTopUserId);
+        const bottomUser = getUserById(pvpBottomUserId);
+        // 上半区投掷区域中心（PADDING ~ midY）与下半区投掷区域中心（midY ~ CANVAS_SIZE - PADDING）
+        const topZoneCenterY = (PADDING + midY) / 2;
+        const bottomZoneCenterY = (midY + (CANVAS_SIZE - PADDING)) / 2;
+
+        // 仅在投掷阶段（dice）显示区域引导文字；进入 dice_result 时由投掷区正中央的结果窗口替代，避免文字重叠遮挡
+        if (pvpPhase === 'dice') {
+            // 上半区提示文字（旋转180度面向对面用户）
+            ctx.save();
+            ctx.translate(CANVAS_SIZE / 2, midY - 22);
+            ctx.rotate(Math.PI);
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+            ctx.shadowBlur = 4;
+            ctx.font = 'bold 13px "PingFang SC", "Microsoft YaHei", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const topHint = pvpDice.top.status === 'idle'
+                ? `${topUser.name}：点击或滑动骰子`
+                : (pvpDice.top.status === 'rolling' ? '掷骰中...' : `${topUser.name} 掷出 ${pvpDice.top.faceValue} 点`);
+            ctx.fillText(topHint, 0, 0);
+            ctx.restore();
+
+            // 下半区提示文字（正向面向下方用户）
+            ctx.save();
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+            ctx.shadowBlur = 4;
+            ctx.font = 'bold 13px "PingFang SC", "Microsoft YaHei", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const bottomHint = pvpDice.bottom.status === 'idle'
+                ? `${bottomUser.name}：点击或滑动骰子`
+                : (pvpDice.bottom.status === 'rolling' ? '掷骰中...' : `${bottomUser.name} 掷出 ${pvpDice.bottom.faceValue} 点`);
+            ctx.fillText(bottomHint, CANVAS_SIZE / 2, midY + 22);
+            ctx.restore();
+        }
+
+        const diceSize = CELL_SIZE * 2.0;
+        drawSmoothJadeDice(pvpDice.top, diceSize);
+        drawSmoothJadeDice(pvpDice.bottom, diceSize);
+
+        // 双方都掷完后的胜者与点数结果浮层：分别位于上下各自投掷区域正中央（上方旋转180°面向对面用户）
+        if (pvpPhase === 'dice_result') {
+            const boxW = Math.min(CANVAS_SIZE - 32, 268);
+            const boxH = 56;
+
+            function drawUserZoneResultCard(centerY, flip180) {
+                ctx.save();
+                ctx.translate(CANVAS_SIZE / 2, centerY);
+                if (flip180) ctx.rotate(Math.PI);
+
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+                ctx.beginPath();
+                ctx.roundRect(-boxW / 2, -boxH / 2, boxW, boxH, 14);
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                if (diceWinnerSide === 'tie') {
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.font = 'bold 14px "PingFang SC", "Microsoft YaHei", sans-serif';
+                    ctx.fillText(`平局！双方均掷出 ${pvpDice.top.faceValue} 点`, 0, -9);
+                    ctx.fillStyle = '#e2e8f0';
+                    ctx.font = '12px "PingFang SC", "Microsoft YaHei", sans-serif';
+                    ctx.fillText('即将重新掷骰决定先后手...', 0, 12);
+                } else {
+                    const winnerUser = diceWinnerSide === 'top' ? topUser : bottomUser;
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.font = 'bold 13px "PingFang SC", "Microsoft YaHei", sans-serif';
+                    ctx.fillText(`${topUser.name} ${pvpDice.top.faceValue}点  VS  ${bottomUser.name} ${pvpDice.bottom.faceValue}点`, 0, -10);
+                    ctx.fillStyle = '#34d399';
+                    ctx.font = 'bold 14px "PingFang SC", "Microsoft YaHei", sans-serif';
+                    ctx.fillText(`胜者：${winnerUser.name}（执黑先手）`, 0, 11);
+                }
+                ctx.restore();
+            }
+
+            // 上方投掷区正中央（旋转180°） + 下方投掷区正中央（正向）
+            drawUserZoneResultCard(topZoneCenterY, true);
+            drawUserZoneResultCard(bottomZoneCenterY, false);
+        }
+    }
+
+    function drawBoard() {
+        ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+        const styles = getComputedStyle(document.body);
+        const borderColor = styles.getPropertyValue('--board-border').trim() || 'rgba(80,80,80,0.3)';
+        const lineColor = styles.getPropertyValue('--board-line').trim() || 'rgba(74, 74, 74, 0.8)';
+        const starColor = styles.getPropertyValue('--star-color').trim() || '#333';
+
+        ctx.strokeStyle = borderColor;
+        ctx.lineWidth = Math.max(1, CELL_SIZE * 0.1);
+        ctx.strokeRect(PADDING / 2, PADDING / 2, CANVAS_SIZE - PADDING, CANVAS_SIZE - PADDING);
+
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = Math.max(1, CELL_SIZE * 0.03);
+        for (let i = 0; i < BOARD_SIZE; i++) {
+            ctx.beginPath(); ctx.moveTo(PADDING, PADDING + i * CELL_SIZE); ctx.lineTo(CANVAS_SIZE - PADDING, PADDING + i * CELL_SIZE); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(PADDING + i * CELL_SIZE, PADDING); ctx.lineTo(PADDING + i * CELL_SIZE, CANVAS_SIZE - PADDING); ctx.stroke();
+        }
+
+        const starPoints = [3, 7, 11];
+        ctx.fillStyle = starColor;
+        starPoints.forEach(x => {
+            starPoints.forEach(y => {
+                if ((x === 7 && y === 7) || (x === 3 && y === 3) || (x === 11 && y === 3) || (x === 3 && y === 11) || (x === 11 && y === 11)) {
+                    ctx.beginPath();
+                    ctx.arc(PADDING + x * CELL_SIZE, PADDING + y * CELL_SIZE, Math.max(1.5, CELL_SIZE * 0.1), 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+        });
+    }
+
+    function drawPiece(col, row, player, isLatest, scale = 1) {
+        const x = PADDING + col * CELL_SIZE;
+        const y = PADDING + row * CELL_SIZE;
+        const radius = CELL_SIZE * 0.4275 * scale;
+
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.4)';
+        ctx.shadowBlur = CELL_SIZE * 0.2;
+        ctx.shadowOffsetX = CELL_SIZE * 0.05;
+        ctx.shadowOffsetY = CELL_SIZE * 0.1;
+
+        ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = player === 1 ? '#000' : '#fff'; ctx.fill();
+        ctx.shadowColor = 'transparent';
+
+        const gradient = ctx.createRadialGradient(x - radius * 0.3, y - radius * 0.3, radius * 0.05, x, y, radius * 1.1);
+        if (player === 1) {
+            gradient.addColorStop(0, 'rgba(150,150,150,0.8)');
+            gradient.addColorStop(0.3, '#222');
+            gradient.addColorStop(1, '#000');
+        } else {
+            gradient.addColorStop(0, '#ffffff');
+            gradient.addColorStop(0.6, '#e6e6e6');
+            gradient.addColorStop(1, '#a0a0a0');
+        }
+        ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fillStyle = gradient; ctx.fill();
+
+        if (player === 1) {
+            ctx.beginPath(); ctx.arc(x, y, radius - 1, 0.12 * Math.PI, 0.88 * Math.PI);
+            ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+            ctx.lineWidth = Math.max(1, CELL_SIZE * 0.05); ctx.stroke();
+        }
+
+        ctx.beginPath();
+        ctx.ellipse(x - radius * 0.22, y - radius * 0.34, radius * 0.36, radius * 0.17, Math.PI / 4, 0, Math.PI * 2);
+        ctx.fillStyle = player === 1 ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.92)'; ctx.fill();
+
+        if (isLatest) {
+            ctx.beginPath(); ctx.arc(x, y, radius * 0.25, 0, Math.PI * 2); ctx.fillStyle = '#ff3333'; ctx.fill();
+            ctx.beginPath(); ctx.arc(x - radius * 0.08, y - radius * 0.08, radius * 0.08, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    function getLocalCanvasPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return null;
+
+        let localX, localY;
+        if (isLandscapeForcedPortrait()) {
+            localX = (e.clientY - rect.top) * (CANVAS_SIZE / rect.height);
+            localY = (rect.right - e.clientX) * (CANVAS_SIZE / rect.width);
+        } else {
+            localX = (e.clientX - rect.left) * (CANVAS_SIZE / rect.width);
+            localY = (e.clientY - rect.top) * (CANVAS_SIZE / rect.height);
+        }
+        return { x: localX, y: localY };
+    }
+
+    function getBoardCoordsFromEvent(e) {
+        const pt = getLocalCanvasPos(e);
+        if (!pt) return null;
+        const c = Math.round((pt.x - PADDING) / CELL_SIZE);
+        const r = Math.round((pt.y - PADDING) / CELL_SIZE);
+        return { r, c };
+    }
+
+    function handleMouseMove(e) {
+        if (e.pointerType === 'touch') return;
+        if (isPaused) {
+            previewPos = null;
+            return;
+        }
+        if (gameMode === 'pvp' && pvpPhase !== 'playing') {
+            previewPos = null;
+            return;
+        }
+        if (gameOver || (gameMode === 'pve' && currentPlayer === aiColor)) {
+            previewPos = null;
+            return;
+        }
+
+        const pos = getBoardCoordsFromEvent(e);
+        if (!pos) return;
+        const { r, c } = pos;
+
+        if (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === 0) {
+            if (!previewPos || previewPos.r !== r || previewPos.c !== c) {
+                previewPos = { r, c };
+                draw();
+            }
+        } else {
+            previewPos = null;
+        }
+    }
+
+    function handleCanvasPointerDown(e) {
+        // 双人对战掷骰子阶段：记录按下的区域（上半区=top，下半区=bottom），支持点击或滑动触发骰子
+        if (gameMode === 'pvp' && pvpPhase !== 'playing') {
+            if (pvpPhase === 'dice') {
+                const pt = getLocalCanvasPos(e);
+                if (!pt) return;
+                const side = pt.y < CANVAS_SIZE / 2 ? 'top' : 'bottom';
+                if (pvpDice[side].status === 'idle') {
+                    dicePointer.active = true;
+                    dicePointer.pointerId = e.pointerId;
+                    dicePointer.side = side;
+                    dicePointer.startX = pt.x;
+                    dicePointer.startY = pt.y;
+                    dicePointer.startTime = performance.now();
+                }
+            }
+            return;
+        }
+
+        if (isPaused) {
+            showToast('对局已暂停，请先点击继续', 'bottom');
+            return;
+        }
+
+        if (gameOver || (gameMode === 'pve' && currentPlayer === aiColor)) return;
+
+        const pos = getBoardCoordsFromEvent(e);
+        if (!pos) return;
+        const { r, c } = pos;
+
+        if (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === 0) {
+            makeMove(r, c, currentPlayer);
+        }
+    }
+
+    function handleCanvasPointerUp(e) {
+        if (!dicePointer.active) return;
+        if (dicePointer.pointerId !== null && e.pointerId !== dicePointer.pointerId) return;
+
+        const side = dicePointer.side;
+        const startX = dicePointer.startX;
+        const startY = dicePointer.startY;
+        dicePointer.active = false;
+        dicePointer.pointerId = null;
+        dicePointer.side = null;
+
+        if (gameMode !== 'pvp' || pvpPhase !== 'dice' || !side) return;
+        if (pvpDice[side].status !== 'idle') return;
+
+        const pt = getLocalCanvasPos(e);
+        if (pt) {
+            const dx = pt.x - startX;
+            const dy = pt.y - startY;
+            const dist = Math.hypot(dx, dy);
+            // 若滑动距离超过 14px，则骰子严格按手势滑动方向滚动；否则视为点击，骰子随机方向滚动
+            if (dist >= 14) {
+                rollSideDice(side, dx / dist, dy / dist);
+                return;
+            }
+        }
+        rollSideDice(side, null, null);
+    }
+
+    function makeMove(r, c, moveColor = currentPlayer) {
+        if (gameOver) return;
+        if (moveColor !== currentPlayer) return;
+        if (board[r][c] !== 0) return;
+
+        clearInterval(turnTimer);
+
+        SFX.pop();
+
+        board[r][c] = moveColor;
+        lastMove = { r, c };
+        history.push({ r, c, player: moveColor });
+        previewPos = null;
+
+        const winCells = checkWin(r, c, moveColor);
+        if (winCells) {
+            gameOver = true;
+
+            winningCells = winCells;
+            winAnimStartTime = performance.now();
+            isWinAnimating = true;
+
+            updateUI();
+            draw();
+
+            if (gameMode === 'pvp') {
+                savePvpBattleRecord(moveColor);
+                SFX.win();
+                confetti();
+            } else {
+                const isPlayerWin = (moveColor === playerColor);
+                savePveBattleRecord(isPlayerWin ? 'win' : 'lose');
+                if (isPlayerWin) {
+                    SFX.win();
+                    confetti();
+                } else {
+                    SFX.lose();
+                }
+            }
+
+            requestAnimationFrame(animateWin);
+
+            setTimeout(() => {
+                showConfirm(moveColor === 1 ? '黑方胜利！' : '白方胜利！', () => {});
+            }, 1000);
+
+            return;
+        }
+
+        // 棋盘下满和棋判定
+        if (history.length >= BOARD_SIZE * BOARD_SIZE) {
+            gameOver = true;
+            if (gameMode === 'pve') {
+                savePveBattleRecord('draw');
+            } else {
+                savePvpBattleRecord(0);
+            }
+            updateUI();
+            draw();
+            setTimeout(() => {
+                showConfirm('棋逢对手，平局！', () => {});
+            }, 600);
+            return;
+        }
+
+        currentPlayer = moveColor === 1 ? 2 : 1;
+        updateUI();
+        draw();
+
+        startTurnTimer();
+
+        if (gameMode === 'pve' && currentPlayer === aiColor && !gameOver) {
+            setTimeout(() => makeAIMove(), 120);
+        }
+    }
+
+    function animateWin(now) {
+        if (!isWinAnimating) return;
+        const elapsed = now - winAnimStartTime;
+
+        if (elapsed > 5000) {
+            isWinAnimating = false;
+            winningCells = [];
+            draw();
+            return;
+        }
+        draw();
+        requestAnimationFrame(animateWin);
+    }
+
+    /*
+     * 悔棋规则：
+     * - 区域1（上侧黑方区域）只能撤回黑子；区域2（下侧白方区域）只能撤回白子。
+     * - 严格限制：刚落完子、对方尚未落子前才允许悔棋（一旦对方落子，己方不能再悔棋，只能落子）。
+     * - 按钮样式统一显示为：悔棋（剩余次数 3/2/1/0）。
+     */
+    function undo(who) {
+        if (isPaused) {
+            showToast('对局已暂停，请先点击继续', 'bottom');
+            return;
+        }
+        if (gameOver) {
+            showToast('本局已结束，无法悔棋', 'bottom');
+            return;
+        }
+        if (history.length === 0) {
+            showToast('当前棋盘没有可悔棋的步骤', 'bottom');
+            return;
+        }
+        if (gameMode === 'pve' && who !== playerColor) {
+            SFX.wrong();
+            showToast('只能操作自己的悔棋按钮');
+            return;
+        }
+        if (undoCount[who] >= MAX_UNDO) {
+            SFX.wrong();
+            showToast('悔棋次数已用完（0次）');
+            return;
+        }
+
+        if (gameMode === 'pvp') {
+            // 双人模式下：必须满足“当前棋盘最后一手就是 who 下的（对方尚未落子）”，且当前处于对方等待落子阶段
+            const last = history[history.length - 1];
+            const opponent = who === 1 ? 2 : 1;
+            if (currentPlayer !== opponent || last.player !== who) {
+                SFX.wrong();
+                showToast('对方已落子或尚未轮到，当前只能落子');
+                return;
+            }
+            clearInterval(turnTimer);
+            history.pop();
+            board[last.r][last.c] = 0;
+            undoCount[who]++;
+            currentPlayer = who;
+        } else {
+            // 人机模式下：AI 落子极快，若人类刚下完且 AI 尚未落子则撤回 1 步；若 AI 已自动应手则撤回 AI + 人类共 2 步回到人类刚落子前
+            if (currentPlayer === aiColor && history[history.length - 1].player === playerColor) {
+                clearInterval(turnTimer);
+                const playerStep = history.pop();
+                if (playerStep) board[playerStep.r][playerStep.c] = 0;
+                undoCount[who]++;
+                currentPlayer = playerColor;
+            } else if (currentPlayer === playerColor && history.length >= 2 && history[history.length - 1].player === aiColor) {
+                clearInterval(turnTimer);
+                const aiStep = history.pop();
+                if (aiStep) board[aiStep.r][aiStep.c] = 0;
+                const playerStep = history.pop();
+                if (playerStep) board[playerStep.r][playerStep.c] = 0;
+                undoCount[who]++;
+                currentPlayer = playerColor;
+            } else {
+                SFX.wrong();
+                showToast('当前无法悔棋');
+                return;
+            }
+        }
+
+        SFX.wrong();
+        lastMove = history.length > 0 ? history[history.length - 1] : null;
+        gameOver = false;
+        previewPos = null;
+        isWinAnimating = false;
+        winningCells = [];
+
+        updateUI();
+        draw();
+        showToast(`悔棋成功，剩余 ${MAX_UNDO - undoCount[who]} 次`);
+        startTurnTimer();
+    }
+
+    function updateUI() {
+        const p1Status = document.getElementById('p1Status');
+        const p2Status = document.getElementById('p2Status');
+        const p1StatusText = document.getElementById('p1StatusText');
+        const p2StatusText = document.getElementById('p2StatusText');
+        const hourglassWidget = document.getElementById('hourglassWidget');
+        const btnTop = document.getElementById('btnUndoTop');
+        const btnBottom = document.getElementById('btnUndoBottom');
+
+        if (gameMode === 'pvp' && pvpPhase !== 'playing') {
+            p1Status.classList.add('active');
+            p2Status.classList.add('active');
+            if (pvpPhase === 'dice') {
+                const topRolled = pvpDice.top.status !== 'idle';
+                const bottomRolled = pvpDice.bottom.status !== 'idle';
+                if (topRolled && !bottomRolled) {
+                    p1StatusText.innerText = '等待对方投掷';
+                } else {
+                    p1StatusText.innerText = pvpDice.top.status === 'idle' ? '待掷骰' : `${pvpDice.top.faceValue} 点`;
+                }
+                if (bottomRolled && !topRolled) {
+                    p2StatusText.innerText = '等待对方投掷';
+                } else {
+                    p2StatusText.innerText = pvpDice.bottom.status === 'idle' ? '待掷骰' : `${pvpDice.bottom.faceValue} 点`;
+                }
+            } else {
+                if (diceWinnerSide === 'tie') {
+                    p1StatusText.innerText = `${pvpDice.top.faceValue}点（平局）`;
+                    p2StatusText.innerText = `${pvpDice.bottom.faceValue}点（平局）`;
+                } else {
+                    p1StatusText.innerText = diceWinnerSide === 'top' ? `${pvpDice.top.faceValue}点 · 执黑` : `${pvpDice.top.faceValue}点 · 执白`;
+                    p2StatusText.innerText = diceWinnerSide === 'bottom' ? `${pvpDice.bottom.faceValue}点 · 执黑` : `${pvpDice.bottom.faceValue}点 · 执白`;
+                }
+            }
+            if (hourglassWidget) hourglassWidget.style.visibility = 'hidden';
+            if (btnTop) {
+                btnTop.innerText = `悔棋（${MAX_UNDO}）`;
+                btnTop.classList.add('disabled');
+            }
+            if (btnBottom) {
+                btnBottom.innerText = `悔棋（${MAX_UNDO}）`;
+                btnBottom.classList.add('disabled');
+            }
+            return;
+        }
+
+        if (hourglassWidget) hourglassWidget.style.visibility = 'visible';
+
+        const topSideColor = (gameMode === 'pvp') ? pvpTopColor : aiColor;
+        const bottomSideColor = (gameMode === 'pvp') ? pvpBottomColor : playerColor;
+
+        if (gameOver) {
+            p1Status.classList.remove('active');
+            p2Status.classList.remove('active');
+            p1StatusText.innerText = '对局结束';
+            p2StatusText.innerText = '对局结束';
+        } else {
+            p1Status.classList.toggle('active', currentPlayer === topSideColor);
+            p2Status.classList.toggle('active', currentPlayer === bottomSideColor);
+            p1StatusText.innerText = currentPlayer === topSideColor ? '思考中...' : '等待中';
+            p2StatusText.innerText = currentPlayer === bottomSideColor ? '思考中...' : '等待中';
+        }
+
+        // 沙漏移位：轮到谁下子就移动到谁的区域
+        const targetSlot = document.getElementById(currentPlayer === topSideColor ? 'topTimerSlot' : 'bottomTimerSlot');
+        if (hourglassWidget && targetSlot && hourglassWidget.parentElement !== targetSlot) {
+            targetSlot.appendChild(hourglassWidget);
+        }
+
+        // 更新悔棋按钮文案：悔棋（0/1/2/3）
+        if (gameMode === 'pvp') {
+            const topRemain = Math.max(0, MAX_UNDO - undoCount[pvpTopColor]);
+            const bottomRemain = Math.max(0, MAX_UNDO - undoCount[pvpBottomColor]);
+            if (btnTop) btnTop.innerText = `悔棋（${topRemain}）`;
+            if (btnBottom) btnBottom.innerText = `悔棋（${bottomRemain}）`;
+
+            let canTopUndo = false;
+            let canBottomUndo = false;
+            if (!gameOver && history.length > 0) {
+                const lastPlayer = history[history.length - 1].player;
+                canTopUndo = (topRemain > 0 && currentPlayer === pvpBottomColor && lastPlayer === pvpTopColor);
+                canBottomUndo = (bottomRemain > 0 && currentPlayer === pvpTopColor && lastPlayer === pvpBottomColor);
+            }
+            if (btnTop) btnTop.classList.toggle('disabled', !canTopUndo);
+            if (btnBottom) btnBottom.classList.toggle('disabled', !canBottomUndo);
+        } else {
+            const playerRemain = Math.max(0, MAX_UNDO - undoCount[playerColor]);
+            if (btnBottom) {
+                btnBottom.innerText = `悔棋（${playerRemain}）`;
+                const canPlayerUndo = !gameOver && playerRemain > 0 && history.some(h => h.player === playerColor);
+                btnBottom.classList.toggle('disabled', !canPlayerUndo);
+            }
+        }
+    }
+
+    function checkWin(r, c, player) {
+        const dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
+        for (let [dr, dc] of dirs) {
+            let count = 1;
+            let cells = [{r, c}];
+
+            for (let i = 1; i <= 4; i++) {
+                const nr = r + dr * i, nc = c + dc * i;
+                if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && board[nr][nc] === player) {
+                    count++;
+                    cells.push({r: nr, c: nc});
+                } else break;
+            }
+            for (let i = 1; i <= 4; i++) {
+                const nr = r - dr * i, nc = c - dc * i;
+                if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && board[nr][nc] === player) {
+                    count++;
+                    cells.push({r: nr, c: nc});
+                } else break;
+            }
+
+            if (count >= 5) {
+                return cells;
+            }
+        }
+        return null;
+    }
+
+    function renderDifficultyMenu() {
+        const list = document.getElementById('difficultyList');
+        list.innerHTML = '';
+        DIFFICULTIES.forEach(diff => {
+            const div = document.createElement('div');
+            div.className = `menu-item`;
+            div.innerText = diff.name;
+            div.onclick = () => {
+                SFX.click();
+                aiConfig = diff;
+                saveActiveProfileState();
+                if (gameMode === 'pve') {
+                    document.getElementById('p1Name').innerText = '系统';
+                    document.getElementById('aiDiffCenter').innerText = aiConfig.name;
+                }
+                document.getElementById('difficultyModal').classList.remove('active');
+                renderDifficultyMenu();
+                initGame();
+            };
+            if(diff.id === aiConfig.id) {
+                div.style.background = 'var(--modal-item-active)';
+                div.style.color = '#d96556';
+                div.style.fontWeight = 'bold';
+                const check = document.createElement('span'); check.innerText = '✓';
+                div.appendChild(check);
+            }
+            list.appendChild(div);
+        });
+    }
+
+    function hasPvePlayerMoved() {
+        return Array.isArray(history) && history.some(step => step.player === playerColor);
+    }
+
+    function isPveGameInProgress() {
+        const gameUI = document.getElementById('gameUI');
+        return gameMode === 'pve' && gameUI && gameUI.classList.contains('active') && !gameOver && hasPvePlayerMoved();
+    }
+
+    function openDifficulty() {
+        if (isPveGameInProgress()) {
+            SFX.wrong();
+            showToast('游戏已开局，本局不可切换难度');
+            return;
+        }
+        document.getElementById('difficultyModal').classList.add('active');
+    }
+
+    function makeAIMove() {
+        if (gameOver || currentPlayer !== aiColor) return;
+
+        let bestMove = null;
+
+        if (history.length === 0) {
+            bestMove = { r: 7, c: 7 };
+        } else if (aiConfig.depth === 0) {
+            bestMove = getEasyMove();
+        } else {
+            bestMove = getMinimaxMove(aiConfig.depth);
+        }
+
+        if (bestMove) makeMove(bestMove.r, bestMove.c, aiColor);
+    }
+
+    function getEasyMove() {
+        let maxScore = -1;
+        let candidates = [];
+
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                if (board[r][c] === 0 && hasNeighbor(r, c)) {
+                    let myScore = evaluatePoint(r, c, aiColor);
+                    let oppScore = evaluatePoint(r, c, playerColor);
+                    let score = myScore * 1.0 + oppScore * 0.3;
+                    score += Math.random() * aiConfig.random;
+
+                    if (score > maxScore) {
+                        maxScore = score;
+                        candidates = [{ r, c }];
+                    } else if (Math.abs(score - maxScore) < 100) {
+                        candidates.push({ r, c });
+                    }
+                }
+            }
+        }
+        return candidates.length ? candidates[Math.floor(Math.random() * candidates.length)] : getRandomEmpty();
+    }
+
+    function getMinimaxMove(depth) {
+        let bestScore = -Infinity;
+        let bestMoves = [];
+        const candLimit = aiConfig.candLimit || 12;
+        const candidates = getSortedCandidates(aiColor).slice(0, candLimit);
+
+        // 必杀/必防急所优先：若己方可成五直接落子；若对手有活四/冲四必防点，优先纳入搜索
+        for (let move of candidates) {
+            board[move.r][move.c] = aiColor;
+            const winNow = checkWin(move.r, move.c, aiColor);
+            board[move.r][move.c] = 0;
+            if (winNow) return move;
+        }
+
+        for (let move of candidates) {
+            board[move.r][move.c] = aiColor;
+            let score = minimax(depth - 1, false, -Infinity, Infinity, candLimit);
+            board[move.r][move.c] = 0;
+
+            if (aiConfig.random > 0) {
+                score += (Math.random() * aiConfig.random);
+            }
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestMoves = [move];
+            } else if (aiConfig.random > 0 && Math.abs(score - bestScore) < aiConfig.random * 0.25) {
+                bestMoves.push(move);
+            }
+        }
+        return bestMoves.length ? bestMoves[Math.floor(Math.random() * bestMoves.length)] : getRandomEmpty();
+    }
+
+    function minimax(depth, isMaximizing, alpha, beta, candLimit = 12) {
+        if (depth === 0) return evaluateBoard();
+
+        let player = isMaximizing ? aiColor : playerColor;
+        let bestScore = isMaximizing ? -Infinity : Infinity;
+
+        let candidates = getSortedCandidates(player).slice(0, candLimit);
+
+        if (candidates.length === 0) return evaluateBoard();
+
+        for (let move of candidates) {
+            board[move.r][move.c] = player;
+
+            if (checkWin(move.r, move.c, player)) {
+                board[move.r][move.c] = 0;
+                return isMaximizing ? 1000000 + depth * 100 : -1000000 - depth * 100;
+            }
+
+            let score = minimax(depth - 1, !isMaximizing, alpha, beta, candLimit);
+            board[move.r][move.c] = 0;
+
+            if (isMaximizing) {
+                bestScore = Math.max(bestScore, score);
+                alpha = Math.max(alpha, bestScore);
+            } else {
+                bestScore = Math.min(bestScore, score);
+                beta = Math.min(beta, bestScore);
+            }
+            if (beta <= alpha) break;
+        }
+        return bestScore;
+    }
+
+    function evaluateBoard() {
+        let aiScore = 0;
+        let playerScore = 0;
+        const defWeight = aiConfig.defWeight || 1.2;
+
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                if (board[r][c] === aiColor) aiScore += evaluatePoint(r, c, aiColor);
+                else if (board[r][c] === playerColor) playerScore += evaluatePoint(r, c, playerColor);
+            }
+        }
+        return aiScore - playerScore * defWeight;
+    }
+
+    function getSortedCandidates(player) {
+        let candidates = [];
+        const opp = player === 1 ? 2 : 1;
+        const defWeight = aiConfig.defWeight || 1.2;
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                if (board[r][c] === 0 && hasNeighbor(r, c)) {
+                    const atk = evaluatePoint(r, c, player);
+                    const def = evaluatePoint(r, c, opp);
+                    const centerBonus = (7 - Math.abs(r - 7)) + (7 - Math.abs(c - 7));
+                    let score = atk + def * defWeight + centerBonus;
+                    candidates.push({ r, c, score });
+                }
+            }
+        }
+        return candidates.sort((a, b) => b.score - a.score);
+    }
+
+    function evaluatePoint(r, c, player) {
+        let score = 0; const dirs = [[1,0], [0,1], [1,1], [1,-1]];
+        dirs.forEach(([dr, dc]) => {
+            let count = 1; let block = 0;
+            for (let i = 1; i <= 4; i++) {
+                const nr = r + dr * i, nc = c + dc * i;
+                if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
+                    if (board[nr][nc] === player) count++; else if (board[nr][nc] !== 0) { block++; break; } else break;
+                } else { block++; break; }
+            }
+            for (let i = 1; i <= 4; i++) {
+                const nr = r - dr * i, nc = c - dc * i;
+                if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
+                    if (board[nr][nc] === player) count++; else if (board[nr][nc] !== 0) { block++; break; } else break;
+                } else { block++; break; }
+            }
+            if (count >= 5) score += 1000000;
+            else if (count === 4) {
+                if (block === 0) score += 100000;
+                else if (block === 1) score += 10000;
+            }
+            else if (count === 3) {
+                if (block === 0) score += 10000;
+                else if (block === 1) score += 1000;
+            }
+            else if (count === 2) {
+                if (block === 0) score += 1000;
+                else if (block === 1) score += 100;
+            }
+        });
+        return score;
+    }
+
+    function hasNeighbor(r, c) {
+        for (let i = -2; i <= 2; i++) {
+            for (let j = -2; j <= 2; j++) {
+                if (i === 0 && j === 0) continue;
+                const nr = r + i, nc = c + j;
+                if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && board[nr][nc] !== 0) return true;
+            }
+        }
+        return false;
+    }
+
+    function getRandomEmpty() {
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) { if (board[r][c] === 0) return { r, c }; }
+        }
+        return null;
+    }
+
+    /* ================= 多用户管理与切换系统 ================= */
+    const USERS_STORAGE_KEY = 'gomoku_users_list_v2';
+    const PVE_USER_RECORDS_KEY = 'gomoku_pve_user_records_v1';
+    const PVP_RECORDS_KEY = 'gomoku_pvp_battle_records_v1';
+    const ACTIVE_PROFILE_KEY = 'gomoku_active_profile_v1';
+    const AVATAR_COLORS = ['#d96556', '#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#6366f1'];
+
+    let usersList = [];
+    let pveUserId = 'u_player_1';
+    let pvpTopUserId = 'u_player_1';
+    let pvpBottomUserId = 'u_guest_default';
+
+    function saveActiveProfileState() {
+        PermanentStore.setItem(ACTIVE_PROFILE_KEY, JSON.stringify({
+            pveUserId,
+            pvpTopUserId,
+            pvpBottomUserId,
+            aiDiffId: aiConfig ? aiConfig.id : 'easy'
+        }));
+    }
+
+    function loadActiveProfileState() {
+        try {
+            const raw = PermanentStore.getItem(ACTIVE_PROFILE_KEY);
+            if (!raw) return;
+            const data = JSON.parse(raw);
+            if (data && typeof data === 'object') {
+                if (data.pveUserId) pveUserId = data.pveUserId;
+                if (data.pvpTopUserId) pvpTopUserId = data.pvpTopUserId;
+                if (data.pvpBottomUserId) pvpBottomUserId = data.pvpBottomUserId;
+                if (data.aiDiffId) {
+                    const foundDiff = DIFFICULTIES.find(d => d.id === data.aiDiffId);
+                    if (foundDiff) aiConfig = foundDiff;
+                }
+            }
+        } catch (e) {}
+    }
+    let currentUserPickerTarget = 'manage'; // 'manage' | 'pve' | 'pvp_top' | 'pvp_bottom'
+    let currentRecordContext = { mode: 'pve', side: 'bottom' };
+
+    function ensureDefaultUsers() {
+        if (usersList.length > 0) return;
+        try {
+            const raw = localStorage.getItem(USERS_STORAGE_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    usersList = parsed;
+                }
+            }
+        } catch (e) {}
+
+        if (usersList.length === 0) {
+            usersList = [
+                { id: 'u_player_1', name: '玩家甲', color: AVATAR_COLORS[0], isSystem: false },
+                { id: 'u_guest_default', name: '访客', color: AVATAR_COLORS[1], isSystem: false }
+            ];
+            saveUsersList();
+        }
+        if (!usersList.some(u => u.id === pveUserId)) pveUserId = usersList[0].id;
+        if (!usersList.some(u => u.id === pvpTopUserId)) pvpTopUserId = usersList[0].id;
+        if (!usersList.some(u => u.id === pvpBottomUserId) || pvpBottomUserId === pvpTopUserId) {
+            const other = usersList.find(u => u.id !== pvpTopUserId);
+            pvpBottomUserId = other ? other.id : usersList[0].id;
+        }
+    }
+
+    function ensureDistinctPvpUsers() {
+        ensureDefaultUsers();
+        if (pvpTopUserId === pvpBottomUserId) {
+            const other = usersList.find(u => u.id !== pvpTopUserId);
+            if (other) {
+                pvpBottomUserId = other.id;
+            } else {
+                const extraUser = {
+                    id: 'u_player_2_' + Date.now(),
+                    name: '玩家乙',
+                    color: AVATAR_COLORS[1],
+                    isSystem: false
+                };
+                usersList.push(extraUser);
+                saveUsersList();
+                pvpBottomUserId = extraUser.id;
+            }
+        }
+    }
+
+    function saveUsersList() {
+        PermanentStore.setItem(USERS_STORAGE_KEY, JSON.stringify(usersList));
+        saveActiveProfileState();
+    }
+
+    function getUserById(id) {
+        ensureDefaultUsers();
+        return usersList.find(u => u.id === id) || usersList[0];
+    }
+
+    function renderAvatarBadge(el, user) {
+        if (!el || !user) return;
+        const firstChar = (user.name || '系').trim().charAt(0);
+        el.style.background = user.color || '#d96556';
+        el.style.display = 'flex';
+        el.style.alignItems = 'center';
+        el.style.justifyContent = 'center';
+        el.style.color = '#ffffff';
+        el.style.fontWeight = '900';
+        el.style.fontSize = '17px';
+        el.innerText = firstChar;
+    }
+
+    function resetDefaultAvatar(el) {
+        if (!el) return;
+        el.innerText = '';
+        el.style.background = '';
+    }
+
+    function isSidePvpDiceRolled(side) {
+        return pvpDice && pvpDice[side] && pvpDice[side].status !== 'idle';
+    }
+
+    function isPveGameStarted() {
+        const gameUI = document.getElementById('gameUI');
+        return gameMode === 'pve' && gameUI && gameUI.classList.contains('active') && !gameOver && hasPvePlayerMoved();
+    }
+
+    function areBothPvpDiceRolled() {
+        const topDone = Boolean(pvpDice && pvpDice.top && pvpDice.top.status !== 'idle');
+        const bottomDone = Boolean(pvpDice && pvpDice.bottom && pvpDice.bottom.status !== 'idle');
+        return topDone && bottomDone;
+    }
+
+    function handleAvatarClick(side) {
+        if (gameMode === 'pve') {
+            if (isPveGameStarted()) {
+                SFX.wrong();
+                showToast('游戏已开局，本局不可切换用户', 'bottom');
+                return;
+            }
+            if (side !== 'bottom') return;
+            openUserManager('pve');
+        } else {
+            const toastSide = side === 'top' ? 'top' : 'bottom';
+            if (pvpPhase !== 'dice') {
+                SFX.wrong();
+                showToast('已开局，不可切换用户', toastSide);
+                return;
+            }
+            if (areBothPvpDiceRolled()) {
+                SFX.wrong();
+                showToast('已投掷，不可切换用户', toastSide);
+                return;
+            }
+            if (isSidePvpDiceRolled(side)) {
+                SFX.wrong();
+                showToast('已投掷，不可切换用户', toastSide);
+                return;
+            }
+            openUserManager(side === 'top' ? 'pvp_top' : 'pvp_bottom');
+        }
+    }
+
+    function openUserManager(target) {
+        ensureDefaultUsers();
+        currentUserPickerTarget = target;
+        const titleEl = document.getElementById('userModalTitle');
+        const hintEl = document.getElementById('userModalHint');
+        const boxEl = document.getElementById('userModalBox');
+
+        if (target === 'pvp_top') {
+            boxEl.style.transform = 'rotate(180deg)';
+        } else {
+            boxEl.style.transform = 'none';
+        }
+
+        if (target === 'manage') {
+            titleEl.innerText = '用户管理';
+            hintEl.innerText = `共 ${usersList.length} 位用户`;
+        } else if (target === 'pve') {
+            titleEl.innerText = '切换我方用户';
+            hintEl.innerText = '开局后不可切换';
+        } else if (target === 'pvp_top') {
+            titleEl.innerText = '上方切换用户';
+            hintEl.innerText = '投掷时同名将被拦截';
+        } else {
+            titleEl.innerText = '下方切换用户';
+            hintEl.innerText = '投掷时同名将被拦截';
+        }
+
+        renderUserList();
+        document.getElementById('userModal').classList.add('active');
+    }
+
+    function closeUserModal() {
+        document.getElementById('userModal').classList.remove('active');
+        document.getElementById('userModalBox').style.transform = 'none';
+    }
+
+    function addNewUser() {
+        ensureDefaultUsers();
+        const input = document.getElementById('newUserNameInput');
+        const rawName = (input.value || '').trim();
+        if (!rawName) {
+            showToast('请输入用户名称');
+            return;
+        }
+        if (usersList.some(u => u.name === rawName)) {
+            showToast('该用户名称已存在');
+            return;
+        }
+        const color = AVATAR_COLORS[usersList.length % AVATAR_COLORS.length];
+        const newUser = {
+            id: 'u_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+            name: rawName,
+            color: color,
+            isSystem: false
+        };
+        usersList.push(newUser);
+        saveUsersList();
+        input.value = '';
+        renderUserList();
+        showToast(`已添加用户：${rawName}`);
+    }
+
+    function editUserName(userId, event) {
+        if (event) event.stopPropagation();
+        const targetUser = getUserById(userId);
+        if (!targetUser) return;
+        showPrompt(`修改用户【${targetUser.name}】名称`, targetUser.name, (newVal) => {
+            const trimmed = (newVal || '').trim();
+            if (!trimmed) {
+                showToast('用户名称不能为空');
+                return;
+            }
+            if (trimmed === targetUser.name) return;
+            if (usersList.some(u => u.id !== userId && u.name === trimmed)) {
+                showToast('该用户名称已存在');
+                return;
+            }
+            targetUser.name = trimmed;
+            saveUsersList();
+            renderUserList();
+            syncPlayerZonesLayout();
+            updateUI();
+            if (canvas && ctx) draw();
+            showToast(`已修改为：${trimmed}`);
+        });
+    }
+
+    function deleteUser(userId, event) {
+        if (event) event.stopPropagation();
+        const targetUser = getUserById(userId);
+        if (!targetUser) return;
+        if (usersList.length <= 2) {
+            showToast('至少保留 2 位用户以支持双人对战');
+            return;
+        }
+        showConfirm(`确定删除用户【${targetUser.name}】及其对弈记录吗？`, () => {
+            usersList = usersList.filter(u => u.id !== userId);
+            saveUsersList();
+
+            // 若删除的是当前选中的用户，自动回退到其他可用用户
+            if (pveUserId === userId) pveUserId = usersList[0].id;
+            if (pvpTopUserId === userId) {
+                const avail = usersList.find(u => u.id !== pvpBottomUserId) || usersList[0];
+                pvpTopUserId = avail.id;
+            }
+            if (pvpBottomUserId === userId) {
+                const avail = usersList.find(u => u.id !== pvpTopUserId) || usersList[0];
+                pvpBottomUserId = avail.id;
+            }
+            ensureDistinctPvpUsers();
+
+            // 同步清理该用户的对弈记录
+            const pveAll = loadAllBattleRecords(PVE_USER_RECORDS_KEY);
+            if (pveAll[userId]) {
+                delete pveAll[userId];
+                saveAllBattleRecords(pveAll, PVE_USER_RECORDS_KEY);
+            }
+            const pvpAll = loadAllBattleRecords(PVP_RECORDS_KEY);
+            if (pvpAll[userId]) {
+                delete pvpAll[userId];
+                saveAllBattleRecords(pvpAll, PVP_RECORDS_KEY);
+            }
+
+            renderUserList();
+            syncPlayerZonesLayout();
+            updateUI();
+            if (canvas && ctx) draw();
+            showToast('用户已删除');
+        });
+    }
+
+    function selectUserForTarget(userId) {
+        if (currentUserPickerTarget === 'manage') return;
+        if (gameMode === 'pvp') {
+            const targetSide = currentUserPickerTarget === 'pvp_top' ? 'top' : 'bottom';
+            if (pvpPhase !== 'dice') {
+                SFX.wrong();
+                showToast('已开局，不可切换用户', targetSide);
+                closeUserModal();
+                return;
+            }
+            if (areBothPvpDiceRolled()) {
+                SFX.wrong();
+                showToast('已投掷，不可切换用户', targetSide);
+                closeUserModal();
+                return;
+            }
+            if (isSidePvpDiceRolled(targetSide)) {
+                SFX.wrong();
+                showToast('已投掷，不可切换用户', targetSide);
+                closeUserModal();
+                return;
+            }
+        }
+        if (isPveGameStarted()) {
+            SFX.wrong();
+            showToast('游戏已开局，本局不可切换用户');
+            closeUserModal();
+            return;
+        }
+
+        if (currentUserPickerTarget === 'pve') {
+            pveUserId = userId;
+            saveActiveProfileState();
+            syncPlayerZonesLayout();
+            updateUI();
+            if (canvas && ctx) draw();
+            closeUserModal();
+            showToast(`已切换为：${getUserById(userId).name}`);
+        } else if (currentUserPickerTarget === 'pvp_top') {
+            pvpTopUserId = userId;
+            saveActiveProfileState();
+            syncPlayerZonesLayout();
+            updateUI();
+            if (canvas && ctx) draw();
+            closeUserModal();
+            showToast(`上方已切换为：${getUserById(userId).name}`);
+        } else if (currentUserPickerTarget === 'pvp_bottom') {
+            pvpBottomUserId = userId;
+            saveActiveProfileState();
+            syncPlayerZonesLayout();
+            updateUI();
+            if (canvas && ctx) draw();
+            closeUserModal();
+            showToast(`下方已切换为：${getUserById(userId).name}`);
+        }
+    }
+
+    function renderUserList() {
+        const container = document.getElementById('userListContainer');
+        if (currentUserPickerTarget === 'manage') {
+            document.getElementById('userModalHint').innerText = `共 ${usersList.length} 位用户`;
+        }
+        container.innerHTML = usersList.map(u => {
+            const firstChar = u.name.charAt(0);
+            let isSelected = false;
+            let isOccupied = false;
+            let statusTag = '';
+
+            if (currentUserPickerTarget === 'pve') {
+                isSelected = (u.id === pveUserId);
+                if (isSelected) statusTag = '我';
+            } else if (currentUserPickerTarget === 'pvp_top') {
+                isSelected = (u.id === pvpTopUserId);
+                if (isSelected) statusTag = '我';
+                else if (u.id === pvpBottomUserId) statusTag = '对方同选';
+            } else if (currentUserPickerTarget === 'pvp_bottom') {
+                isSelected = (u.id === pvpBottomUserId);
+                if (isSelected) statusTag = '我';
+                else if (u.id === pvpTopUserId) statusTag = '对方同选';
+            }
+
+            let rightHtml = '';
+            if (currentUserPickerTarget === 'manage') {
+                rightHtml = `
+                    <div class="user-actions">
+                        <button class="user-edit-btn" onclick="SFX.click(); editUserName('${u.id}', event)">编辑</button>
+                        <button class="user-del-btn" onclick="SFX.click(); deleteUser('${u.id}', event)">删除</button>
+                    </div>
+                `;
+            } else {
+                rightHtml = statusTag ? `<span class="user-item-tag">${statusTag}</span>` : '';
+            }
+
+            return `
+                <div class="user-item ${isSelected ? 'selected' : ''} ${isOccupied ? 'occupied' : ''}" onclick="SFX.click(); selectUserForTarget('${u.id}')">
+                    <div class="user-item-left">
+                        <div class="user-badge-avatar" style="background:${u.color}">${firstChar}</div>
+                        <div class="user-item-name">${u.name}</div>
+                    </div>
+                    ${rightHtml}
+                </div>
+            `;
+        }).join('');
+    }
+
+    loadActiveProfileState();
+    ensureDefaultUsers();
+
+    PermanentStore.hydrateAll((restored) => {
+        if (restored) {
+            usersList = [];
+            loadActiveProfileState();
+            ensureDefaultUsers();
+            let savedDark = '0';
+            try { savedDark = localStorage.getItem(THEME_KEY) || '0'; } catch (e) {}
+            applyTheme(savedDark === '1');
+            const mutedFlag = PermanentStore.getItem('gomoku_muted') === 'true';
+            SFX.setMuted(mutedFlag);
+            const soundBtn = document.getElementById('btnSound');
+            if (soundBtn) soundBtn.innerText = mutedFlag ? '🔇' : '🔊';
+            renderDifficultyMenu();
+            syncPlayerZonesLayout();
+            updateUI();
+            if (canvas && ctx) draw();
+        }
+    });
+
+    window.addEventListener('pagehide', () => {
+        saveUsersList();
+        saveActiveProfileState();
+    });
+
+    /* ================= 人机 & 双人对弈记录管理 ================= */
+    function loadAllBattleRecords(storageKey = PVE_USER_RECORDS_KEY) {
+        try {
+            const raw = localStorage.getItem(storageKey);
+            return raw ? JSON.parse(raw) : {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function saveAllBattleRecords(data, storageKey = PVE_USER_RECORDS_KEY) {
+        PermanentStore.setItem(storageKey, JSON.stringify(data));
+    }
+
+    function formatDuration(sec) {
+        const s = Math.max(1, Math.round(sec));
+        const m = Math.floor(s / 60);
+        const rem = s % 60;
+        return m > 0 ? `${m}分${rem < 10 ? '0' : ''}${rem}秒` : `${rem}秒`;
+    }
+
+    function formatDateTime(ts) {
+        const d = new Date(ts);
+        const pad = n => (n < 10 ? '0' + n : '' + n);
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    // 保存人机对战记录：严格绑定当前 userId -> diffId，隔离不同用户的记录
+    function savePveBattleRecord(resultType) {
+        if (gameMode !== 'pve') return;
+        const all = loadAllBattleRecords(PVE_USER_RECORDS_KEY);
+        const meUser = getUserById(pveUserId);
+        const diffId = aiConfig.id;
+
+        if (!all[meUser.id] || typeof all[meUser.id] !== 'object') all[meUser.id] = {};
+        if (!Array.isArray(all[meUser.id][diffId])) all[meUser.id][diffId] = [];
+
+        const now = Date.now();
+        const durationSec = gameStartTime ? (now - gameStartTime) / 1000 : 1;
+        const myMoves = history.filter(h => h.player === playerColor).length;
+
+        all[meUser.id][diffId].unshift({
+            timestamp: now,
+            playedAt: formatDateTime(now),
+            duration: formatDuration(durationSec),
+            result: resultType, // 'win' | 'lose' | 'draw'
+            myColor: playerColor, // 1: 执黑先手, 2: 执白后手
+            myMoves: myMoves,
+            userId: meUser.id,
+            userName: meUser.name
+        });
+
+        saveAllBattleRecords(all, PVE_USER_RECORDS_KEY);
+    }
+
+    // 保存双人对战记录（根据本局掷骰子分配的 pvpTopColor / pvpBottomColor 准确存入双方各自名下）
+    function savePvpBattleRecord(winColor) {
+        if (gameMode !== 'pvp') return;
+        const all = loadAllBattleRecords(PVP_RECORDS_KEY);
+        const topUser = getUserById(pvpTopUserId);
+        const bottomUser = getUserById(pvpBottomUserId);
+
+        const now = Date.now();
+        const durationSec = gameStartTime ? (now - gameStartTime) / 1000 : 1;
+        const durationStr = formatDuration(durationSec);
+        const playedAtStr = formatDateTime(now);
+        const topMoves = history.filter(h => h.player === pvpTopColor).length;
+        const bottomMoves = history.filter(h => h.player === pvpBottomColor).length;
+
+        if (!Array.isArray(all[topUser.id])) all[topUser.id] = [];
+        all[topUser.id].unshift({
+            timestamp: now,
+            playedAt: playedAtStr,
+            duration: durationStr,
+            result: winColor === 0 ? 'draw' : (winColor === pvpTopColor ? 'win' : 'lose'),
+            myColor: pvpTopColor,
+            myMoves: topMoves,
+            opponentId: bottomUser.id,
+            opponentName: bottomUser.name
+        });
+
+        if (bottomUser.id !== topUser.id) {
+            if (!Array.isArray(all[bottomUser.id])) all[bottomUser.id] = [];
+            all[bottomUser.id].unshift({
+                timestamp: now,
+                playedAt: playedAtStr,
+                duration: durationStr,
+                result: winColor === 0 ? 'draw' : (winColor === pvpBottomColor ? 'win' : 'lose'),
+                myColor: pvpBottomColor,
+                myMoves: bottomMoves,
+                opponentId: topUser.id,
+                opponentName: topUser.name
+            });
+        }
+
+        saveAllBattleRecords(all, PVP_RECORDS_KEY);
+    }
+
+    function openBattleRecords(side = 'bottom') {
+        currentRecordContext = { mode: gameMode, side: side };
+        const boxEl = document.getElementById('recordModalBox');
+        if (gameMode === 'pvp' && side === 'top') {
+            boxEl.style.transform = 'rotate(180deg)';
+        } else {
+            boxEl.style.transform = 'none';
+        }
+
+        if (gameMode === 'pve') {
+            // 仅提取当前所选用户 (pveUserId) 在当前难度下的记录，其他用户记录不可查看
+            const meUser = getUserById(pveUserId);
+            const all = loadAllBattleRecords(PVE_USER_RECORDS_KEY);
+            const userMap = (all[meUser.id] && typeof all[meUser.id] === 'object') ? all[meUser.id] : {};
+            const list = Array.isArray(userMap[aiConfig.id]) ? userMap[aiConfig.id] : [];
+
+            document.getElementById('recordModalTitle').innerText = `${meUser.name}的对弈记录`;
+            document.getElementById('recordDiffBadge').innerText = `难度：${aiConfig.name}`;
+
+            const wins = list.filter(r => r.result === 'win').length;
+            const loses = list.filter(r => r.result === 'lose').length;
+            const draws = list.filter(r => r.result === 'draw').length;
+            document.getElementById('recordSummary').innerHTML =
+                `<span>用户：${meUser.name} · 共 ${list.length} 局</span><span>胜 ${wins} / 负 ${loses} / 平 ${draws}</span>`;
+
+            const container = document.getElementById('recordList');
+            if (list.length === 0) {
+                container.innerHTML = `<div class="record-empty">【${meUser.name}】在【${aiConfig.name}】难度暂无对弈记录</div>`;
+            } else {
+                container.innerHTML = list.map((item, idx) => {
+                    const resText = item.result === 'win' ? '我方胜利' : (item.result === 'lose' ? '系统胜利' : '平局');
+                    const resClass = item.result === 'win' ? 'win' : (item.result === 'lose' ? 'lose' : 'draw');
+                    const sideColor = item.myColor || 1;
+                    const sideText = sideColor === 1 ? '我方执黑先手' : '我方执白后手';
+                    const recUser = item.userName || meUser.name;
+                    return `
+                        <div class="record-card">
+                            <div class="record-card-top">
+                                <span>#${list.length - idx} · 用户：${recUser}</span>
+                                <span class="record-badge ${resClass}">${resText}</span>
+                            </div>
+                            <div class="record-card-meta">
+                                <span>${sideText}</span>
+                                <span>下子：${item.myMoves}手</span>
+                                <span>用时：${item.duration}</span>
+                                <span>时间：${item.playedAt}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        } else {
+            // 双人对战：展示当前点击状态栏所属用户与其他用户的对弈记录
+            const targetUser = getUserById(side === 'top' ? pvpTopUserId : pvpBottomUserId);
+            const all = loadAllBattleRecords(PVP_RECORDS_KEY);
+            const list = Array.isArray(all[targetUser.id]) ? all[targetUser.id] : [];
+
+            document.getElementById('recordModalTitle').innerText = `${targetUser.name}的对弈记录`;
+            document.getElementById('recordDiffBadge').innerText = '双人对战';
+
+            const wins = list.filter(r => r.result === 'win').length;
+            const loses = list.filter(r => r.result === 'lose').length;
+            const draws = list.filter(r => r.result === 'draw').length;
+            document.getElementById('recordSummary').innerHTML =
+                `<span>用户：${targetUser.name} · 共 ${list.length} 局</span><span>胜 ${wins} / 负 ${loses} / 平 ${draws}</span>`;
+
+            const container = document.getElementById('recordList');
+            if (list.length === 0) {
+                container.innerHTML = `<div class="record-empty">【${targetUser.name}】暂无双人对弈记录</div>`;
+            } else {
+                container.innerHTML = list.map((item, idx) => {
+                    const resText = item.result === 'win' ? '我方胜利' : (item.result === 'lose' ? `${item.opponentName}胜利` : '平局');
+                    const resClass = item.result === 'win' ? 'win' : (item.result === 'lose' ? 'lose' : 'draw');
+                    const sideText = item.myColor === 1 ? '我方执黑先手' : '我方执白后手';
+                    return `
+                        <div class="record-card">
+                            <div class="record-card-top">
+                                <span>#${list.length - idx} · 对手：${item.opponentName}</span>
+                                <span class="record-badge ${resClass}">${resText}</span>
+                            </div>
+                            <div class="record-card-meta">
+                                <span>${sideText}</span>
+                                <span>下子：${item.myMoves}手</span>
+                                <span>用时：${item.duration}</span>
+                                <span>时间：${item.playedAt}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        document.getElementById('recordModal').classList.add('active');
+    }
+
+    function closeRecordModal() {
+        document.getElementById('recordModal').classList.remove('active');
+        document.getElementById('recordModalBox').style.transform = 'none';
+    }
+
+    function clearCurrentRecords() {
+        if (currentRecordContext.mode === 'pve') {
+            const meUser = getUserById(pveUserId);
+            const all = loadAllBattleRecords(PVE_USER_RECORDS_KEY);
+            const userMap = (all[meUser.id] && typeof all[meUser.id] === 'object') ? all[meUser.id] : {};
+            const list = Array.isArray(userMap[aiConfig.id]) ? userMap[aiConfig.id] : [];
+            if (list.length === 0) {
+                showToast('当前用户在此难度下没有可清空的记录');
+                return;
+            }
+            showConfirm(`确定清空【${meUser.name}】在【${aiConfig.name}】的全部对弈记录吗？`, () => {
+                all[meUser.id][aiConfig.id] = [];
+                saveAllBattleRecords(all, PVE_USER_RECORDS_KEY);
+                openBattleRecords(currentRecordContext.side);
+                showToast('对弈记录已清空');
+            });
+        } else {
+            const targetUser = getUserById(currentRecordContext.side === 'top' ? pvpTopUserId : pvpBottomUserId);
+            const all = loadAllBattleRecords(PVP_RECORDS_KEY);
+            const list = Array.isArray(all[targetUser.id]) ? all[targetUser.id] : [];
+            if (list.length === 0) {
+                showToast('当前用户没有可清空的记录');
+                return;
+            }
+            showConfirm(`确定清空【${targetUser.name}】的全部双人对弈记录吗？`, () => {
+                all[targetUser.id] = [];
+                saveAllBattleRecords(all, PVP_RECORDS_KEY);
+                openBattleRecords(currentRecordContext.side);
+                showToast('对弈记录已清空');
+            });
+        }
+    }
+
+</script>
+</body>
+</html>
