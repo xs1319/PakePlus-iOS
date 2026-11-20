@@ -706,7 +706,7 @@ body.dark-mode .listen-wait { color:#c4b5fd; }
 
 .q-word{
   text-align:center; font-weight:900; letter-spacing:.02em;
-  font-size:clamp(1.2rem, 4vh, 3.2rem); line-height:1.15; word-break:break-word;
+  font-size:clamp(1rem, 3.2vh, 2.5rem); line-height:1.15; word-break:break-word;
   flex:0 0 auto;
 }
 .panel[data-player="p1"] .q-word{color:var(--p1-light); text-shadow:0 0 44px var(--p1-glow);}
@@ -959,13 +959,12 @@ body.dark-mode .import-status.err { color:#fca5a5; }
 }
 .wcard:nth-child(even):hover{box-shadow:0 6px 16px rgba(59,130,246,.15);border-color:rgba(59,130,246,.45);}
 .wc-word{
-  font-size:clamp(1rem,2.8vh,2rem);font-weight:900;line-height:1.15;
-  color:var(--p1-light);word-break:break-word;letter-spacing:.3px;
+  font-size:clamp(0.7rem, 2vh, 1.4rem); font-weight:900; line-height:1.2;
+  color:var(--p1-light); word-break:break-word; letter-spacing:.3px;
   width:100%; text-align:center;
 }
-.wcard:nth-child(even) .wc-word{color:var(--p2-light);}
-.wc-phon{font-size:clamp(.7rem,1.6vh,1.1rem);color:var(--muted);font-style:italic;margin-top:4px;font-weight:700;word-break:break-word;width:100%;text-align:center;}
-.wc-mean{font-size:clamp(.85rem,2vh,1.4rem);font-weight:900;color:var(--txt);margin-top:8px;word-break:break-word;line-height:1.3;width:100%;text-align:center;}
+.wc-phon{font-size:clamp(0.5rem, 1.1vh, 0.8rem); color:var(--muted); font-style:italic; margin-top:2px; font-weight:700; word-break:break-word; width:100%; text-align:center;}
+.wc-mean{font-size:clamp(0.6rem, 1.4vh, 1rem); font-weight:900; color:var(--txt); margin-top:4px; word-break:break-word; line-height:1.2; width:100%; text-align:center;}
 .wc-play{font-size:.62em;color:var(--muted);margin-top:6px;font-weight:700;}
 
 #resultModal .modal-box{
@@ -993,11 +992,12 @@ body.dark-mode .import-status.err { color:#fca5a5; }
   padding: 12px; /* 四周留出足够空间，完美包裹荧光，同时缩小了卡片本身 */
 }
 #resultModal .word-cards .wcard{ 
-  padding:clamp(8px,1.5vh,16px) 6px; 
-  min-height:clamp(90px, 14vh, 140px); 
-  height:100%; 
+  padding: 8px 4px; /* 减小内边距，给内容留空间 */
+  min-height: 80px; /* 降低最小高度 */
+  height: auto; /* 允许卡片被内容撑开，绝不裁切文字 */
+  justify-content: center; /* 内容垂直居中 */
 }
-#resultModal .word-cards .wc-word{ font-size:clamp(1rem,2.8vh,2rem); }
+#resultModal .word-cards .wc-word{ font-size:clamp(0.75rem, 2vh, 1.2rem); }
 #resultModal .modal-actions{ flex:0 0 auto; margin-top:10px; }
 #resultModal .modal-actions .btn{ padding:8px 18px; font-size:clamp(.78rem,1.7vh,.98rem); height:auto; }
 
@@ -1224,7 +1224,7 @@ body.dark-mode .wrong-item .wi-count { color:#fca5a5; background:rgba(239,68,68,
   .p-name{font-size:.82rem;}
   .p-stat{font-size:.6rem;} .p-stat b{font-size:.72rem;}
   .p-count{font-size:.66rem;}
-  .q-word{font-size:clamp(1rem, 3.5vh, 1.8rem);}
+  .q-word{font-size:clamp(0.8rem, 2.8vh, 1.4rem);}
   .q-opt{font-size:clamp(.7rem,1.9vh,1.05rem); min-height:clamp(32px,5vh,58px); padding:4px 3px;}
   .m-item{font-size:clamp(.72rem,2.1vh,1.35rem);}
   .word-cards{grid-template-columns:1fr 1fr;}
@@ -2569,7 +2569,7 @@ function renderQuizBody(p, body, isListen){
         '<div class="q-phon">'+(w.phonetic?esc(w.phonetic):'&nbsp;')+'</div>'+
         '<div class="q-opts">'+opts.map(o=>'<button class="q-opt" data-correct="'+o.correct+'">'+esc(o.text)+'</button>').join('')+'</div>';
     }else{
-      html += '<div class="q-word" style="font-size:clamp(1.1rem, 3.6vh, 2.4rem);">'+esc(w.meaning)+'</div>'+
+      html += '<div class="q-word" style="font-size:clamp(0.9rem, 2.8vh, 1.9rem);">'+esc(w.meaning)+'</div>'+
         '<div class="q-opts">'+opts.map(o=>'<button class="q-opt" data-correct="'+o.correct+'">'+esc(o.text)+'</button>').join('')+'</div>';
     }
   }
