@@ -706,7 +706,7 @@ body.dark-mode .listen-wait { color:#c4b5fd; }
 
 .q-word{
   text-align:center; font-weight:900; letter-spacing:.02em;
-  font-size:clamp(1.5rem,6vh,4.6rem); line-height:1.05; word-break:break-word;
+  font-size:clamp(1.2rem, 4vh, 3.2rem); line-height:1.15; word-break:break-word;
   flex:0 0 auto;
 }
 .panel[data-player="p1"] .q-word{color:var(--p1-light); text-shadow:0 0 44px var(--p1-glow);}
@@ -1224,7 +1224,7 @@ body.dark-mode .wrong-item .wi-count { color:#fca5a5; background:rgba(239,68,68,
   .p-name{font-size:.82rem;}
   .p-stat{font-size:.6rem;} .p-stat b{font-size:.72rem;}
   .p-count{font-size:.66rem;}
-  .q-word{font-size:clamp(1.15rem,4.4vh,2.3rem);}
+  .q-word{font-size:clamp(1rem, 3.5vh, 1.8rem);}
   .q-opt{font-size:clamp(.7rem,1.9vh,1.05rem); min-height:clamp(32px,5vh,58px); padding:4px 3px;}
   .m-item{font-size:clamp(.72rem,2.1vh,1.35rem);}
   .word-cards{grid-template-columns:1fr 1fr;}
@@ -1334,32 +1334,14 @@ body.dark-mode .wrong-item .wi-count { color:#fca5a5; background:rgba(239,68,68,
 .center-bar .ctrl-col-edge .c-icon { font-size: clamp(1rem, 2.2vh, 1.4rem); line-height: 1; }
 .center-bar .ctrl-col-edge .c-text { font-size: clamp(.62rem, 1.4vh, .84rem); }
 
-/* 模式选择 */
-.center-bar #modeSelectWrap {
-  position: relative;
-  padding: 0;
-  overflow: visible !important;
+/* 模式切换按钮 */
+.center-bar #btnModeSwitch {
   background: var(--select-bg);
   border: 1px solid var(--select-border);
-  z-index: 60;
-}
-.center-bar #modeSelectWrap .custom-select-trigger {
-  width: 100%;
-  height: 100%;
-  padding: 4px 14px 4px 4px;
-  border: none;
-  background: transparent;
-  border-radius: 13px;
   color: var(--select-txt);
-  font-size: clamp(.64rem, 1.45vh, .88rem);
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
-.center-bar #modeSelectWrap .custom-select-trigger::after { right: 5px; }
-.center-bar #modeSelectWrap .custom-select-options {
-  left: auto; right: 0; top: calc(100% + 6px); min-width: 112px; z-index: 300;
+.center-bar #btnModeSwitch:hover {
+  background: var(--btn-ghost-hover);
 }
 
 /* 上下双按钮堆叠 */
@@ -1543,14 +1525,10 @@ body.dark-mode .p-countdown {
         <button class="stack-btn" id="btnSound">🔊</button>
         <button class="stack-btn" id="btnTheme">🌙</button>
       </div>
-      <div class="custom-select-wrapper ctrl-col-edge" id="modeSelectWrap">
-        <div class="custom-select-trigger" id="modeSelectTrigger">📝 选择</div>
-        <div class="custom-select-options" id="modeSelectOptions">
-          <div class="custom-option selected" data-value="quiz">📝 选择</div>
-          <div class="custom-option" data-value="listen">🎧 听力</div>
-          <div class="custom-option" data-value="match">🔗 配对</div>
-        </div>
-      </div>
+      <button class="ctrl-col-edge" id="btnModeSwitch">
+        <span class="c-icon" id="modeIcon">📝</span>
+        <span class="c-text" id="modeText">选择</span>
+      </button>
     </div>
 
     <!-- 第三行：开始 + 双车赛道 + 回顾上次 -->
@@ -2591,7 +2569,7 @@ function renderQuizBody(p, body, isListen){
         '<div class="q-phon">'+(w.phonetic?esc(w.phonetic):'&nbsp;')+'</div>'+
         '<div class="q-opts">'+opts.map(o=>'<button class="q-opt" data-correct="'+o.correct+'">'+esc(o.text)+'</button>').join('')+'</div>';
     }else{
-      html += '<div class="q-word" style="font-size:clamp(1.3rem,4.6vh,3.4rem);">'+esc(w.meaning)+'</div>'+
+      html += '<div class="q-word" style="font-size:clamp(1.1rem, 3.6vh, 2.4rem);">'+esc(w.meaning)+'</div>'+
         '<div class="q-opts">'+opts.map(o=>'<button class="q-opt" data-correct="'+o.correct+'">'+esc(o.text)+'</button>').join('')+'</div>';
     }
   }
@@ -3204,29 +3182,26 @@ function renderRangeModal() {
    ========================================================= */
 const $=id=>document.getElementById(id);
 
-// 自定义下拉菜单 - 主界面模式
-const modeSelectWrap = $('modeSelectWrap');
-const modeSelectTrigger = $('modeSelectTrigger');
-const modeSelectOptions = $('modeSelectOptions');
+// 模式循环切换
+const MODES = [
+  { value: 'quiz', icon: '📝', text: '选择' },
+  { value: 'listen', icon: '🎧', text: '听力' },
+  { value: 'match', icon: '🔗', text: '配对' }
+];
 
-modeSelectTrigger.addEventListener('click', (e) => {
-  e.stopPropagation();
-  modeSelectWrap.classList.toggle('open');
-});
-modeSelectOptions.querySelectorAll('.custom-option').forEach(opt => {
-  opt.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const val = opt.dataset.value;
-    state.mode = val;
-    modeSelectTrigger.innerHTML = opt.innerHTML;
-    modeSelectOptions.querySelectorAll('.custom-option').forEach(o => o.classList.remove('selected'));
-    opt.classList.add('selected');
-    modeSelectWrap.classList.remove('open');
-    $('dirToggle').style.display = (state.mode==='quiz'||state.mode==='listen') ? '' : 'none';
-    saveSettings();
-    resetIdle();
-    sfxClick();
-  });
+$('btnModeSwitch').addEventListener('click', () => {
+  let currentIdx = MODES.findIndex(m => m.value === state.mode);
+  if (currentIdx === -1) currentIdx = 0;
+  const nextMode = MODES[(currentIdx + 1) % MODES.length];
+  
+  state.mode = nextMode.value;
+  $('modeIcon').textContent = nextMode.icon;
+  $('modeText').textContent = nextMode.text;
+  
+  $('dirToggle').style.display = (state.mode==='quiz'||state.mode==='listen') ? '' : 'none';
+  saveSettings();
+  resetIdle();
+  sfxClick();
 });
 
 // 自定义下拉菜单 - 统计范围
@@ -3292,20 +3267,19 @@ document.querySelectorAll('[data-step]').forEach(btn => {
 
 // 锁定非必要控制项防误触
 function lockControls() {
-  const ids = ['btnStats','btnPKRecord','btnReviewLast','btnRange','modeSelectWrap','dirToggle','timeSquare','countSquare'];
+  const ids = ['btnStats','btnPKRecord','btnReviewLast','btnRange','btnModeSwitch','dirToggle','timeSquare','countSquare'];
   ids.forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.style.pointerEvents = 'none'; el.style.opacity = '0.5'; }
   });
 }
 function unlockControls() {
-  const ids = ['btnStats','btnPKRecord','btnReviewLast','btnRange','modeSelectWrap','dirToggle','timeSquare','countSquare'];
+  const ids = ['btnStats','btnPKRecord','btnReviewLast','btnRange','btnModeSwitch','dirToggle','timeSquare','countSquare'];
   ids.forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.style.pointerEvents = ''; el.style.opacity = ''; }
   });
 }
-
 // 3, 2, 1, GO 动画（带语音）
 function runStartCountdown(cb) {
   const p1 = panels.p1, p2 = panels.p2;
@@ -3553,8 +3527,12 @@ loadSettings();
 applyTheme();
 
 // 同步 UI 状态
-$('dirToggle').textContent = state.direction==='en2zh' ? '🅰️英译汉' : '🀄汉译英';
+$('dirToggle').textContent = state.direction==='en2zh' ? '英译汉' : '汉译英';
 $('dirToggle').style.display = (state.mode==='quiz'||state.mode==='listen') ? '' : 'none';
+
+const initMode = MODES.find(m => m.value === state.mode) || MODES[0];
+$('modeIcon').textContent = initMode.icon;
+$('modeText').textContent = initMode.text;
 $('countVal').innerHTML = state.count + '<span class="sq-unit">题</span>';
 $('timeVal').innerHTML = state.timeLimit + '<span class="sq-unit">s</span>';
 
