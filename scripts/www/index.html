@@ -2,8 +2,8 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>云端飞行棋 - 高清典藏版 v24</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>云端飞行棋 - 高清典藏版 v27</title>
 <style>
   :root {
     --bg-sky-top: #4299e1;
@@ -38,7 +38,7 @@
     --text-sub: #94a3b8;
     --board-bg: rgba(15, 23, 42, 0.56);
     --board-border: rgba(125, 211, 252, 0.5);
-    --board-shadow: 0 0 28px rgba(56, 189, 248, 0.24), inset 0 0 18px rgba(56, 189, 248, 0.12);
+    --board-shadow: 0 0 22px rgba(56, 189, 248, 0.22);
     --btn-secondary: rgba(30, 41, 59, 0.9);
     --modal-backdrop: rgba(0, 0, 0, 0.76);
   }
@@ -47,8 +47,16 @@
     box-sizing: border-box;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
     margin: 0;
     padding: 0;
+  }
+
+  html, body {
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
@@ -60,7 +68,7 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    transition: background 0.6s ease, color 0.3s ease;
+    transition: background 0.45s ease, color 0.25s ease;
   }
 
   .sky-canvas {
@@ -75,9 +83,10 @@
     position: absolute;
     inset: 0;
     opacity: 1;
-    transition: opacity 0.6s ease;
+    transition: opacity 0.45s ease;
   }
   body.dark-mode .day-layer { opacity: 0; }
+  body.dark-mode .day-layer .cloud-cluster { animation-play-state: paused; }
 
   .cloud-cluster {
     position: absolute;
@@ -89,45 +98,49 @@
     position: absolute;
     background: radial-gradient(ellipse at 50% 45%, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.48) 52%, rgba(255,255,255,0) 78%);
     border-radius: 999px;
-    filter: blur(9px);
   }
   @keyframes driftCloud {
-    0% { transform: translateX(-480px); }
-    100% { transform: translateX(calc(100vw + 480px)); }
+    0% { transform: translate3d(-480px, 0, 0); }
+    100% { transform: translate3d(calc(100vw + 480px), 0, 0); }
   }
 
   .night-layer {
     position: absolute;
     inset: 0;
     opacity: 0;
-    transition: opacity 0.6s ease;
+    transition: opacity 0.45s ease;
   }
   body.dark-mode .night-layer { opacity: 1; }
+  body:not(.dark-mode) .night-layer .moon-wrap,
+  body:not(.dark-mode) .night-layer .star,
+  body:not(.dark-mode) .night-layer .meteor {
+    animation-play-state: paused;
+  }
 
   .moon-wrap {
     position: absolute;
     top: calc(64px + env(safe-area-inset-top, 10px));
     right: 28px;
-    width: 64px;
-    height: 64px;
-    filter: drop-shadow(0 0 14px rgba(254, 240, 138, 0.65)) drop-shadow(0 0 32px rgba(253, 224, 71, 0.35));
+    width: 76px;
+    height: 76px;
+    will-change: transform;
     animation: moonFloat 6s ease-in-out infinite;
   }
   @keyframes moonFloat {
-    0%, 100% { transform: translateY(0) rotate(-12deg); }
-    50% { transform: translateY(-4px) rotate(-8deg); }
+    0%, 100% { transform: translate3d(0, 0, 0) rotate(-12deg); }
+    50% { transform: translate3d(0, -4px, 0) rotate(-8deg); }
   }
 
   .star {
     position: absolute;
-    background: #ffffff;
+    background: radial-gradient(circle, #ffffff 0%, rgba(147, 197, 253, 0.85) 55%, rgba(147, 197, 253, 0) 100%);
     border-radius: 50%;
-    box-shadow: 0 0 6px #fff, 0 0 12px #93c5fd;
+    will-change: opacity, transform;
     animation: twinkle ease-in-out infinite;
   }
   @keyframes twinkle {
-    0%, 100% { opacity: 0.22; transform: scale(0.8); }
-    50% { opacity: 1; transform: scale(1.25); }
+    0%, 100% { opacity: 0.25; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1.2); }
   }
 
   .meteor {
@@ -137,6 +150,7 @@
     background: linear-gradient(90deg, rgba(255,255,255,0.95), rgba(147,197,253,0.4), transparent);
     border-radius: 999px;
     opacity: 0;
+    will-change: transform, opacity;
     transform: rotate(-32deg);
     animation: shootMeteor linear infinite;
   }
@@ -149,21 +163,20 @@
     height: 6px;
     border-radius: 50%;
     background: #fff;
-    box-shadow: 0 0 10px #fff, 0 0 18px #60a5fa;
   }
   @keyframes shootMeteor {
-    0% { transform: translate(0, 0) rotate(-32deg); opacity: 0; }
+    0% { transform: translate3d(0, 0, 0) rotate(-32deg); opacity: 0; }
     6% { opacity: 1; }
-    24% { transform: translate(-440px, 270px) rotate(-32deg); opacity: 0; }
-    100% { transform: translate(-440px, 270px) rotate(-32deg); opacity: 0; }
+    24% { transform: translate3d(-440px, 270px, 0) rotate(-32deg); opacity: 0; }
+    100% { transform: translate3d(-440px, 270px, 0) rotate(-32deg); opacity: 0; }
   }
 
   .safe-header {
     width: 100%;
     padding-top: env(safe-area-inset-top, 10px);
     background: var(--glass-bg);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--glass-border);
     z-index: 50;
     flex-shrink: 0;
@@ -252,7 +265,7 @@
   .btn-glass { background: var(--glass-bg); color: var(--text-main); border: 1px solid var(--glass-border); backdrop-filter: blur(12px); box-shadow: var(--glass-shadow); }
 
   .setup-card {
-    width: 100%; max-width: 380px; background: var(--glass-bg); backdrop-filter: blur(16px);
+    width: 100%; max-width: 380px; background: var(--glass-bg); backdrop-filter: blur(14px);
     border: 1px solid var(--glass-border); border-radius: 24px; padding: 20px; box-shadow: var(--glass-shadow);
     display: flex; flex-direction: column; gap: 14px;
   }
@@ -276,7 +289,6 @@
     overflow: hidden;
   }
 
-  /* 消息提示区域：动态定位在【棋盘最上沿】与【功能栏最下沿】之间正中间的位置 */
   .board-notice-slot {
     position: fixed;
     left: 50%;
@@ -302,6 +314,9 @@
     transform: scale(0.92);
     transition: opacity 0.22s ease, transform 0.22s ease;
     white-space: nowrap;
+    max-width: 94vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .notice-pill.show { opacity: 1; transform: scale(1); }
 
@@ -318,15 +333,12 @@
     border-top: 2px solid var(--board-border);
     border-bottom: 2px solid var(--board-border);
     box-shadow: var(--board-shadow);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    transition: filter 0.35s ease, transform 0.35s ease;
+    isolation: isolate;
   }
 
   .board-container.board-blurred > svg#board-svg,
   .board-container.board-blurred > canvas#dice-3d-canvas {
-    filter: blur(7px) saturate(0.92);
-    transition: filter 0.35s ease;
+    filter: blur(6px) saturate(0.92);
   }
 
   .draft-overlay {
@@ -334,16 +346,16 @@
     inset: 0;
     z-index: 40;
     display: none;
+    pointer-events: none;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 16px;
-    background: rgba(15, 23, 42, 0.22);
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
+    background: rgba(15, 23, 42, 0.26);
   }
   .draft-overlay.active {
     display: flex;
+    pointer-events: auto;
   }
   .draft-panel {
     width: 100%;
@@ -450,9 +462,9 @@
     z-index: 26;
     cursor: pointer;
     touch-action: none;
+    pointer-events: auto;
   }
 
-  /* 沙漏计时区域：动态定位在棋盘最下沿与屏幕最下沿之间正中间的位置 */
   .hourglass-box {
     position: fixed;
     left: 50%;
@@ -463,17 +475,15 @@
     gap: 8px;
     padding: 6px 18px;
     border-radius: 22px;
-    background: rgba(255, 255, 255, 0.88);
+    background: rgba(255, 255, 255, 0.92);
     color: #1e293b;
     border: 1px solid rgba(15, 23, 42, 0.14);
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
     z-index: 28;
     transition: background-color 0.25s, border-color 0.25s, color 0.25s;
   }
   body.dark-mode .hourglass-box {
-    background: rgba(18, 28, 56, 0.88);
+    background: rgba(18, 28, 56, 0.92);
     color: #f8fafc;
     border-color: rgba(147, 197, 253, 0.26);
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
@@ -484,7 +494,6 @@
     height: 28px;
     animation: hgSpin180 1s linear infinite;
     transform-origin: 50% 50%;
-    filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.45));
     display: block;
     flex-shrink: 0;
   }
@@ -510,7 +519,6 @@
     left: 50%;
     transform: translate(-50%, -50%);
     background: var(--glass-bg);
-    backdrop-filter: blur(14px);
     border: 1px solid var(--glass-border);
     border-radius: 16px;
     padding: 5px 10px;
@@ -595,8 +603,7 @@
     100% { opacity: 0; transform: scale(0.92); }
   }
   .first-win-card {
-    background: rgba(15, 23, 42, 0.88);
-    backdrop-filter: blur(16px);
+    background: rgba(15, 23, 42, 0.9);
     border: 2px solid rgba(254, 240, 138, 0.75);
     border-radius: 26px;
     padding: 22px 34px;
@@ -611,7 +618,7 @@
   }
   .modal-overlay.open { display: flex; }
   .modal-card {
-    width: 100%; max-width: 400px; max-height: 82dvh; background: var(--glass-bg); backdrop-filter: blur(22px);
+    width: 100%; max-width: 400px; max-height: 82dvh; background: var(--glass-bg); backdrop-filter: blur(18px);
     border: 1px solid var(--glass-border); border-radius: 26px; box-shadow: 0 24px 48px rgba(0,0,0,0.28);
     display: flex; flex-direction: column; overflow: hidden;
   }
@@ -791,7 +798,7 @@
       <button class="icon-btn" onclick="closeModal('modal-help')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="help-section"><h4>操作方式</h4><p>轮到某一方行动时，其对应的四角停机坪及内部未起飞的飞机将开始呼吸缩放。点击或向任意方向滑动停机坪内的 3D 玉瓷骰子即可掷骰，滑动方向与速度决定骰子翻滚轨迹，尾段滚至停机坪中央旁侧后再做最后一次滚动停稳于中央。</p></div>
+      <div class="help-section"><h4>操作方式</h4><p>轮到某一方行动时，其对应的四角停机坪及内部未起飞的飞机将开始呼吸缩放。点击或向任意方向滑动停机坪内的 3D 玉瓷骰子即可掷骰，滑动方向与速度决定骰子翻滚轨迹，尾段滚停于停机坪正中央。</p></div>
       <div class="help-section"><h4>航向与移动</h4><p>每次飞机移动前机头先朝向运动方向，随后严格沿着机头朝向推进，行进方向与机头方向始终一致。</p></div>
       <div class="help-section"><h4>迭子、撞子与同色直飞</h4><p>同色格跳子、同色虚线直飞均沿同色航线推进；迭子、撞子、飞棋拦截与终点堆叠计数均按经典规则实时生效。</p></div>
     </div>
@@ -851,22 +858,28 @@ function initSkyEffects() {
   const nightSky = document.getElementById('night-sky');
   let nightHtml = `
     <div class="moon-wrap">
-      <svg viewBox="0 0 64 64" width="64" height="64">
+      <svg viewBox="0 0 76 76" width="76" height="76">
         <defs>
+          <radialGradient id="moonHalo" cx="50%" cy="50%" r="50%">
+            <stop offset="35%" stop-color="#fef08a" stop-opacity="0.45"/>
+            <stop offset="70%" stop-color="#fde047" stop-opacity="0.16"/>
+            <stop offset="100%" stop-color="#fde047" stop-opacity="0"/>
+          </radialGradient>
           <linearGradient id="moonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stop-color="#fef9c3"/>
             <stop offset="65%" stop-color="#fde047"/>
             <stop offset="100%" stop-color="#facc15"/>
           </linearGradient>
         </defs>
-        <path d="M44 10 A24 24 0 1 0 54 46 A20 20 0 1 1 44 10 Z" fill="url(#moonGrad)"/>
+        <circle cx="38" cy="38" r="37" fill="url(#moonHalo)"/>
+        <path d="M50 16 A24 24 0 1 0 60 52 A20 20 0 1 1 50 16 Z" fill="url(#moonGrad)"/>
       </svg>
     </div>
   `;
-  for (let i = 0; i < 72; i++) {
+  for (let i = 0; i < 64; i++) {
     const x = (Math.sin(i * 78.233) * 0.5 + 0.5) * 100;
     const y = (Math.cos(i * 45.164) * 0.5 + 0.5) * 96;
-    const size = (i % 3 === 0) ? 2.8 : ((i % 2 === 0) ? 2 : 1.4);
+    const size = (i % 3 === 0) ? 4.2 : ((i % 2 === 0) ? 3.2 : 2.4);
     const dur = 2.0 + (i % 5) * 0.65;
     const delay = -(i % 7) * 0.6;
     nightHtml += `<div class="star" style="left:${x.toFixed(1)}%; top:${y.toFixed(1)}%; width:${size}px; height:${size}px; animation-duration:${dur}s; animation-delay:${delay}s;"></div>`;
@@ -886,10 +899,10 @@ function initSkyEffects() {
 const STORAGE_KEY = 'cloud_flight_chess_prefs_v1';
 
 const FACTIONS = [
-  { id: 0, key: 'green',  name: '绿方', color: '#10ac84', darkColor: '#097c5e', lightColor: '#48e5bc', role: 'player' },
-  { id: 1, key: 'red',    name: '红方', color: '#ee5253', darkColor: '#b32d2e', lightColor: '#ff8a8b', role: 'ai' },
-  { id: 2, key: 'yellow', name: '黄方', color: '#ff9f43', darkColor: '#cc7418', lightColor: '#ffc985', role: 'none' },
-  { id: 3, key: 'blue',   name: '蓝方', color: '#2e86de', darkColor: '#1b5da3', lightColor: '#75b8ff', role: 'ai' }
+  { id: 0, key: 'green',  name: '绿方', color: '#10ac84', darkColor: '#097c5e', lightColor: '#48e5bc', role: 'player', displayName: '绿方' },
+  { id: 1, key: 'red',    name: '红方', color: '#ee5253', darkColor: '#b32d2e', lightColor: '#ff8a8b', role: 'ai',     displayName: '红方' },
+  { id: 2, key: 'yellow', name: '黄方', color: '#ff9f43', darkColor: '#cc7418', lightColor: '#ffc985', role: 'none',   displayName: '黄方' },
+  { id: 3, key: 'blue',   name: '蓝方', color: '#2e86de', darkColor: '#1b5da3', lightColor: '#75b8ff', role: 'ai',     displayName: '蓝方' }
 ];
 
 const RULES = {
@@ -905,6 +918,21 @@ const RULES = {
 };
 
 let soundEnabled = true;
+let wakeLockSentinel = null;
+
+async function updateWakeLock() {
+  try {
+    const isPlaying = document.getElementById('screen-game')?.classList.contains('active') && gameState.phase !== 'GAME_OVER';
+    if (RULES.keepAwake && isPlaying && !document.hidden && 'wakeLock' in navigator) {
+      if (!wakeLockSentinel) {
+        wakeLockSentinel = await navigator.wakeLock.request('screen');
+      }
+    } else if (wakeLockSentinel) {
+      await wakeLockSentinel.release();
+      wakeLockSentinel = null;
+    }
+  } catch (e) {}
+}
 
 function savePersistentSettings() {
   try {
@@ -925,7 +953,8 @@ function loadPersistentSettings() {
     const data = JSON.parse(raw);
     if (data.rules && typeof data.rules === 'object') {
       if (Array.isArray(data.rules.takeoff) && data.rules.takeoff.length > 0) {
-        RULES.takeoff = data.rules.takeoff.map(Number);
+        const parsedTakeoff = data.rules.takeoff.map(Number).filter(n => Number.isInteger(n) && n >= 1 && n <= 6);
+        if (parsedTakeoff.length > 0) RULES.takeoff = parsedTakeoff;
       }
       ['autoRoll', 'autoMoveSingle', 'stacking', 'fastMove', 'endOnFirst', 'threeSixPenalty', 'magicDice', 'keepAwake'].forEach(k => {
         if (typeof data.rules[k] === 'boolean') RULES[k] = data.rules[k];
@@ -958,11 +987,10 @@ function syncRulesUI() {
   if (soundIcon) soundIcon.style.opacity = soundEnabled ? '1' : '0.35';
 }
 
-// 真随机无偏骰子生成器（Web Crypto CSPRNG 拒绝采样，杜绝模偏差与伪随机周期，人机完全一视同仁）
 function rollTrueRandomDie() {
   if (window.crypto && window.crypto.getRandomValues) {
     const buf = new Uint32Array(1);
-    const limit = 4294967292; // 6 * 715827882，严格整除 6，零偏差
+    const limit = 4294967292;
     let rand = 0;
     do {
       window.crypto.getRandomValues(buf);
@@ -973,20 +1001,45 @@ function rollTrueRandomDie() {
   const mix = (Math.random() + ((performance.now() % 1000) / 1000)) % 1;
   return Math.floor(mix * 6) + 1;
 }
+
 let audioCtx = null;
+let audioResuming = false;
 
 function ensureAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtxClass) return null;
+  if (!audioCtx || audioCtx.state === 'closed') {
+    audioCtx = new AudioCtxClass();
+  }
+  if (audioCtx.state === 'suspended' && !audioResuming) {
+    audioResuming = true;
+    return audioCtx.resume().finally(() => {
+      audioResuming = false;
+    }).catch(() => {});
+  }
+  return Promise.resolve();
+}
+
+function withActiveAudio(fn) {
+  if (!soundEnabled) return;
+  try {
+    const res = ensureAudio();
+    if (!audioCtx) return;
+    if (audioCtx.state === 'running') {
+      fn(audioCtx);
+    } else if (res && typeof res.then === 'function') {
+      res.then(() => {
+        if (audioCtx && audioCtx.state === 'running') fn(audioCtx);
+      }).catch(() => {});
+    }
+  } catch (e) {}
 }
 
 function playTone(freq, type = 'sine', duration = 0.1, delay = 0, vol = 0.11, slideTo = null) {
-  if (!soundEnabled) return;
-  try {
-    ensureAudio();
-    const t = audioCtx.currentTime + delay;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
+  withActiveAudio((ctx) => {
+    const t = ctx.currentTime + delay;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
     osc.type = type;
     osc.frequency.setValueAtTime(freq, t);
     if (slideTo) osc.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), t + duration);
@@ -994,10 +1047,10 @@ function playTone(freq, type = 'sine', duration = 0.1, delay = 0, vol = 0.11, sl
     gain.gain.exponentialRampToValueAtTime(vol, t + 0.012);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
     osc.connect(gain);
-    gain.connect(audioCtx.destination);
+    gain.connect(ctx.destination);
     osc.start(t);
     osc.stop(t + duration + 0.03);
-  } catch (e) {}
+  });
 }
 
 const SFX = {
@@ -1009,36 +1062,34 @@ const SFX = {
   jump:   () => { playTone(580, 'sine', 0.08); playTone(780, 'sine', 0.12, 0.07); },
 
   whoosh: () => {
-    if (!soundEnabled) return;
-    try {
-      ensureAudio();
-      const now = audioCtx.currentTime;
+    withActiveAudio((ctx) => {
+      const now = ctx.currentTime;
       const duration = 0.50;
-      const bufferSize = Math.floor(audioCtx.sampleRate * duration);
-      const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const bufferSize = Math.floor(ctx.sampleRate * duration);
+      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const data = noiseBuffer.getChannelData(0);
       for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
 
-      const noise = audioCtx.createBufferSource();
+      const noise = ctx.createBufferSource();
       noise.buffer = noiseBuffer;
 
-      const filter = audioCtx.createBiquadFilter();
+      const filter = ctx.createBiquadFilter();
       filter.type = 'bandpass';
       filter.Q.setValueAtTime(4.8, now);
       filter.frequency.setValueAtTime(2200, now);
       filter.frequency.exponentialRampToValueAtTime(620, now + duration);
 
-      const noiseGain = audioCtx.createGain();
+      const noiseGain = ctx.createGain();
       noiseGain.gain.setValueAtTime(0.01, now);
       noiseGain.gain.linearRampToValueAtTime(0.45, now + 0.06);
       noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
       noise.connect(filter);
       filter.connect(noiseGain);
-      noiseGain.connect(audioCtx.destination);
+      noiseGain.connect(ctx.destination);
 
-      const whistle = audioCtx.createOscillator();
-      const whistleGain = audioCtx.createGain();
+      const whistle = ctx.createOscillator();
+      const whistleGain = ctx.createGain();
       whistle.type = 'sine';
       whistle.frequency.setValueAtTime(1650, now);
       whistle.frequency.exponentialRampToValueAtTime(540, now + duration);
@@ -1048,13 +1099,13 @@ const SFX = {
       whistleGain.gain.exponentialRampToValueAtTime(0.0005, now + duration);
 
       whistle.connect(whistleGain);
-      whistleGain.connect(audioCtx.destination);
+      whistleGain.connect(ctx.destination);
 
       noise.start(now);
       noise.stop(now + duration);
       whistle.start(now);
       whistle.stop(now + duration);
-    } catch (e) {}
+    });
   },
 
   crash: () => { playTone(220, 'sawtooth', 0.15); playTone(140, 'sawtooth', 0.25, 0.1); },
@@ -1065,11 +1116,6 @@ const SFX = {
   }
 };
 
-/* =====================================================================
- * 2. 消息提示框精准定位：
- * - 【棋盘最上沿】与【功能栏最下沿】之间正中间
- * - 沙漏计时器：棋盘最下沿与屏幕最下沿之间正中间
- * ===================================================================== */
 function updateFloatingUIPositions() {
   const board = document.getElementById('board-container');
   const header = document.getElementById('safe-header');
@@ -1079,14 +1125,13 @@ function updateFloatingUIPositions() {
   if (!board || !slotTop || !hgBox) return;
 
   const bRect = board.getBoundingClientRect();
+  if (!bRect.width || !bRect.height) return;
   const hRect = header ? header.getBoundingClientRect() : { bottom: 50 };
   const winH = window.innerHeight;
 
-  // 棋盘最上沿 (bRect.top) 与功能栏最下沿 (hRect.bottom) 之间正中间
   const noticeCenterY = hRect.bottom + (bRect.top - hRect.bottom) * 0.5;
   slotTop.style.top = `${noticeCenterY}px`;
 
-  // 沙漏位于棋盘最下沿 (bRect.bottom) 与屏幕最下沿 (winH) 之间正中间
   const bottomCenterY = bRect.bottom + (winH - bRect.bottom) * 0.5;
   hgBox.style.top = `${bottomCenterY}px`;
 
@@ -1094,12 +1139,12 @@ function updateFloatingUIPositions() {
     magicBar.style.top = `${Math.max(bRect.bottom + 24, bottomCenterY - 46)}px`;
   }
 }
-window.addEventListener('resize', updateFloatingUIPositions);
 
 let noticeTimer = null;
 function showNotice(msg, duration = 2200, persistent = false) {
   updateFloatingUIPositions();
   const el = document.getElementById('notice-pill');
+  if (!el) return;
   el.textContent = msg;
   el.classList.add('show');
   clearTimeout(noticeTimer);
@@ -1125,6 +1170,7 @@ function clearDraftSummaryNotice() {
 }
 
 let clockInterval = null;
+
 function startGameClock() {
   stopGameClock();
   gameState.gameStartTime = Date.now();
@@ -1132,9 +1178,12 @@ function startGameClock() {
   const timerEl = document.getElementById('game-timer-text');
   if (hgBox) hgBox.classList.remove('paused');
   if (timerEl) timerEl.textContent = '00:00';
+  let lastSec = -1;
   const tickClock = () => {
     if (gameState.phase === 'GAME_OVER' || gameState.phase === 'DRAFT') return;
     const secTotal = Math.max(0, Math.floor((Date.now() - gameState.gameStartTime) / 1000));
+    if (secTotal === lastSec) return;
+    lastSec = secTotal;
     const mm = String(Math.floor(secTotal / 60)).padStart(2, '0');
     const ss = String(secTotal % 60).padStart(2, '0');
     if (timerEl) timerEl.textContent = `${mm}:${ss}`;
@@ -1152,30 +1201,21 @@ function stopGameClock() {
   }
 }
 
-/* =====================================================================
- * 4. 完整 52 格标准外圈 + 4×5 冲刺格 + 4 个双三角拼接 80×80 大正方形 + 同色直飞线
- * - 52 格外圈：每象限 13 格，颜色严格按 0(绿)->1(红)->2(黄)->3(蓝) 周期循环（52 是 4 的倍数！）
- *   因此每个同色格每隔 4 格出现一次，每隔 12 格（+12 % 52）必然是【完全相同颜色】的格子！
- *   虚线飞棋连接同色格时，线条颜色、箭头飞机颜色、起点格与终点格颜色 100% 统一，绝不混色！
- * - 4 个内拐角 (360..440, 360..440 等旋转象限) 由两个等腰直角三角形严丝合缝拼成 80×80 正方形
- * - 完整 52 格外圈覆盖所有边缘格子，不缺格、不留白洞
- * ===================================================================== */
 const OUTER_RING = [];
 const SPRINT_LANES = [[], [], [], []];
 
-// 四个角停机坪整体减小 5%（158 -> 150），紧贴四角外缘
 const HANGAR_BOXES = [
-  { x: 449, y: 449, w: 150, h: 150, cx: 524, cy: 524 }, // 0: 绿 (右下)
-  { x: 1,   y: 449, w: 150, h: 150, cx: 76,  cy: 524 }, // 1: 红 (左下)
-  { x: 1,   y: 1,   w: 150, h: 150, cx: 76,  cy: 76  }, // 2: 黄 (左上)
-  { x: 449, y: 1,   w: 150, h: 150, cx: 524, cy: 76  }  // 3: 蓝 (右上)
+  { x: 449, y: 449, w: 150, h: 150, cx: 524, cy: 524 },
+  { x: 1,   y: 449, w: 150, h: 150, cx: 76,  cy: 524 },
+  { x: 1,   y: 1,   w: 150, h: 150, cx: 76,  cy: 76  },
+  { x: 449, y: 1,   w: 150, h: 150, cx: 524, cy: 76  }
 ];
 
 const LAUNCH_SPOTS = [
-  { x: 589.5, y: 434   }, // 0: 绿起飞点（移向停机坪，居中于起飞格与绿停机坪间隙正中）
-  { x: 166,   y: 589.5 }, // 1: 红起飞点（移向停机坪，居中于起飞格与红停机坪间隙正中）
-  { x: 10.5,  y: 166   }, // 2: 黄起飞点（移向停机坪，居中于起飞格与黄停机坪间隙正中）
-  { x: 434,   y: 10.5  }  // 3: 蓝起飞点（移向停机坪，居中于起飞格与蓝停机坪间隙正中）
+  { x: 589.5, y: 434   },
+  { x: 166,   y: 589.5 },
+  { x: 10.5,  y: 166   },
+  { x: 434,   y: 10.5  }
 ];
 
 const HANGAR_SPOTS = [
@@ -1186,10 +1226,10 @@ const HANGAR_SPOTS = [
 ];
 
 const FINAL_GOAL_SPOTS = [
-  { x: 334, y: 300 }, // 0: 绿
-  { x: 300, y: 334 }, // 1: 红
-  { x: 266, y: 300 }, // 2: 黄
-  { x: 300, y: 266 }  // 3: 蓝
+  { x: 334, y: 300 },
+  { x: 300, y: 334 },
+  { x: 266, y: 300 },
+  { x: 300, y: 266 }
 ];
 
 const QUAD_CELLS = 13;
@@ -1205,7 +1245,6 @@ function rotatePoint(px, py, q) {
   return { x: +(300 + dx).toFixed(2), y: +(300 + dy).toFixed(2) };
 }
 
-// 将任意多边形顶点转换为平滑圆角 SVG path（所有格子棱角均变为圆角）
 function buildRoundedPolygonPath(pts, radius = 6.5) {
   const n = pts.length;
   if (n < 3) return '';
@@ -1233,28 +1272,21 @@ function buildRoundedPolygonPath(pts, radius = 6.5) {
 function initGeometry() {
   OUTER_RING.length = 0;
 
-  /*
-   * 1. 黑色框内格子（8 个内拐角梯形尖端）裁剪删除，凸出部分以原 40px 的 2/3（26.7px，即 373.3）为界。
-   * 2. 红框区域并入起飞区旁三角形格（拓宽长度 = 拓宽区宽度 40px，形成宽起飞梯形），
-   *    剩余 80px 蓝框区域由两个 40×40 格子平分并分配原顺延色彩。
-   * 3. 完整 52 格外圈严格按 绿(0)->红(1)->黄(2)->蓝(3) 循环，四条虚线直飞同色对应。
-   * 4. 全部格子（外圈多边形、冲刺跑道格、中心终点）均做圆角化处理。
-   */
-  const innerTrim = 373.3; // 400 - 40 * (2/3)
+  const innerTrim = 373.3;
   const quad0Cells = [
-    { pts: [[560,280], [600,280], [600,320], [560,320]], cx: 580, cy: 300, r: 11.2 }, // local 0: 右臂中格
-    { pts: [[560,320], [600,320], [600,360], [560,360]], cx: 580, cy: 340, r: 11.2 }, // local 1: 右臂下矩形1
-    { pts: [[560,360], [600,360], [600,400], [560,400]], cx: 580, cy: 380, r: 11.2 }, // local 2: 右臂下矩形2
-    { pts: [[520,400], [600,400], [560,440], [520,440]], cx: 554, cy: 420, r: 11.0 }, // local 3: 拓宽起飞梯形（含红框40px，紧邻起飞台）
-    { pts: [[480,400], [520,400], [520,440], [480,440]], cx: 500, cy: 420, r: 11.2 }, // local 4: 蓝框平分格1（40×40）
-    { pts: [[440,400], [480,400], [480,440], [440,440]], cx: 460, cy: 420, r: 11.2 }, // local 5: 蓝框平分格2（40×40）
-    { pts: [[400,innerTrim], [440,innerTrim], [440,440], [400,400]], cx: 421, cy: 403, r: 10.6 }, // local 6: 内拐角梯形1（裁剪黑框，保留2/3凸出）
-    { pts: [[innerTrim,400], [400,400], [440,440], [innerTrim,440]], cx: 403, cy: 421, r: 10.6 }, // local 7: 内拐角梯形2（同色直飞起点，保留2/3凸出）
-    { pts: [[400,440], [440,440], [440,480], [400,480]], cx: 420, cy: 460, r: 11.2 }, // local 8: 下臂蓝框平分格1（40×40）
-    { pts: [[400,480], [440,480], [440,520], [400,520]], cx: 420, cy: 500, r: 11.2 }, // local 9: 下臂蓝框平分格2（40×40）
-    { pts: [[400,520], [440,520], [440,560], [400,600]], cx: 420, cy: 554, r: 11.0 }, // local 10: 下臂拓宽角梯形（含红框40px）
-    { pts: [[360,560], [400,560], [400,600], [360,600]], cx: 380, cy: 580, r: 11.2 }, // local 11: 下臂矩形2
-    { pts: [[320,560], [360,560], [360,600], [320,600]], cx: 340, cy: 580, r: 11.2 }  // local 12: 下臂矩形1
+    { pts: [[560,280], [600,280], [600,320], [560,320]], cx: 580, cy: 300, r: 11.2 },
+    { pts: [[560,320], [600,320], [600,360], [560,360]], cx: 580, cy: 340, r: 11.2 },
+    { pts: [[560,360], [600,360], [600,400], [560,400]], cx: 580, cy: 380, r: 11.2 },
+    { pts: [[520,400], [600,400], [560,440], [520,440]], cx: 554, cy: 420, r: 11.0 },
+    { pts: [[480,400], [520,400], [520,440], [480,440]], cx: 500, cy: 420, r: 11.2 },
+    { pts: [[440,400], [480,400], [480,440], [440,440]], cx: 460, cy: 420, r: 11.2 },
+    { pts: [[400,innerTrim], [440,innerTrim], [440,440], [400,400]], cx: 421, cy: 403, r: 10.6 },
+    { pts: [[innerTrim,400], [400,400], [440,440], [innerTrim,440]], cx: 403, cy: 421, r: 10.6 },
+    { pts: [[400,440], [440,440], [440,480], [400,480]], cx: 420, cy: 460, r: 11.2 },
+    { pts: [[400,480], [440,480], [440,520], [400,520]], cx: 420, cy: 500, r: 11.2 },
+    { pts: [[400,520], [440,520], [440,560], [400,600]], cx: 420, cy: 554, r: 11.0 },
+    { pts: [[360,560], [400,560], [400,600], [360,600]], cx: 380, cy: 580, r: 11.2 },
+    { pts: [[320,560], [360,560], [360,600], [320,600]], cx: 340, cy: 580, r: 11.2 }
   ];
 
   for (let q = 0; q < 4; q++) {
@@ -1280,7 +1312,6 @@ function initGeometry() {
     });
   }
 
-  // 四条中央冲刺跑道（5 格，两端分别与外圈及中心终点大正方形无缝衔接）
   SPRINT_LANES[0] = [
     {x:539.7,y:300},{x:499.1,y:300},{x:458.5,y:300},{x:417.9,y:300},{x:377.3,y:300}, FINAL_GOAL_SPOTS[0]
   ];
@@ -1295,8 +1326,15 @@ function initGeometry() {
   ];
 }
 
+let boardBaseRendered = false;
+
 function renderBoardBase() {
   const svg = document.getElementById('board-svg');
+  if (!svg) return;
+  if (boardBaseRendered && document.getElementById('board-pieces-layer')) {
+    renderCenterVictoryFlag(-1);
+    return;
+  }
   svg.innerHTML = '';
   const ns = 'http://www.w3.org/2000/svg';
   const createEl = (tag, attrs) => {
@@ -1305,20 +1343,7 @@ function renderBoardBase() {
     return el;
   };
 
-  // 高清矢量滤镜与多级光泽渐变定义
   const defs = createEl('defs', {});
-
-  const cellShadow = createEl('filter', { id: 'hd-cell-shadow', x: '-12%', y: '-12%', width: '124%', height: '128%' });
-  cellShadow.appendChild(createEl('feDropShadow', { dx: '0', dy: '1.2', stdDeviation: '1.1', 'flood-color': '#0f172a', 'flood-opacity': '0.18' }));
-  defs.appendChild(cellShadow);
-
-  const hangarShadow = createEl('filter', { id: 'hd-hangar-shadow', x: '-10%', y: '-10%', width: '120%', height: '124%' });
-  hangarShadow.appendChild(createEl('feDropShadow', { dx: '0', dy: '3', stdDeviation: '3.2', 'flood-color': '#0f172a', 'flood-opacity': '0.26' }));
-  defs.appendChild(hangarShadow);
-
-  const pieceShadow = createEl('filter', { id: 'hd-piece-shadow', x: '-30%', y: '-25%', width: '160%', height: '165%' });
-  pieceShadow.appendChild(createEl('feDropShadow', { dx: '0', dy: '2.4', stdDeviation: '2.1', 'flood-color': '#09111e', 'flood-opacity': '0.42' }));
-  defs.appendChild(pieceShadow);
 
   FACTIONS.forEach(f => {
     const cellGrad = createEl('linearGradient', { id: `hd-cell-grad-${f.id}`, x1: '0%', y1: '0%', x2: '100%', y2: '100%' });
@@ -1361,8 +1386,7 @@ function renderBoardBase() {
 
   svg.appendChild(defs);
 
-  // 1. 高清 52 格圆角外圈
-  const outerG = createEl('g', { filter: 'url(#hd-cell-shadow)' });
+  const outerG = createEl('g', {});
   OUTER_RING.forEach(cell => {
     const fObj = FACTIONS[cell.colorIdx];
     outerG.appendChild(createEl('path', {
@@ -1382,13 +1406,12 @@ function renderBoardBase() {
     outerG.appendChild(createEl('circle', {
       cx: cell.x, cy: cell.y, r: pr,
       fill: 'url(#hd-pad-grad)',
-      stroke: 'rgba(15,23,42,0.08)',
-      'stroke-width': 0.8
+      stroke: 'rgba(15,23,42,0.12)',
+      'stroke-width': 0.9
     }));
   });
   svg.appendChild(outerG);
 
-  // 2. 四条同色高清虚线直飞航线
   OUTER_RING.forEach(cell => {
     if (cell.isShortcut) {
       const dest = OUTER_RING[cell.shortcutDest];
@@ -1416,8 +1439,7 @@ function renderBoardBase() {
     }
   });
 
-  // 3. 四条中央高清冲刺跑道
-  const sprintG = createEl('g', { filter: 'url(#hd-cell-shadow)' });
+  const sprintG = createEl('g', {});
   SPRINT_LANES.forEach((lane, fIdx) => {
     const fObj = FACTIONS[fIdx];
     const isHoriz = (fIdx === 0 || fIdx === 2);
@@ -1436,15 +1458,14 @@ function renderBoardBase() {
       sprintG.appendChild(createEl('circle', {
         cx: pt.x, cy: pt.y, r: 11.5,
         fill: 'url(#hd-pad-grad)',
-        stroke: 'rgba(15,23,42,0.08)',
-        'stroke-width': 0.8
+        stroke: 'rgba(15,23,42,0.12)',
+        'stroke-width': 0.9
       }));
     }
   });
   svg.appendChild(sprintG);
 
-  // 4. 中央圆角终点大正方形（带立体质感、四色终点停机小白点与高光边框）
-  const goalWrap = createEl('g', { filter: 'url(#hd-hangar-shadow)' });
+  const goalWrap = createEl('g', {});
   const goalG = createEl('g', { 'clip-path': 'url(#goal-rounded-clip)' });
   const tris = [
     { pts: `${cx},${cy} ${cx+s},${cy-s} ${cx+s},${cy+s}`, f: 0 },
@@ -1460,8 +1481,8 @@ function renderBoardBase() {
     goalG.appendChild(createEl('circle', {
       cx: spot.x, cy: spot.y, r: 11.2,
       fill: 'url(#hd-pad-grad)',
-      stroke: 'rgba(15,23,42,0.1)',
-      'stroke-width': 0.8
+      stroke: 'rgba(15,23,42,0.12)',
+      'stroke-width': 0.9
     }));
   });
   goalG.appendChild(createEl('circle', {
@@ -1474,7 +1495,6 @@ function renderBoardBase() {
   goalWrap.appendChild(goalG);
   svg.appendChild(goalWrap);
 
-  // 5. 四角高清停机坪与起飞平台
   HANGAR_BOXES.forEach((box, fIdx) => {
     const fObj = FACTIONS[fIdx];
     const lp = LAUNCH_SPOTS[fIdx];
@@ -1483,8 +1503,7 @@ function renderBoardBase() {
       cx: lp.x, cy: lp.y, r: 9.8,
       fill: `url(#hd-token-grad-${fIdx})`,
       stroke: '#ffffff',
-      'stroke-width': 2.2,
-      filter: 'url(#hd-cell-shadow)'
+      'stroke-width': 2.2
     }));
     svg.appendChild(createEl('circle', {
       cx: lp.x, cy: lp.y, r: 4.5,
@@ -1493,7 +1512,7 @@ function renderBoardBase() {
       'stroke-width': 1.1
     }));
 
-    const hGroup = createEl('g', { id: `hangar-group-${fIdx}`, filter: 'url(#hd-hangar-shadow)' });
+    const hGroup = createEl('g', { id: `hangar-group-${fIdx}` });
     hGroup.appendChild(createEl('rect', {
       x: box.x + 1, y: box.y + 1, width: box.w - 2, height: box.h - 2, rx: 15,
       fill: `url(#hd-hangar-grad-${fIdx})`, stroke: 'rgba(255,255,255,0.94)', 'stroke-width': 2.2
@@ -1507,7 +1526,7 @@ function renderBoardBase() {
       hGroup.appendChild(createEl('circle', {
         cx: pt.x, cy: pt.y, r: 17.5,
         fill: 'url(#hd-pad-grad)',
-        stroke: 'rgba(15,23,42,0.12)',
+        stroke: 'rgba(15,23,42,0.14)',
         'stroke-width': 1.1
       }));
       hGroup.appendChild(createEl('circle', {
@@ -1526,6 +1545,7 @@ function renderBoardBase() {
 
   svg.appendChild(createEl('g', { id: 'board-pieces-layer' }));
   svg.appendChild(createEl('g', { id: 'center-victory-flag-layer' }));
+  boardBaseRendered = true;
 }
 
 function renderCenterVictoryFlag(factionId) {
@@ -1544,11 +1564,9 @@ function renderCenterVictoryFlag(factionId) {
 
   const flagRoot = createEl('g', {
     class: 'center-flag-hoisted',
-    transform: 'translate(300, 300)',
-    filter: 'url(#hd-piece-shadow)'
+    transform: 'translate(300, 300)'
   });
 
-  // 十字交叉基座圆盘（锚定在 300,300 正中心）
   flagRoot.appendChild(createEl('ellipse', {
     cx: 2, cy: 2.5, rx: 9.5, ry: 4.5,
     fill: 'rgba(15,23,42,0.34)'
@@ -1564,7 +1582,6 @@ function renderCenterVictoryFlag(factionId) {
     fill: fObj.color
   }));
 
-  // 随风飘动的冠军颜色小旗面（先绘制旗面，再绘制金属旗杆使其自然压边）
   const cloth = createEl('g', { class: 'center-flag-cloth' });
   cloth.appendChild(createEl('path', {
     d: 'M 0 -41 Q 11 -44 21 -39 Q 27 -36 33 -39 L 27 -30 L 33 -21 Q 26 -18 20 -21 Q 10 -25 0 -22 Z',
@@ -1573,7 +1590,6 @@ function renderCenterVictoryFlag(factionId) {
     'stroke-width': 1.6,
     'stroke-linejoin': 'round'
   }));
-  // 旗面白色五角星徽章
   cloth.appendChild(createEl('polygon', {
     points: '14,-35.2 15.2,-32.4 18.2,-32.1 15.9,-30.1 16.6,-27.2 14,-28.8 11.4,-27.2 12.1,-30.1 9.8,-32.1 12.8,-32.4',
     fill: '#ffffff',
@@ -1581,7 +1597,6 @@ function renderCenterVictoryFlag(factionId) {
   }));
   flagRoot.appendChild(cloth);
 
-  // 金属高光旗杆与金色球形旗冠
   flagRoot.appendChild(createEl('line', {
     x1: 0, y1: 0, x2: 0, y2: -44,
     stroke: '#ffffff',
@@ -1604,11 +1619,6 @@ function renderCenterVictoryFlag(factionId) {
   layer.appendChild(flagRoot);
 }
 
-/* =====================================================================
- * 3. 3D 玉瓷骰子尾段轨迹重构：
- * - 前段按滑动方向与速度翻滚碰撞
- * - 尾段先滚至停机坪正中央旁侧（sideX, sideY），随后在最后一次滚动中平滑滚向正中央 (box.cx, box.cy) 停稳
- * ===================================================================== */
 const DICE_FACES = [
   { val: 1, n: [0, 0, 1],  u: [1, 0, 0],  v: [0, 1, 0],  pips: [[0, 0]] },
   { val: 2, n: [1, 0, 0],  u: [0, 0, -1], v: [0, 1, 0],  pips: [[-0.46, -0.46], [0.46, 0.46]] },
@@ -1619,7 +1629,6 @@ const DICE_FACES = [
 ];
 
 function getTargetEulerForFace(val) {
-  // 停止在停机坪中间即可，不需要移正，保留自然任意停靠朝向角
   const yaw = Math.random() * Math.PI * 2;
   switch (val) {
     case 1: return { rx: 0,            ry: 0,            rz: yaw };
@@ -1649,38 +1658,43 @@ function rotateVec3(vec, rx, ry, rz) {
 
 const dice3DState = {
   factionId: 0,
-  x: 520,
-  y: 520,
+  x: 524,
+  y: 524,
   z: 0,
-  vx: 0,
-  vy: 0,
   rotX: 0.42,
   rotY: -0.48,
   rotZ: 0,
-  startRotX: 0.42,
-  startRotY: -0.48,
-  startRotZ: 0,
-  targetRotX: 0,
-  targetRotY: 0,
-  targetRotZ: 0,
   faceValue: 6
 };
+
+let mainDragState = { active: false, startX: 0, startY: 0, startTime: 0, factionId: -1 };
+let draftDragState = { active: false, startX: 0, startY: 0, startTime: 0 };
+
+function resetAllPointerStates() {
+  mainDragState = { active: false, startX: 0, startY: 0, startTime: 0, factionId: -1 };
+  draftDragState = { active: false, startX: 0, startY: 0, startTime: 0 };
+}
 
 function syncDiceCanvasSize() {
   const container = document.getElementById('board-container');
   const canvas = document.getElementById('dice-3d-canvas');
   if (!container || !canvas) return;
   const rect = container.getBoundingClientRect();
-  const dpr = Math.min(window.devicePixelRatio || 1, 3);
-  canvas.width = Math.max(1, Math.round(rect.width * dpr));
-  canvas.height = Math.max(1, Math.round(rect.height * dpr));
+  if (!rect.width || !rect.height) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const targetW = Math.max(1, Math.round(rect.width * dpr));
+  const targetH = Math.max(1, Math.round(rect.height * dpr));
+  if (canvas.width !== targetW || canvas.height !== targetH) {
+    canvas.width = targetW;
+    canvas.height = targetH;
+  }
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   render3DDiceCanvas();
 }
-window.addEventListener('resize', syncDiceCanvasSize);
 
 function drawJadeDiceOnCtx(ctx, sidePx, d, baseDiceSize600 = 51.3) {
+  if (!ctx || sidePx <= 0) return;
   ctx.clearRect(0, 0, sidePx, sidePx);
 
   const scaleRatio = sidePx / 600;
@@ -1911,11 +1925,11 @@ function placeDiceAtHangarCenter(factionId, val = dice3DState.faceValue) {
 
 function animate3DJadeDiceRoll(factionId, finalVal, swipeInfo = null) {
   return new Promise(resolve => {
+    const sid = gameState.sessionId;
     const box = HANGAR_BOXES[factionId];
     const minX = box.x + 26, maxX = box.x + box.w - 26;
     const minY = box.y + 26, maxY = box.y + box.h - 26;
 
-    // 动之前确保骰子位于停机坪中间
     dice3DState.x = box.cx;
     dice3DState.y = box.cy;
     dice3DState.z = 0;
@@ -1926,19 +1940,13 @@ function animate3DJadeDiceRoll(factionId, finalVal, swipeInfo = null) {
     const duration = Math.round(1250 + speedNorm * 350);
     const startTime = performance.now();
 
-    let angle, launchSpeed;
+    let angle;
     if (swipeInfo && (Math.abs(swipeInfo.dirX) > 0.01 || Math.abs(swipeInfo.dirY) > 0.01)) {
       angle = Math.atan2(swipeInfo.dirY, swipeInfo.dirX);
-      launchSpeed = 0.26 + speedNorm * 0.32;
     } else {
       angle = Math.random() * Math.PI * 2;
-      launchSpeed = 0.34 + Math.random() * 0.14;
     }
 
-    // 刚体无滑动滚动路线设计（严格满足 ds = R * dθ）：
-    // 先沿滑动/掷出方向在停机坪内撞壁反弹，再沿着一条连续曲线滚入停机坪正中央 (box.cx, box.cy)，
-    // 每一帧的旋转角度增量 dθ 严格由本帧滚动弧长 ds / R 实时驱动（越滚越慢，角速度与线速度同步归零），
-    // 确保骰子是真实翻滚进停机坪中间，绝不出现平移滑动！
     const steps = 180;
     const rawPts = [{ x: box.cx, y: box.cy }];
     let sx = box.cx, sy = box.cy;
@@ -1946,7 +1954,6 @@ function animate3DJadeDiceRoll(factionId, finalVal, swipeInfo = null) {
     let svy = Math.sin(angle) * (4.2 + speedNorm * 3.2);
     const bounceArcs = [];
 
-    // 前 58% 行程：在停机坪内壁间弹跳翻滚
     const bounceSteps = Math.floor(steps * 0.58);
     for (let i = 1; i <= bounceSteps; i++) {
       svx *= 0.988;
@@ -1962,7 +1969,6 @@ function animate3DJadeDiceRoll(factionId, finalVal, swipeInfo = null) {
       rawPts.push({ x: sx, y: sy });
     }
 
-    // 后 42% 行程：设计一条平滑三次贝塞尔弧线滚入停机坪正中央 (box.cx, box.cy)
     const p0 = { x: sx, y: sy };
     const p3 = { x: box.cx, y: box.cy };
     const p1 = {
@@ -1979,26 +1985,23 @@ function animate3DJadeDiceRoll(factionId, finalVal, swipeInfo = null) {
     for (let j = 1; j <= rollSteps; j++) {
       const u = j / rollSteps;
       const omt = 1 - u;
-      const bx = omt * omt * omt * p0.x + 3 * omt * omt * u * p1.x + 3 * omt * u * u * p2.x + u * u * u * p3.x;
-      const by = omt * omt * omt * p0.y + 3 * omt * omt * u * p1.y + 3 * omt * u * u * p2.y + u * u * u * p3.y;
-      rawPts.push({ x: bx, y: by });
+      rawPts.push({
+        x: omt * omt * omt * p0.x + 3 * omt * omt * u * p1.x + 3 * omt * u * u * p2.x + u * u * u * p3.x,
+        y: omt * omt * omt * p0.y + 3 * omt * omt * u * p1.y + 3 * omt * u * u * p2.y + u * u * u * p3.y
+      });
     }
 
-    // 计算整条滚动路线的累计弧长 cumArc，并据此生成每步的滚动角增量（严格无滑移）
     const cumArc = [0];
     for (let i = 1; i < rawPts.length; i++) {
-      const seg = Math.hypot(rawPts[i].x - rawPts[i - 1].x, rawPts[i].y - rawPts[i - 1].y);
-      cumArc.push(cumArc[i - 1] + seg);
+      cumArc.push(cumArc[i - 1] + Math.hypot(rawPts[i].x - rawPts[i - 1].x, rawPts[i].y - rawPts[i - 1].y));
     }
     const totalArc = Math.max(1, cumArc[cumArc.length - 1]);
 
-    // 根据沿途切线方向积分出真实滚动累积旋转角，再将总旋转量精确对齐到目标点数的整数倍 2π
     const rawRx = [dice3DState.rotX], rawRy = [dice3DState.rotY], rawRz = [dice3DState.rotZ];
-    const rollRadius = 15.5; // 弧长与翻转角耦合半径：每滚动约 24px 翻转 90°
+    const rollRadius = 15.5;
     for (let i = 1; i < rawPts.length; i++) {
       const dx = rawPts[i].x - rawPts[i - 1].x;
       const dy = rawPts[i].y - rawPts[i - 1].y;
-      // 沿 (dx, dy) 方向无滑动滚动：向前(+y)绕 +X 轴翻滚，向右(+x)绕 -Y 轴翻滚
       rawRx.push(rawRx[i - 1] + dy / rollRadius);
       rawRy.push(rawRy[i - 1] - dx / rollRadius);
       rawRz.push(rawRz[i - 1] + (dx * 0.18 - dy * 0.18) / rollRadius);
@@ -2018,46 +2021,40 @@ function animate3DJadeDiceRoll(factionId, finalVal, swipeInfo = null) {
     const errY = finalRotY - rawRy[rawRy.length - 1];
     const errZ = finalRotZ - rawRz[rawRz.length - 1];
     for (let i = 0; i < rawPts.length; i++) {
-      const w = cumArc[i] / totalArc; // 按已滚动弧长比例分摊相位对齐，保证角速度与线速度严格同步！
+      const w = cumArc[i] / totalArc;
       rawRx[i] += errX * w;
       rawRy[i] += errY * w;
       rawRz[i] += errZ * w;
     }
 
-    dice3DState.vx = svx;
-    dice3DState.vy = svy;
-    dice3DState.faceValue = finalVal;
-    dice3DState.targetRotX = finalRotX;
-    dice3DState.targetRotY = finalRotY;
-    dice3DState.targetRotZ = finalRotZ;
-
     let wallBounceIdx = 0;
     let lastRollTick = 0;
 
     function step(now) {
-      const elapsed = now - startTime;
+      if (sid !== gameState.sessionId || gameState.phase === 'GAME_OVER') {
+        resolve();
+        return;
+      }
 
+      const elapsed = now - startTime;
       if (elapsed >= duration) {
         dice3DState.x = box.cx;
         dice3DState.y = box.cy;
         dice3DState.z = 0;
-        dice3DState.vx = 0;
-        dice3DState.vy = 0;
         dice3DState.rotX = finalRotX;
         dice3DState.rotY = finalRotY;
         dice3DState.rotZ = finalRotZ;
+        dice3DState.faceValue = finalVal;
         SFX.land();
         render3DDiceCanvas();
         resolve();
         return;
       }
 
-      // 统一时间-弧长映射 s(t)：从掷出高速逐渐减速滚停在正中央，位移与旋转共享同一 s(t)，绝不滑动！
       const tNorm = elapsed / duration;
       const arcEase = 1 - Math.pow(1 - tNorm, 2.35);
       const targetArc = arcEase * totalArc;
 
-      // 二分查找对应弧长采样点
       let lo = 0, hi = steps;
       while (lo < hi - 1) {
         const mid = (lo + hi) >> 1;
@@ -2073,7 +2070,6 @@ function animate3DJadeDiceRoll(factionId, finalVal, swipeInfo = null) {
       dice3DState.rotY = rawRy[lo] + (rawRy[hi] - rawRy[lo]) * frac;
       dice3DState.rotZ = rawRz[lo] + (rawRz[hi] - rawRz[lo]) * frac;
 
-      // 棱角翻滚起伏高度：每次翻过 90° 棱边时重心略微抬起再落下，呈现真实方块滚落感
       const rollAngleMag = Math.hypot(dice3DState.rotX - rawRx[0], dice3DState.rotY - rawRy[0]);
       const edgeLift = Math.abs(Math.sin(rollAngleMag * 2)) * 0.14 * (1 - arcEase * 0.55);
       const initialHop = arcEase < 0.45 ? Math.sin((arcEase / 0.45) * Math.PI) * (0.26 + speedNorm * 0.18) : 0;
@@ -2084,7 +2080,6 @@ function animate3DJadeDiceRoll(factionId, finalVal, swipeInfo = null) {
         lastRollTick = rollTick;
         if (arcEase < 0.92) SFX.bounce();
       }
-
       while (wallBounceIdx < bounceArcs.length && arcEase >= bounceArcs[wallBounceIdx]) {
         wallBounceIdx++;
         SFX.bounce();
@@ -2098,16 +2093,10 @@ function animate3DJadeDiceRoll(factionId, finalVal, swipeInfo = null) {
   });
 }
 
-
-/* =====================================================================
- * 开局用户掷骰子选飞机模块（复用停机坪同款 3D 玉瓷骰子与物理滚动）
- * ===================================================================== */
 const draftDiceState = {
   x: 300,
   y: 300,
   z: 0,
-  vx: 0,
-  vy: 0,
   rotX: 0.42,
   rotY: -0.48,
   rotZ: 0,
@@ -2117,11 +2106,11 @@ const draftDiceState = {
 
 const draftSession = {
   active: false,
-  chosenFactions: [], // 用户在阵营界面选择的 'player' 阵营（按先进入游戏顺序：绿->红->黄->蓝）
-  contenders: [],     // 当前轮次需要掷骰的玩家编号列表，如 [0, 1, ...]
-  roundRolls: {},     // 当前轮次各玩家掷出的点数 { playerIdx: val }
-  assignedPairs: [],  // 已确定的分配 [{ playerIdx, val, faction }]
-  turnIdx: 0          // contenders 中的当前索引
+  chosenFactions: [],
+  contenders: [],
+  roundRolls: {},
+  assignedPairs: [],
+  turnIdx: 0
 };
 
 function syncDraftDiceCanvasSize() {
@@ -2129,9 +2118,13 @@ function syncDraftDiceCanvasSize() {
   if (!canvas) return;
   const rect = canvas.getBoundingClientRect();
   const side = Math.max(120, Math.round(rect.width || 168));
-  const dpr = Math.min(window.devicePixelRatio || 1, 3);
-  canvas.width = side * dpr;
-  canvas.height = side * dpr;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const targetW = side * dpr;
+  const targetH = side * dpr;
+  if (canvas.width !== targetW || canvas.height !== targetH) {
+    canvas.width = targetW;
+    canvas.height = targetH;
+  }
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   renderDraftDiceCanvas();
@@ -2160,6 +2153,7 @@ function resetDraftDiceToCenter(val = 6) {
 
 function animateDraftJadeDiceRoll(finalVal, swipeInfo = null) {
   return new Promise(resolve => {
+    const sid = gameState.sessionId;
     const minX = 115, maxX = 485, minY = 115, maxY = 485;
     draftDiceState.x = 300;
     draftDiceState.y = 300;
@@ -2262,6 +2256,11 @@ function animateDraftJadeDiceRoll(finalVal, swipeInfo = null) {
     let lastRollTick = 0;
 
     function step(now) {
+      if (sid !== gameState.sessionId || !draftSession.active) {
+        resolve();
+        return;
+      }
+
       const elapsed = now - startTime;
       if (elapsed >= duration) {
         draftDiceState.x = 300;
@@ -2380,12 +2379,10 @@ async function triggerDraftRoll(swipeInfo = null) {
     return;
   }
 
-  // 本轮所有待定玩家均已掷完，按点数从大到小排序并处理最高分平局
   const ranked = draftSession.contenders
     .map(pIdx => ({ playerIdx: pIdx, val: draftSession.roundRolls[pIdx] }))
     .sort((a, b) => b.val - a.val);
 
-  // 检查是否存在影响剩余优先机位分配的同分情况
   let i = 0;
   while (i < ranked.length) {
     let j = i + 1;
@@ -2400,7 +2397,6 @@ async function triggerDraftRoll(swipeInfo = null) {
       });
       i++;
     } else {
-      // 出现平局，保留前面已无争议胜出的玩家，平局双方（或多方）再次掷骰决出先后！
       const tiedPlayers = ranked.slice(i, j).map(x => x.playerIdx);
       draftSession.contenders = tiedPlayers;
       draftSession.roundRolls = {};
@@ -2415,11 +2411,9 @@ async function triggerDraftRoll(swipeInfo = null) {
     }
   }
 
-  // 全部用户机位颜色已按点数从大到小分配完毕！
   draftSession.active = false;
   updateDraftUI();
 
-  // 将分配结果写回参战阵营 displayName
   draftSession.assignedPairs.forEach(item => {
     item.faction.displayName = `${item.faction.name} (玩家${item.playerIdx + 1})`;
   });
@@ -2443,28 +2437,27 @@ async function triggerDraftRoll(swipeInfo = null) {
 function initDraftDiceEvents() {
   const stage = document.getElementById('draft-dice-stage');
   if (!stage) return;
-  let drag = { active: false, startX: 0, startY: 0, startTime: 0 };
 
-  stage.addEventListener('pointerdown', (e) => {
+  function onStart(clientX, clientY) {
     if (!draftSession.active || draftDiceState.rolling) return;
     if (document.getElementById('draft-dice-canvas').width === 0) {
       syncDraftDiceCanvasSize();
     }
-    drag = {
+    draftDragState = {
       active: true,
-      startX: e.clientX,
-      startY: e.clientY,
+      startX: clientX,
+      startY: clientY,
       startTime: performance.now()
     };
-  });
+  }
 
-  stage.addEventListener('pointerup', (e) => {
-    if (!drag.active) return;
-    const dx = e.clientX - drag.startX;
-    const dy = e.clientY - drag.startY;
+  function onEnd(clientX, clientY) {
+    if (!draftDragState.active) return;
+    const dx = clientX - draftDragState.startX;
+    const dy = clientY - draftDragState.startY;
     const dist = Math.hypot(dx, dy);
-    const dt = Math.max(16, performance.now() - drag.startTime);
-    drag.active = false;
+    const dt = Math.max(16, performance.now() - draftDragState.startTime);
+    draftDragState.active = false;
 
     if (!draftSession.active || draftDiceState.rolling) return;
     if (dist >= 10) {
@@ -2473,41 +2466,69 @@ function initDraftDiceEvents() {
     } else {
       triggerDraftRoll();
     }
+  }
+
+  stage.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      const t = e.touches[0];
+      onStart(t.clientX, t.clientY);
+    }
+  }, { passive: true });
+
+  stage.addEventListener('touchend', (e) => {
+    if (e.changedTouches && e.changedTouches.length > 0) {
+      const t = e.changedTouches[0];
+      onEnd(t.clientX, t.clientY);
+    }
+  }, { passive: true });
+
+  stage.addEventListener('touchcancel', () => {
+    draftDragState.active = false;
+  }, { passive: true });
+
+  stage.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'touch') return;
+    onStart(e.clientX, e.clientY);
+  });
+
+  stage.addEventListener('pointerup', (e) => {
+    if (e.pointerType === 'touch') return;
+    onEnd(e.clientX, e.clientY);
   });
 
   stage.addEventListener('pointercancel', () => {
-    if (drag.active && draftSession.active && !draftDiceState.rolling) {
-      drag.active = false;
+    draftDragState.active = false;
+  });
+
+  stage.addEventListener('click', () => {
+    if (draftSession.active && !draftDiceState.rolling) {
       triggerDraftRoll();
-    } else {
-      drag.active = false;
     }
   });
 }
 
 function initDiceCanvasPointerEvents() {
   const diceCanvas = document.getElementById('dice-3d-canvas');
-  let dragState = { active: false, startX: 0, startY: 0, startTime: 0, factionId: -1, pointerId: null };
 
-  function toBoard600(e) {
+  function clientToBoard600(clientX, clientY) {
     const rect = diceCanvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return { x: -1, y: -1 };
     return {
-      x: ((e.clientX - rect.left) / rect.width) * 600,
-      y: ((e.clientY - rect.top) / rect.height) * 600
+      x: ((clientX - rect.left) / rect.width) * 600,
+      y: ((clientY - rect.top) / rect.height) * 600
     };
   }
 
   function isInsideActiveHangarOrDice(pt, factionId) {
     const box = HANGAR_BOXES[factionId];
-    const pad = 12;
+    const pad = 16;
     const inBox = pt.x >= box.x - pad && pt.x <= box.x + box.w + pad &&
                   pt.y >= box.y - pad && pt.y <= box.y + box.h + pad;
-    const onDice = Math.hypot(pt.x - dice3DState.x, pt.y - dice3DState.y) <= 52;
+    const onDice = Math.hypot(pt.x - dice3DState.x, pt.y - dice3DState.y) <= 56;
     return inBox || onDice;
   }
 
-  diceCanvas.addEventListener('pointerdown', (e) => {
+  function handleCanvasDown(clientX, clientY) {
     if (gameState.phase === 'GAME_OVER' || gameState.phase === 'DRAFT') return;
     if (diceCanvas.width === 0 || diceCanvas.height === 0) {
       syncDiceCanvasSize();
@@ -2515,36 +2536,35 @@ function initDiceCanvasPointerEvents() {
     const curr = gameState.activeFactions[gameState.turnPtr];
     if (!curr || curr.role !== 'player') return;
 
-    const pt = toBoard600(e);
+    const pt = clientToBoard600(clientX, clientY);
     if (gameState.phase === 'IDLE' && isInsideActiveHangarOrDice(pt, curr.id)) {
-      dragState = {
+      mainDragState = {
         active: true,
         startX: pt.x,
         startY: pt.y,
         startTime: performance.now(),
-        factionId: curr.id,
-        pointerId: e.pointerId
+        factionId: curr.id
       };
     } else if (gameState.phase === 'SELECT_PIECE') {
       handlePieceClickAtPoint(pt);
     }
-  });
+  }
 
-  diceCanvas.addEventListener('pointerup', (e) => {
-    if (gameState.phase === 'GAME_OVER') return;
-    const pt = toBoard600(e);
+  function handleCanvasUp(clientX, clientY) {
+    if (gameState.phase === 'GAME_OVER' || gameState.phase === 'DRAFT') {
+      mainDragState.active = false;
+      return;
+    }
+    const pt = clientToBoard600(clientX, clientY);
 
-    if (dragState.active) {
-      if (dragState.pointerId !== null) {
-        try { diceCanvas.releasePointerCapture(dragState.pointerId); } catch (err) {}
-      }
-      const dx = pt.x - dragState.startX;
-      const dy = pt.y - dragState.startY;
+    if (mainDragState.active) {
+      const dx = pt.x - mainDragState.startX;
+      const dy = pt.y - mainDragState.startY;
       const dist = Math.hypot(dx, dy);
-      const dt = Math.max(16, performance.now() - dragState.startTime);
-      dragState.active = false;
-      dragState.pointerId = null;
+      const dt = Math.max(16, performance.now() - mainDragState.startTime);
+      mainDragState.active = false;
 
+      if (gameState.phase !== 'IDLE') return;
       if (dist >= 10) {
         const rawVelocity = dist / dt;
         const speedNorm = Math.min(1.65, Math.max(0.45, rawVelocity * 0.95));
@@ -2562,29 +2582,69 @@ function initDiceCanvasPointerEvents() {
     if (gameState.phase === 'SELECT_PIECE') {
       handlePieceClickAtPoint(pt);
     }
+  }
+
+  diceCanvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      const t = e.touches[0];
+      handleCanvasDown(t.clientX, t.clientY);
+    }
+  }, { passive: true });
+
+  diceCanvas.addEventListener('touchend', (e) => {
+    if (e.changedTouches && e.changedTouches.length > 0) {
+      const t = e.changedTouches[0];
+      handleCanvasUp(t.clientX, t.clientY);
+    }
+  }, { passive: true });
+
+  diceCanvas.addEventListener('touchcancel', () => {
+    mainDragState.active = false;
+  }, { passive: true });
+
+  diceCanvas.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'touch') return;
+    handleCanvasDown(e.clientX, e.clientY);
+  });
+
+  diceCanvas.addEventListener('pointerup', (e) => {
+    if (e.pointerType === 'touch') return;
+    handleCanvasUp(e.clientX, e.clientY);
   });
 
   diceCanvas.addEventListener('pointercancel', () => {
-    if (dragState.active && gameState.phase === 'IDLE') {
-      dragState.active = false;
-      dragState.pointerId = null;
-      triggerRoll();
-    } else {
-      dragState.active = false;
-      dragState.pointerId = null;
-    }
+    mainDragState.active = false;
   });
 
-  // 兜底点击事件：确保在任何浏览器/触控环境下点击骰子或当前停机坪必有响应
   diceCanvas.addEventListener('click', (e) => {
     if (gameState.phase !== 'IDLE') return;
     const curr = gameState.activeFactions[gameState.turnPtr];
     if (!curr || curr.role !== 'player') return;
-    const pt = toBoard600(e);
+    const pt = clientToBoard600(e.clientX, e.clientY);
     if (isInsideActiveHangarOrDice(pt, curr.id)) {
       triggerRoll();
     }
   });
+
+  const boardSvg = document.getElementById('board-svg');
+  if (boardSvg) {
+    boardSvg.addEventListener('click', (e) => {
+      if (gameState.phase === 'GAME_OVER' || gameState.phase === 'DRAFT') return;
+      const curr = gameState.activeFactions[gameState.turnPtr];
+      if (!curr || curr.role !== 'player') return;
+      const rect = boardSvg.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const pt = {
+        x: ((e.clientX - rect.left) / rect.width) * 600,
+        y: ((e.clientY - rect.top) / rect.height) * 600
+      };
+      if (gameState.phase === 'IDLE' && isInsideActiveHangarOrDice(pt, curr.id)) {
+        triggerRoll();
+      } else if (gameState.phase === 'SELECT_PIECE') {
+        handlePieceClickAtPoint(pt);
+      }
+    });
+  }
 }
 
 function handlePieceClickAtPoint(pt) {
@@ -2641,11 +2701,6 @@ function getOuterIndex(piece) {
   return (FACTION_ENTRY_IDX[piece.faction] + piece.step - 1) % RING_TOTAL;
 }
 
-/* =====================================================================
- * 1. 航向驱动移动：
- * - 计算从当前点到目标点的航向角 headingFromPoints(fromPt, toPt)
- * - 飞机先将机头对准行进方向（heading），再沿该机头朝向推进到目标格
- * ===================================================================== */
 function headingFromPoints(fromPt, toPt, fallbackAngle = 0) {
   const dx = toPt.x - fromPt.x;
   const dy = toPt.y - fromPt.y;
@@ -2668,13 +2723,8 @@ function computeHeadingAngle(faction, step, dir = 1) {
   return headingFromPoints(curPt, nextPt, 0);
 }
 
-/**
- * 严格按“机头朝向决定运动方向”推进一步：
- * 1) 先将机头旋转到从当前格指向下一格（或反弹/起飞/冲刺/终点）的航向
- * 2) 刷新渲染让玩家清晰看到机头转向该方向
- * 3) 再推进至下一格坐标
- */
 async function stepCohortAlongHeading(cohort, nextStep, dir, stepMs) {
+  const sid = gameState.sessionId;
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const curPt = getPieceXY(cohort[0]);
   const nextPt = getStepXY(cohort[0].faction, nextStep, cohort[0].idx);
@@ -2686,6 +2736,7 @@ async function stepCohortAlongHeading(cohort, nextStep, dir, stepMs) {
   });
   renderPieces();
   await sleep(Math.max(45, Math.round(stepMs * 0.35)));
+  if (sid !== gameState.sessionId || gameState.phase === 'GAME_OVER') return;
 
   cohort.forEach(p => {
     p.customXY = null;
@@ -2699,6 +2750,7 @@ async function stepCohortAlongHeading(cohort, nextStep, dir, stepMs) {
 
 function renderPieces() {
   const boardLayer = document.getElementById('board-pieces-layer');
+  if (!boardLayer) return;
   boardLayer.innerHTML = '';
   for (let i = 0; i < 4; i++) {
     const hLayer = document.getElementById(`hangar-pieces-${i}`);
@@ -2729,8 +2781,7 @@ function renderPieces() {
       group.some(item => gameState.validMoves.includes(item.id));
 
     const g = createEl('g', {
-      transform: `translate(${pos.x}, ${pos.y})`,
-      filter: 'url(#hd-piece-shadow)'
+      transform: `translate(${pos.x}, ${pos.y})`
     });
 
     if (isSelectable) {
@@ -2742,7 +2793,11 @@ function renderPieces() {
       g.appendChild(ring);
     }
 
-    // 立体航空徽章底座（外白瓷边 + 径向光泽主体 + 内金属微框 + 顶部高光弧）
+    g.appendChild(createEl('circle', {
+      cx: 0, cy: 1.8, r: 15.2,
+      fill: 'rgba(9, 17, 30, 0.26)'
+    }));
+
     g.appendChild(createEl('circle', {
       cx: 0, cy: 0, r: 15.2,
       fill: `url(#hd-token-grad-${p.faction})`,
@@ -2761,20 +2816,17 @@ function renderPieces() {
       transform: 'rotate(-16)'
     }));
 
-    // 高精矢量客机/战机机体（机身、后掠主翼、双引擎舱、水平尾翼、驾驶舱舷窗、机身脊线）
     const rotGroup = createEl('g', {
       class: 'plane-rotator',
       transform: `rotate(${p.heading})`
     });
 
-    // 机体投影层，增强飞机浮于底座之上的立体层次
     rotGroup.appendChild(createEl('path', {
       d: 'M0 -10.2 C1.4 -10.2 2.2 -7.8 2.2 -4.6 L9.6 1.2 L9.6 3.3 L2.2 1.5 L2.2 6.4 L5.2 8.6 L5.2 10.1 L0 8.9 L-5.2 10.1 L-5.2 8.6 L-2.2 6.4 L-2.2 1.5 L-9.6 3.3 L-9.6 1.2 L-2.2 -4.6 C-2.2 -7.8 -1.4 -10.2 0 -10.2 Z',
       fill: 'rgba(15,23,42,0.28)',
       transform: 'translate(0, 1.1)'
     }));
 
-    // 主翼双侧引擎短舱
     rotGroup.appendChild(createEl('rect', {
       x: -5.4, y: -1.4, width: 1.8, height: 3.6, rx: 0.9,
       fill: '#cbd5e1', stroke: fInfo.darkColor, 'stroke-width': 0.45
@@ -2784,7 +2836,6 @@ function renderPieces() {
       fill: '#cbd5e1', stroke: fInfo.darkColor, 'stroke-width': 0.45
     }));
 
-    // 金属光泽流线型机身与后掠翼
     rotGroup.appendChild(createEl('path', {
       d: 'M0 -10.2 C1.4 -10.2 2.2 -7.8 2.2 -4.6 L9.6 1.2 L9.6 3.3 L2.2 1.5 L2.2 6.4 L5.2 8.6 L5.2 10.1 L0 8.9 L-5.2 10.1 L-5.2 8.6 L-2.2 6.4 L-2.2 1.5 L-9.6 3.3 L-9.6 1.2 L-2.2 -4.6 C-2.2 -7.8 -1.4 -10.2 0 -10.2 Z',
       fill: 'url(#hd-fuselage-grad)',
@@ -2793,7 +2844,6 @@ function renderPieces() {
       'stroke-linejoin': 'round'
     }));
 
-    // 机翼前缘高光装饰线
     rotGroup.appendChild(createEl('path', {
       d: 'M-8.8 1.5 L-2.3 -3.6 M8.8 1.5 L2.3 -3.6',
       stroke: fInfo.color,
@@ -2802,14 +2852,12 @@ function renderPieces() {
       opacity: '0.85'
     }));
 
-    // 驾驶舱深色玻璃舷窗
     rotGroup.appendChild(createEl('path', {
       d: 'M0 -7.6 C0.9 -7.6 1.3 -6.4 1.2 -5.3 L0 -4.8 L-1.2 -5.3 C-1.3 -6.4 -0.9 -7.6 0 -7.6 Z',
       fill: '#0f172a',
       opacity: '0.88'
     }));
 
-    // 机身中轴脊线与垂尾细节
     rotGroup.appendChild(createEl('line', {
       x1: 0, y1: -3.8, x2: 0, y2: 8.4,
       stroke: fInfo.color,
@@ -2820,7 +2868,6 @@ function renderPieces() {
 
     g.appendChild(rotGroup);
 
-    // 堆叠数量角标：自动避开棋盘四边（如起飞平台贴近边缘时向内侧偏移，确保数字 100% 完整显示）
     if (count > 1 && p.step >= 0 && p.step <= GOAL_STEP) {
       const badgeX = pos.x > 565 ? -11.5 : 11.5;
       const badgeY = pos.y < 35 ? 11.5 : -11.5;
@@ -2857,8 +2904,15 @@ function updateActiveHangarPulse(factionId) {
   }
 }
 
+let confettiRafId = null;
+
 function launchConfetti(durationMs = 1600) {
+  if (confettiRafId) {
+    cancelAnimationFrame(confettiRafId);
+    confettiRafId = null;
+  }
   const canvas = document.getElementById('confetti-canvas');
+  if (!canvas) return;
   const ctx = canvas.getContext('2d');
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -2893,15 +2947,17 @@ function launchConfetti(durationMs = 1600) {
       ctx.restore();
     });
     if (elapsed < durationMs + 500) {
-      requestAnimationFrame(frame);
+      confettiRafId = requestAnimationFrame(frame);
     } else {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      confettiRafId = null;
     }
   }
-  requestAnimationFrame(frame);
+  confettiRafId = requestAnimationFrame(frame);
 }
 
 function finishDraftAndLaunchMatch() {
+  resetAllPointerStates();
   const boardContainer = document.getElementById('board-container');
   const draftOverlay = document.getElementById('draft-overlay');
   if (boardContainer) boardContainer.classList.remove('board-blurred');
@@ -2916,17 +2972,42 @@ function finishDraftAndLaunchMatch() {
     showNotice(gameState.draftSummaryNotice, 0, true);
   }
   startGameClock();
+  updateWakeLock();
   beginTurn(true);
 }
 
+let isStartingGame = false;
+
 function startGame() {
+  if (isStartingGame) return;
+  isStartingGame = true;
+  setTimeout(() => { isStartingGame = false; }, 350);
+
+  resetAllPointerStates();
+  FACTIONS.forEach(f => { f.displayName = f.name; });
   const active = FACTIONS.filter(f => f.role !== 'none');
   if (active.length < 1) {
+    navTo('setup');
     showNotice('请至少选择 1 个参战阵营！');
     return;
   }
 
   gameState.sessionId++;
+  gameState.phase = 'IDLE';
+  stopGameClock();
+  if (confettiRafId) {
+    cancelAnimationFrame(confettiRafId);
+    confettiRafId = null;
+  }
+  const confCanvas = document.getElementById('confetti-canvas');
+  if (confCanvas) {
+    const cCtx = confCanvas.getContext('2d');
+    if (cCtx) cCtx.clearRect(0, 0, confCanvas.width, confCanvas.height);
+  }
+  const firstBanner = document.getElementById('first-win-banner');
+  if (firstBanner) firstBanner.classList.remove('show');
+  renderCenterVictoryFlag(-1);
+
   let aiIndex = 1;
   let playerIndex = 1;
   active.forEach(f => {
@@ -2964,60 +3045,65 @@ function startGame() {
   navTo('game');
   renderBoardBase();
   renderPieces();
-  updateFloatingUIPositions();
-  syncDiceCanvasSize();
-  requestAnimationFrame(() => {
+
+  const sid = gameState.sessionId;
+  let boardLaunched = false;
+
+  const launchBoard = () => {
+    if (boardLaunched || sid !== gameState.sessionId) return;
+    boardLaunched = true;
+
     updateFloatingUIPositions();
     syncDiceCanvasSize();
-  });
 
-  const chosenPlayerFactions = active.filter(f => f.role === 'player');
-  const boardContainer = document.getElementById('board-container');
-  const draftOverlay = document.getElementById('draft-overlay');
+    const chosenPlayerFactions = active.filter(f => f.role === 'player');
+    const boardContainer = document.getElementById('board-container');
+    const draftOverlay = document.getElementById('draft-overlay');
 
-  if (chosenPlayerFactions.length >= 2) {
-    // 进入虚化棋盘的用户掷骰子选飞机阶段
-    gameState.phase = 'DRAFT';
-    stopGameClock();
-    const timerEl = document.getElementById('game-timer-text');
-    if (timerEl) timerEl.textContent = '00:00';
-    document.getElementById('magic-bar').style.display = 'none';
-    updateActiveHangarPulse(-1);
-    placeDiceAtHangarCenter(active[0].id, 6);
+    if (chosenPlayerFactions.length >= 2) {
+      gameState.phase = 'DRAFT';
+      stopGameClock();
+      updateWakeLock();
+      const timerEl = document.getElementById('game-timer-text');
+      if (timerEl) timerEl.textContent = '00:00';
+      document.getElementById('magic-bar').style.display = 'none';
+      updateActiveHangarPulse(-1);
+      placeDiceAtHangarCenter(active[0].id, 6);
 
-    draftSession.active = true;
-    draftSession.chosenFactions = chosenPlayerFactions;
-    draftSession.contenders = chosenPlayerFactions.map((_, idx) => idx);
-    draftSession.roundRolls = {};
-    draftSession.assignedPairs = [];
-    draftSession.turnIdx = 0;
-    draftDiceState.rolling = false;
+      draftSession.active = true;
+      draftSession.chosenFactions = chosenPlayerFactions;
+      draftSession.contenders = chosenPlayerFactions.map((_, idx) => idx);
+      draftSession.roundRolls = {};
+      draftSession.assignedPairs = [];
+      draftSession.turnIdx = 0;
+      draftDiceState.rolling = false;
 
-    if (boardContainer) boardContainer.classList.add('board-blurred');
-    if (draftOverlay) draftOverlay.classList.add('active');
-    updateDraftUI();
-    syncDraftDiceCanvasSize();
-    resetDraftDiceToCenter(6);
-    requestAnimationFrame(() => {
-      syncDraftDiceCanvasSize();
-      resetDraftDiceToCenter(6);
-    });
+      if (boardContainer) boardContainer.classList.add('board-blurred');
+      if (draftOverlay) draftOverlay.classList.add('active');
+      updateDraftUI();
+      requestAnimationFrame(() => {
+        if (sid !== gameState.sessionId) return;
+        syncDraftDiceCanvasSize();
+        resetDraftDiceToCenter(6);
+      });
 
-    const firstColor = chosenPlayerFactions[0].name;
-    const startMsg = chosenPlayerFactions.length > 1
-      ? `共 ${chosenPlayerFactions.length} 位玩家，请 玩家1 掷骰子选飞机（点数大者优先分配 ${firstColor}）`
-      : `请 玩家1 掷骰子，领取已选的 ${firstColor} 飞机`;
-    document.getElementById('draft-sub').textContent = startMsg;
-    showNotice(startMsg, 2800);
-    return;
-  }
+      const firstColor = chosenPlayerFactions[0].name;
+      const startMsg = `共 ${chosenPlayerFactions.length} 位玩家，请 玩家1 掷骰子选飞机（点数大者优先分配 ${firstColor}）`;
+      document.getElementById('draft-sub').textContent = startMsg;
+      showNotice(startMsg, 2800);
+      return;
+    }
 
-  // 全电脑阵营直接开局
-  if (boardContainer) boardContainer.classList.remove('board-blurred');
-  if (draftOverlay) draftOverlay.classList.remove('active');
-  draftSession.active = false;
-  startGameClock();
-  beginTurn(true);
+    if (boardContainer) boardContainer.classList.remove('board-blurred');
+    if (draftOverlay) draftOverlay.classList.remove('active');
+    draftSession.active = false;
+    startGameClock();
+    updateWakeLock();
+    beginTurn(true);
+  };
+
+  requestAnimationFrame(launchBoard);
+  setTimeout(launchBoard, 60);
 }
 
 function isFactionFinished(factionId) {
@@ -3027,6 +3113,7 @@ function isFactionFinished(factionId) {
 
 function beginTurn(resetSix = true) {
   if (gameState.phase === 'GAME_OVER') return;
+  if (!clockInterval) startGameClock();
 
   const remainingFactions = gameState.activeFactions.filter(f => !isFactionFinished(f.id));
   const minRemainingToStop = gameState.activeFactions.length === 1 ? 0 : 1;
@@ -3158,6 +3245,7 @@ function getMovingCohort(piece) {
 
 async function executeMove(piece) {
   if (gameState.phase !== 'SELECT_PIECE') return;
+  const sid = gameState.sessionId;
   gameState.phase = 'MOVING';
   gameState.validMoves = [];
   renderPieces();
@@ -3172,12 +3260,14 @@ async function executeMove(piece) {
     piece.heading = launchHeading;
     renderPieces();
     await sleep(90);
+    if (sid !== gameState.sessionId || gameState.phase === 'GAME_OVER') return;
     piece.step = 0;
     piece.customXY = null;
     piece.heading = launchHeading;
     SFX.jump();
     renderPieces();
     await sleep(normalStepMs);
+    if (sid !== gameState.sessionId || gameState.phase === 'GAME_OVER') return;
     finishMoveTurn(val);
     return;
   }
@@ -3196,6 +3286,7 @@ async function executeMove(piece) {
     }
 
     await stepCohortAlongHeading(cohort, nextStep, dir, normalStepMs);
+    if (sid !== gameState.sessionId || gameState.phase === 'GAME_OVER') return;
     remaining--;
 
     if (dir === 1 && remaining > 0 && nextStep >= 1 && nextStep <= MAX_OUTER_STEP && RULES.stacking) {
@@ -3220,8 +3311,9 @@ async function executeMove(piece) {
     showNotice(`${FACTIONS[f].displayName} ${cohort.length > 1 ? cohort.length + '架编队' : '一架飞机'}抵达终点！`);
     renderPieces();
     await sleep(320);
+    if (sid !== gameState.sessionId || gameState.phase === 'GAME_OVER') return;
     const ended = await checkWinCondition(f);
-    if (ended) return;
+    if (ended || sid !== gameState.sessionId) return;
     if (isFactionFinished(f)) {
       nextTurn();
       return;
@@ -3232,6 +3324,7 @@ async function executeMove(piece) {
 
   if (cohort[0].step >= 1 && cohort[0].step <= MAX_OUTER_STEP) {
     await resolveLandingEvents(cohort, false);
+    if (sid !== gameState.sessionId || gameState.phase === 'GAME_OVER') return;
   }
 
   renderPieces();
@@ -3239,6 +3332,7 @@ async function executeMove(piece) {
 }
 
 async function resolveLandingEvents(cohort, cameFromJump) {
+  const sid = gameState.sessionId;
   const lead = cohort[0];
   const f = lead.faction;
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -3246,7 +3340,7 @@ async function resolveLandingEvents(cohort, cameFromJump) {
   if (outerIdx === -1) return;
 
   await checkCollisionAtOuter(cohort, outerIdx);
-  if (lead.step === -1) return;
+  if (lead.step === -1 || sid !== gameState.sessionId) return;
 
   const cell = OUTER_RING[outerIdx];
   if (cell.colorIdx !== f) return;
@@ -3254,10 +3348,12 @@ async function resolveLandingEvents(cohort, cameFromJump) {
 
   if (cell.isShortcut) {
     await performShortcutFlight(cohort, cell);
-    if (lead.step === -1) return;
+    if (lead.step === -1 || sid !== gameState.sessionId) return;
     if (!cameFromJump && lead.step <= MAX_OUTER_STEP - 4) {
       await sleep(160);
+      if (sid !== gameState.sessionId) return;
       await stepCohortAlongHeading(cohort, lead.step + 4, 1, 245);
+      if (sid !== gameState.sessionId) return;
       SFX.jump();
       await checkCollisionAtOuter(cohort, getOuterIndex(lead));
     }
@@ -3265,20 +3361,24 @@ async function resolveLandingEvents(cohort, cameFromJump) {
   }
 
   await sleep(160);
+  if (sid !== gameState.sessionId) return;
   await stepCohortAlongHeading(cohort, lead.step + 4, 1, 245);
+  if (sid !== gameState.sessionId) return;
   SFX.jump();
   const newOuter = getOuterIndex(lead);
   await checkCollisionAtOuter(cohort, newOuter);
-  if (lead.step === -1) return;
+  if (lead.step === -1 || sid !== gameState.sessionId) return;
 
   const newCell = OUTER_RING[newOuter];
   if (newCell && newCell.isShortcut && newCell.colorIdx === f) {
     await sleep(160);
+    if (sid !== gameState.sessionId) return;
     await performShortcutFlight(cohort, newCell);
   }
 }
 
 async function performShortcutFlight(cohort, cell) {
+  const sid = gameState.sessionId;
   const lead = cohort[0];
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const crossFaction = cell.crossFaction;
@@ -3296,6 +3396,7 @@ async function performShortcutFlight(cohort, cell) {
   cohort.forEach(p => { p.heading = flyAngle; });
   renderPieces();
   await sleep(100);
+  if (sid !== gameState.sessionId) return;
 
   SFX.whoosh();
 
@@ -3305,6 +3406,10 @@ async function performShortcutFlight(cohort, cell) {
   await new Promise(resolve => {
     const startTime = performance.now();
     function flyStep(now) {
+      if (sid !== gameState.sessionId || gameState.phase === 'GAME_OVER') {
+        resolve();
+        return;
+      }
       const elapsed = now - startTime;
       const t = Math.min(1, elapsed / flightDuration);
       const curX = cell.x + (dest.x - cell.x) * t;
@@ -3333,6 +3438,7 @@ async function performShortcutFlight(cohort, cell) {
     requestAnimationFrame(flyStep);
   });
 
+  if (sid !== gameState.sessionId) return;
   cohort.forEach(p => {
     p.customXY = null;
     p.step = lead.step + 12;
@@ -3393,6 +3499,7 @@ function finalizeGameOver() {
   gameState.validMoves = [];
   document.getElementById('magic-bar').style.display = 'none';
   stopGameClock();
+  updateWakeLock();
   updateActiveHangarPulse(-1);
   renderPieces();
 
@@ -3411,6 +3518,7 @@ function finalizeGameOver() {
 }
 
 async function checkWinCondition(factionId) {
+  const sid = gameState.sessionId;
   const allDone = gameState.pieces.filter(p => p.faction === factionId).every(p => p.finished);
   if (!allDone || gameState.winners.some(w => w.factionId === factionId)) return false;
 
@@ -3433,6 +3541,7 @@ async function checkWinCondition(factionId) {
     banner.classList.add('show');
     await new Promise(r => setTimeout(r, 1500));
     banner.classList.remove('show');
+    if (sid !== gameState.sessionId) return true;
   } else {
     showNotice(`${fObj.displayName} 完成全部航线（第 ${gameState.winners.length} 名）！`);
   }
@@ -3480,6 +3589,9 @@ function nextTurn() {
 
 function navTo(screenName) {
   SFX.click();
+  resetAllPointerStates();
+  closeModal('modal-confirm');
+  closeModal('modal-win');
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(`screen-${screenName}`).classList.add('active');
 
@@ -3487,10 +3599,12 @@ function navTo(screenName) {
   const title = document.getElementById('header-title');
   if (screenName === 'home') {
     stopGameClock();
+    updateWakeLock();
     btnBack.style.visibility = 'hidden';
     title.textContent = '云端飞行棋';
   } else if (screenName === 'setup') {
     stopGameClock();
+    updateWakeLock();
     btnBack.style.visibility = 'visible';
     title.textContent = '选择玩家';
     renderSetupList();
@@ -3498,6 +3612,7 @@ function navTo(screenName) {
     btnBack.style.visibility = 'visible';
     title.textContent = '云端飞行棋';
     updateFloatingUIPositions();
+    updateWakeLock();
   }
 }
 
@@ -3512,22 +3627,53 @@ function handleBack() {
 
 function confirmExitGame() {
   closeModal('modal-confirm');
+  resetAllPointerStates();
   gameState.sessionId++;
   gameState.phase = 'GAME_OVER';
+  gameState.validMoves = [];
+  gameState.pieces = [];
+  gameState.winners = [];
+  gameState.firstWinnerAnnounced = false;
+  gameState.consecutiveSixes = 0;
   clearDraftSummaryNotice();
   draftSession.active = false;
+  draftSession.chosenFactions = [];
+  draftSession.contenders = [];
+  draftSession.roundRolls = {};
+  draftSession.assignedPairs = [];
+  draftSession.turnIdx = 0;
   draftDiceState.rolling = false;
+  resetDraftDiceToCenter(6);
+  if (confettiRafId) {
+    cancelAnimationFrame(confettiRafId);
+    confettiRafId = null;
+  }
+  const confCanvas = document.getElementById('confetti-canvas');
+  if (confCanvas) {
+    const cCtx = confCanvas.getContext('2d');
+    if (cCtx) cCtx.clearRect(0, 0, confCanvas.width, confCanvas.height);
+  }
+  const firstBanner = document.getElementById('first-win-banner');
+  if (firstBanner) firstBanner.classList.remove('show');
+  renderCenterVictoryFlag(-1);
+  renderPieces();
+  const magicBar = document.getElementById('magic-bar');
+  if (magicBar) magicBar.style.display = 'none';
+  const timerEl = document.getElementById('game-timer-text');
+  if (timerEl) timerEl.textContent = '00:00';
   const boardContainer = document.getElementById('board-container');
   const draftOverlay = document.getElementById('draft-overlay');
   if (boardContainer) boardContainer.classList.remove('board-blurred');
   if (draftOverlay) draftOverlay.classList.remove('active');
   stopGameClock();
+  updateWakeLock();
   updateActiveHangarPulse(-1);
   navTo('home');
 }
 
 function renderSetupList() {
   const container = document.getElementById('faction-list');
+  if (!container) return;
   container.innerHTML = FACTIONS.map((f, idx) => `
     <div class="setup-row" style="margin-bottom:10px;">
       <div class="faction-badge" style="background:${f.color};">
@@ -3569,6 +3715,9 @@ function toggleRule(key) {
     const currFaction = gameState.activeFactions[gameState.turnPtr];
     document.getElementById('magic-bar').style.display = (currFaction && currFaction.role === 'player' && RULES.magicDice) ? 'flex' : 'none';
   }
+  if (key === 'keepAwake') {
+    updateWakeLock();
+  }
 }
 
 function toggleTheme() {
@@ -3588,22 +3737,80 @@ function openModal(id) {
   SFX.click();
   document.getElementById(id).classList.add('open');
 }
+
 function closeModal(id) {
   SFX.click();
   document.getElementById(id).classList.remove('open');
 }
+
 function closeModalOnBg(e, id) {
   if (e.target.id === id) closeModal(id);
 }
 
+function initGlobalZoomGuardAndAudioUnlock() {
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(evtName => {
+    document.addEventListener(evtName, (e) => {
+      e.preventDefault();
+    }, { passive: false });
+  });
+
+  document.addEventListener('touchstart', (e) => {
+    if (e.touches.length > 1) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchmove', (e) => {
+    if (e.touches.length > 1) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  document.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('wheel', (e) => {
+    if (e.ctrlKey || e.metaKey) e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && ['+', '-', '=', '_', '0'].includes(e.key)) {
+      e.preventDefault();
+    }
+  });
+
+  document.addEventListener('pointerup', () => {
+    if (soundEnabled) ensureAudio();
+  }, { passive: true });
+
+  window.addEventListener('blur', resetAllPointerStates);
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      resetAllPointerStates();
+    } else {
+      if (soundEnabled) ensureAudio();
+      updateWakeLock();
+    }
+  });
+}
+
 loadPersistentSettings();
 syncRulesUI();
+initGlobalZoomGuardAndAudioUnlock();
 initSkyEffects();
 initGeometry();
 initDiceCanvasPointerEvents();
 initDraftDiceEvents();
 window.addEventListener('resize', () => {
-  if (draftSession.active) syncDraftDiceCanvasSize();
+  updateFloatingUIPositions();
+  if (document.getElementById('screen-game')?.classList.contains('active')) {
+    syncDiceCanvasSize();
+  }
+  if (draftSession.active) {
+    syncDraftDiceCanvasSize();
+  }
 });
 </script>
 </body>
